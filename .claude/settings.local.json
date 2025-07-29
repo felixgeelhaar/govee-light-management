@@ -17,7 +17,9 @@
       "mcp__github__search_issues",
       "mcp__github__list_issues",
       "Bash(chmod:*)",
-      "mcp__github__add_issue_comment"
+      "mcp__github__add_issue_comment",
+      "Bash(git commit:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }
