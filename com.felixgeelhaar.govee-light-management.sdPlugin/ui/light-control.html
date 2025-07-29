@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Light Control</title>
+    <link rel="stylesheet" href="sdpi.css">
+</head>
+<body>
+    <div class="sdpi-wrapper">
+        <div type="group" class="first">
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="title">API Configuration</div>
+                </div>
+            </div>
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="text">API Key</div>
+                </div>
+                <div type="column">
+                    <input class="sdpi-item-value" type="password" name="apiKey" placeholder="Enter your Govee API key">
+                </div>
+            </div>
+        </div>
+
+        <div type="group">
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="title">Light Selection</div>
+                </div>
+            </div>
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="text">Light</div>
+                </div>
+                <div type="column">
+                    <select class="sdpi-item-value" name="selectedLight">
+                        <option value="">Select a light...</option>
+                    </select>
+                </div>
+            </div>
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="text">Control Mode</div>
+                </div>
+                <div type="column">
+                    <select class="sdpi-item-value" name="controlMode">
+                        <option value="toggle">Toggle</option>
+                        <option value="on">Turn On</option>
+                        <option value="off">Turn Off</option>
+                        <option value="brightness">Set Brightness</option>
+                        <option value="color">Set Color</option>
+                        <option value="colorTemp">Color Temperature</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div type="group" id="brightnessGroup" style="display: none;">
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="text">Brightness</div>
+                </div>
+                <div type="column">
+                    <input class="sdpi-item-value" type="range" name="brightnessValue" min="1" max="100" value="50">
+                    <div type="text" class="brightness-value">50%</div>
+                </div>
+            </div>
+        </div>
+
+        <div type="group" id="colorGroup" style="display: none;">
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="text">Color</div>
+                </div>
+                <div type="column">
+                    <input class="sdpi-item-value" type="color" name="colorValue" value="#ffffff">
+                </div>
+            </div>
+        </div>
+
+        <div type="group" id="colorTempGroup" style="display: none;">
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="text">Color Temperature</div>
+                </div>
+                <div type="column">
+                    <input class="sdpi-item-value" type="range" name="colorTempValue" min="2000" max="9000" value="6500">
+                    <div type="text" class="temp-value">6500K</div>
+                </div>
+            </div>
+        </div>
+
+        <div type="group">
+            <div type="row">
+                <div type="column">
+                    <button class="sdpi-item-value" type="button" id="testLight">Test Light</button>
+                </div>
+                <div type="column">
+                    <button class="sdpi-item-value" type="button" id="refreshLights">Refresh Lights</button>
+                </div>
+            </div>
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="status" id="status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize property inspector
+        let settings = {};
+        let websocket = null;
+        let uuid = null;
+
+        function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo) {
+            uuid = inUUID;
+            settings = JSON.parse(inActionInfo).payload.settings;
+            
+            websocket = new WebSocket('ws://localhost:' + inPort);
+            
+            websocket.onopen = function() {
+                const registerEvent = {
+                    event: inRegisterEvent,
+                    uuid: uuid
+                };
+                websocket.send(JSON.stringify(registerEvent));
+                
+                // Load settings
+                loadSettings();
+            };
+            
+            websocket.onmessage = function(evt) {
+                const jsonObj = JSON.parse(evt.data);
+                if (jsonObj.event === 'sendToPropertyInspector') {
+                    handlePluginMessage(jsonObj.payload);
+                }
+            };
+        }
+
+        function loadSettings() {
+            // Load existing settings
+            if (settings.apiKey) {
+                document.querySelector('[name="apiKey"]').value = settings.apiKey;
+                fetchLights();
+            }
+            if (settings.selectedLight) {
+                document.querySelector('[name="selectedLight"]').value = settings.selectedLight;
+            }
+            if (settings.controlMode) {
+                document.querySelector('[name="controlMode"]').value = settings.controlMode;
+                showControlOptions(settings.controlMode);
+            }
+            if (settings.brightnessValue) {
+                document.querySelector('[name="brightnessValue"]').value = settings.brightnessValue;
+                updateBrightnessDisplay(settings.brightnessValue);
+            }
+            if (settings.colorValue) {
+                document.querySelector('[name="colorValue"]').value = settings.colorValue;
+            }
+            if (settings.colorTempValue) {
+                document.querySelector('[name="colorTempValue"]').value = settings.colorTempValue;
+                updateTempDisplay(settings.colorTempValue);
+            }
+        }
+
+        function sendSettings() {
+            if (websocket && websocket.readyState === 1) {
+                const setSettings = {
+                    event: 'setSettings',
+                    context: uuid,
+                    payload: settings
+                };
+                websocket.send(JSON.stringify(setSettings));
+            }
+        }
+
+        function sendToPlugin(payload) {
+            if (websocket && websocket.readyState === 1) {
+                const event = {
+                    event: 'sendToPlugin',
+                    context: uuid,
+                    payload: payload
+                };
+                websocket.send(JSON.stringify(event));
+            }
+        }
+
+        function handlePluginMessage(payload) {
+            if (payload.event === 'getLights' && payload.items) {
+                const select = document.querySelector('[name="selectedLight"]');
+                select.innerHTML = '<option value="">Select a light...</option>';
+                payload.items.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.value;
+                    option.textContent = item.label;
+                    select.appendChild(option);
+                });
+            } else if (payload.event === 'testResult') {
+                showStatus(payload.message, payload.success);
+            } else if (payload.event === 'error') {
+                showStatus(payload.message, false);
+            }
+        }
+
+        function fetchLights() {
+            sendToPlugin({ event: 'getLights' });
+        }
+
+        function showControlOptions(mode) {
+            document.getElementById('brightnessGroup').style.display = 'none';
+            document.getElementById('colorGroup').style.display = 'none';
+            document.getElementById('colorTempGroup').style.display = 'none';
+
+            if (mode === 'brightness') {
+                document.getElementById('brightnessGroup').style.display = 'block';
+            } else if (mode === 'color') {
+                document.getElementById('colorGroup').style.display = 'block';
+            } else if (mode === 'colorTemp') {
+                document.getElementById('colorTempGroup').style.display = 'block';
+            }
+        }
+
+        function updateBrightnessDisplay(value) {
+            document.querySelector('.brightness-value').textContent = value + '%';
+        }
+
+        function updateTempDisplay(value) {
+            document.querySelector('.temp-value').textContent = value + 'K';
+        }
+
+        function showStatus(message, success) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = 'status ' + (success ? 'success' : 'error');
+            setTimeout(() => {
+                statusEl.textContent = '';
+                statusEl.className = 'status';
+            }, 3000);
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // API Key change
+            document.querySelector('[name="apiKey"]').addEventListener('change', function() {
+                settings.apiKey = this.value;
+                sendSettings();
+                if (this.value) {
+                    fetchLights();
+                }
+            });
+
+            // Light selection change
+            document.querySelector('[name="selectedLight"]').addEventListener('change', function() {
+                const parts = this.value.split('|');
+                settings.selectedDeviceId = parts[0];
+                settings.selectedModel = parts[1];
+                settings.selectedLightName = this.options[this.selectedIndex].text;
+                sendSettings();
+            });
+
+            // Control mode change
+            document.querySelector('[name="controlMode"]').addEventListener('change', function() {
+                settings.controlMode = this.value;
+                sendSettings();
+                showControlOptions(this.value);
+            });
+
+            // Brightness change
+            document.querySelector('[name="brightnessValue"]').addEventListener('input', function() {
+                settings.brightnessValue = parseInt(this.value);
+                sendSettings();
+                updateBrightnessDisplay(this.value);
+            });
+
+            // Color change
+            document.querySelector('[name="colorValue"]').addEventListener('change', function() {
+                settings.colorValue = this.value;
+                sendSettings();
+            });
+
+            // Color temperature change
+            document.querySelector('[name="colorTempValue"]').addEventListener('input', function() {
+                settings.colorTempValue = parseInt(this.value);
+                sendSettings();
+                updateTempDisplay(this.value);
+            });
+
+            // Test light button
+            document.getElementById('testLight').addEventListener('click', function() {
+                sendToPlugin({ event: 'testLight' });
+            });
+
+            // Refresh lights button
+            document.getElementById('refreshLights').addEventListener('click', function() {
+                fetchLights();
+            });
+        });
+    </script>
+    <style>
+        .status {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .status.success {
+            color: #4CAF50;
+        }
+        .status.error {
+            color: #f44336;
+        }
+        .brightness-value, .temp-value {
+            font-size: 11px;
+            color: #969696;
+            text-align: center;
+            margin-top: 2px;
+        }
+    </style>
+</body>
+</html>

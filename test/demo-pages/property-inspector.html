@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Govee Light Control - Property Inspector</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #2d2d30;
+            color: #ffffff;
+            padding: 16px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+            color: #cccccc;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            background-color: #3c3c3c;
+            border: 1px solid #565656;
+            border-radius: 4px;
+            color: #ffffff;
+            font-size: 13px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #007acc;
+            box-shadow: 0 0 0 1px #007acc;
+        }
+
+        .form-control:disabled {
+            background-color: #2d2d30;
+            color: #666666;
+            cursor: not-allowed;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background-color: #0e639c;
+            border: 1px solid #0e639c;
+            border-radius: 4px;
+            color: #ffffff;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover:not(:disabled) {
+            background-color: #1177bb;
+        }
+
+        .btn:disabled {
+            background-color: #565656;
+            border-color: #565656;
+            cursor: not-allowed;
+        }
+
+        .btn-test {
+            background-color: #14a085;
+            border-color: #14a085;
+            margin-left: 8px;
+        }
+
+        .btn-test:hover:not(:disabled) {
+            background-color: #17c2a2;
+        }
+
+        .message {
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .error-message {
+            background-color: #f14c4c;
+            color: #ffffff;
+        }
+
+        .success-message {
+            background-color: #14a085;
+            color: #ffffff;
+        }
+
+        .field-error {
+            color: #f14c4c;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #565656;
+            border-radius: 50%;
+            border-top-color: #007acc;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .control-mode-settings {
+            margin-top: 12px;
+            padding: 12px;
+            background-color: #3c3c3c;
+            border-radius: 4px;
+            border: 1px solid #565656;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .slider {
+            flex: 1;
+        }
+
+        .slider-value {
+            min-width: 40px;
+            text-align: center;
+            background-color: #2d2d30;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .color-picker-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .color-picker {
+            width: 60px;
+            height: 32px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .color-preview {
+            flex: 1;
+            height: 32px;
+            border-radius: 4px;
+            border: 1px solid #565656;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <form id="lightControlForm">
+            <div class="form-group">
+                <label for="apiKey">Govee API Key</label>
+                <input 
+                    type="password" 
+                    id="apiKey" 
+                    name="apiKey" 
+                    class="form-control" 
+                    placeholder="Enter your Govee API key"
+                    aria-label="Govee API Key"
+                    required
+                >
+                <div class="field-error" id="apiKeyError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="selectedLight">Select Light</label>
+                <select 
+                    id="selectedLight" 
+                    name="selectedLight" 
+                    class="form-control" 
+                    disabled
+                    aria-label="Select Light"
+                    required
+                >
+                    <option value="">Loading lights...</option>
+                </select>
+                <div class="field-error" id="lightError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="controlMode">Control Mode</label>
+                <select 
+                    id="controlMode" 
+                    name="controlMode" 
+                    class="form-control"
+                    aria-label="Control Mode"
+                >
+                    <option value="toggle">Toggle</option>
+                    <option value="on">Turn On</option>
+                    <option value="off">Turn Off</option>
+                    <option value="brightness">Set Brightness</option>
+                    <option value="color">Set Color</option>
+                    <option value="colorTemp">Color Temperature</option>
+                </select>
+            </div>
+
+            <div class="control-mode-settings hidden" id="brightnessSettings">
+                <label for="brightnessValue">Brightness Level</label>
+                <div class="slider-container">
+                    <input 
+                        type="range" 
+                        id="brightnessValue" 
+                        name="brightnessValue" 
+                        class="form-control slider" 
+                        min="1" 
+                        max="100" 
+                        value="50"
+                    >
+                    <div class="slider-value" id="brightnessDisplay">50%</div>
+                </div>
+            </div>
+
+            <div class="control-mode-settings hidden" id="colorSettings">
+                <label for="colorValue">Color</label>
+                <div class="color-picker-container">
+                    <input 
+                        type="color" 
+                        id="colorValue" 
+                        name="colorValue" 
+                        class="color-picker" 
+                        value="#ff0000"
+                    >
+                    <div class="color-preview" id="colorPreview" style="background-color: #ff0000;">
+                        #FF0000
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-mode-settings hidden" id="colorTempSettings">
+                <label for="colorTempValue">Color Temperature (K)</label>
+                <div class="slider-container">
+                    <input 
+                        type="range" 
+                        id="colorTempValue" 
+                        name="colorTempValue" 
+                        class="form-control slider" 
+                        min="2000" 
+                        max="9000" 
+                        value="4000"
+                    >
+                    <div class="slider-value" id="colorTempDisplay">4000K</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn" id="saveButton">
+                    Save Settings
+                </button>
+                <button type="button" class="btn btn-test" id="testButton" data-action="testLight" disabled>
+                    Test Light
+                </button>
+            </div>
+
+            <div id="messageContainer"></div>
+        </form>
+    </div>
+
+    <script>
+        class PropertyInspector {
+            constructor() {
+                this.apiKey = '';
+                this.lights = [];
+                this.isLoading = false;
+                
+                this.initializeEventListeners();
+                this.loadSavedSettings();
+            }
+
+            initializeEventListeners() {
+                const apiKeyInput = document.getElementById('apiKey');
+                const lightSelect = document.getElementById('selectedLight');
+                const controlModeSelect = document.getElementById('controlMode');
+                const brightnessSlider = document.getElementById('brightnessValue');
+                const colorPicker = document.getElementById('colorValue');
+                const colorTempSlider = document.getElementById('colorTempValue');
+                const form = document.getElementById('lightControlForm');
+                const testButton = document.getElementById('testButton');
+
+                apiKeyInput.addEventListener('input', this.handleApiKeyChange.bind(this));
+                apiKeyInput.addEventListener('blur', this.validateAndFetchLights.bind(this));
+                
+                lightSelect.addEventListener('change', this.handleLightSelection.bind(this));
+                controlModeSelect.addEventListener('change', this.handleControlModeChange.bind(this));
+                
+                brightnessSlider.addEventListener('input', this.updateBrightnessDisplay.bind(this));
+                colorPicker.addEventListener('input', this.updateColorPreview.bind(this));
+                colorTempSlider.addEventListener('input', this.updateColorTempDisplay.bind(this));
+                
+                form.addEventListener('submit', this.handleFormSubmit.bind(this));
+                testButton.addEventListener('click', this.handleTestLight.bind(this));
+            }
+
+            handleApiKeyChange(event) {
+                this.apiKey = event.target.value;
+                this.clearMessages();
+                this.clearFieldError('apiKeyError');
+                
+                // Reset light selection when API key changes
+                const lightSelect = document.getElementById('selectedLight');
+                lightSelect.innerHTML = '<option value="">Enter API key to load lights</option>';
+                lightSelect.disabled = true;
+                document.getElementById('testButton').disabled = true;
+            }
+
+            async validateAndFetchLights() {
+                const apiKey = this.apiKey.trim();
+                
+                if (!apiKey) {
+                    return;
+                }
+
+                if (!this.validateApiKeyFormat(apiKey)) {
+                    this.showFieldError('apiKeyError', 'Invalid API key format');
+                    return;
+                }
+
+                await this.fetchLights(apiKey);
+            }
+
+            validateApiKeyFormat(apiKey) {
+                // Simple validation for demo purposes
+                return apiKey.length >= 10 && apiKey.includes('-');
+            }
+
+            async fetchLights(apiKey) {
+                this.setLoading(true);
+                
+                try {
+                    // Simulate API call
+                    await this.simulateApiCall();
+                    
+                    // Mock light data
+                    this.lights = [
+                        { id: 'device123|H6110', name: 'Living Room Strip Light', model: 'H6110' },
+                        { id: 'device456|H6159', name: 'Bedroom Desk Lamp', model: 'H6159' },
+                        { id: 'device789|H6117', name: 'Kitchen Under Cabinet', model: 'H6117' }
+                    ];
+                    
+                    this.populateLightSelect();
+                    this.showSuccessMessage('Lights loaded successfully');
+                    
+                } catch (error) {
+                    this.showErrorMessage('Failed to fetch lights. Please check your API key.');
+                    this.clearLightSelect();
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            async simulateApiCall() {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        // Simulate success/failure based on API key
+                        if (this.apiKey.includes('invalid')) {
+                            reject(new Error('Invalid API key'));
+                        } else {
+                            resolve();
+                        }
+                    }, 1500);
+                });
+            }
+
+            populateLightSelect() {
+                const lightSelect = document.getElementById('selectedLight');
+                lightSelect.innerHTML = '<option value="">Select a light...</option>';
+                
+                this.lights.forEach(light => {
+                    const option = document.createElement('option');
+                    option.value = light.id;
+                    option.textContent = `${light.name} (${light.model})`;
+                    lightSelect.appendChild(option);
+                });
+                
+                lightSelect.disabled = false;
+            }
+
+            clearLightSelect() {
+                const lightSelect = document.getElementById('selectedLight');
+                lightSelect.innerHTML = '<option value="">Failed to load lights</option>';
+                lightSelect.disabled = true;
+            }
+
+            handleLightSelection(event) {
+                const testButton = document.getElementById('testButton');
+                testButton.disabled = !event.target.value;
+                this.clearFieldError('lightError');
+            }
+
+            handleControlModeChange(event) {
+                const mode = event.target.value;
+                
+                // Hide all mode-specific settings
+                document.getElementById('brightnessSettings').classList.add('hidden');
+                document.getElementById('colorSettings').classList.add('hidden');
+                document.getElementById('colorTempSettings').classList.add('hidden');
+                
+                // Show relevant settings
+                switch (mode) {
+                    case 'brightness':
+                        document.getElementById('brightnessSettings').classList.remove('hidden');
+                        break;
+                    case 'color':
+                        document.getElementById('colorSettings').classList.remove('hidden');
+                        break;
+                    case 'colorTemp':
+                        document.getElementById('colorTempSettings').classList.remove('hidden');
+                        break;
+                }
+            }
+
+            updateBrightnessDisplay() {
+                const slider = document.getElementById('brightnessValue');
+                const display = document.getElementById('brightnessDisplay');
+                display.textContent = `${slider.value}%`;
+            }
+
+            updateColorPreview() {
+                const picker = document.getElementById('colorValue');
+                const preview = document.getElementById('colorPreview');
+                preview.style.backgroundColor = picker.value;
+                preview.textContent = picker.value.toUpperCase();
+            }
+
+            updateColorTempDisplay() {
+                const slider = document.getElementById('colorTempValue');
+                const display = document.getElementById('colorTempDisplay');
+                display.textContent = `${slider.value}K`;
+            }
+
+            async handleFormSubmit(event) {
+                event.preventDefault();
+                
+                if (!this.validateForm()) {
+                    return;
+                }
+                
+                const formData = new FormData(event.target);
+                const settings = Object.fromEntries(formData.entries());
+                
+                this.showSuccessMessage('Settings saved successfully');
+                console.log('Saved settings:', settings);
+            }
+
+            async handleTestLight() {
+                const lightSelect = document.getElementById('selectedLight');
+                const selectedLight = lightSelect.value;
+                
+                if (!selectedLight) {
+                    this.showErrorMessage('Please select a light to test');
+                    return;
+                }
+                
+                this.setLoading(true);
+                
+                try {
+                    // Simulate light test
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    this.showSuccessMessage('Light test successful');
+                } catch (error) {
+                    this.showErrorMessage('Light test failed');
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            validateForm() {
+                let isValid = true;
+                
+                // Clear previous errors
+                this.clearAllFieldErrors();
+                
+                // Validate API key
+                const apiKey = document.getElementById('apiKey').value.trim();
+                if (!apiKey) {
+                    this.showFieldError('apiKeyError', 'API key is required');
+                    isValid = false;
+                } else if (!this.validateApiKeyFormat(apiKey)) {
+                    this.showFieldError('apiKeyError', 'Invalid API key format');
+                    isValid = false;
+                }
+                
+                // Validate light selection
+                const selectedLight = document.getElementById('selectedLight').value;
+                if (!selectedLight) {
+                    this.showFieldError('lightError', 'Please select a light');
+                    isValid = false;
+                }
+                
+                return isValid;
+            }
+
+            setLoading(loading) {
+                this.isLoading = loading;
+                const saveButton = document.getElementById('saveButton');
+                const testButton = document.getElementById('testButton');
+                
+                if (loading) {
+                    saveButton.disabled = true;
+                    testButton.disabled = true;
+                    
+                    if (!document.querySelector('.loading')) {
+                        const spinner = document.createElement('div');
+                        spinner.className = 'loading';
+                        document.getElementById('messageContainer').appendChild(spinner);
+                    }
+                } else {
+                    saveButton.disabled = false;
+                    testButton.disabled = !document.getElementById('selectedLight').value;
+                    
+                    const spinner = document.querySelector('.loading');
+                    if (spinner) {
+                        spinner.remove();
+                    }
+                }
+            }
+
+            showMessage(message, type) {
+                this.clearMessages();
+                const messageContainer = document.getElementById('messageContainer');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${type}-message`;
+                messageDiv.textContent = message;
+                messageContainer.appendChild(messageDiv);
+                
+                // Auto-hide success messages
+                if (type === 'success') {
+                    setTimeout(() => {
+                        messageDiv.remove();
+                    }, 3000);
+                }
+            }
+
+            showSuccessMessage(message) {
+                this.showMessage(message, 'success');
+            }
+
+            showErrorMessage(message) {
+                this.showMessage(message, 'error');
+            }
+
+            clearMessages() {
+                const messageContainer = document.getElementById('messageContainer');
+                messageContainer.innerHTML = '';
+            }
+
+            showFieldError(fieldId, message) {
+                const errorElement = document.getElementById(fieldId);
+                errorElement.textContent = message;
+            }
+
+            clearFieldError(fieldId) {
+                const errorElement = document.getElementById(fieldId);
+                errorElement.textContent = '';
+            }
+
+            clearAllFieldErrors() {
+                const errorElements = document.querySelectorAll('.field-error');
+                errorElements.forEach(element => {
+                    element.textContent = '';
+                });
+            }
+
+            loadSavedSettings() {
+                // In a real implementation, this would load from Stream Deck settings
+                // For demo purposes, we'll use localStorage
+                const savedSettings = localStorage.getItem('goveeSettings');
+                if (savedSettings) {
+                    const settings = JSON.parse(savedSettings);
+                    
+                    if (settings.apiKey) {
+                        document.getElementById('apiKey').value = settings.apiKey;
+                        this.apiKey = settings.apiKey;
+                    }
+                    
+                    if (settings.controlMode) {
+                        document.getElementById('controlMode').value = settings.controlMode;
+                        this.handleControlModeChange({ target: { value: settings.controlMode } });
+                    }
+                    
+                    if (settings.brightnessValue) {
+                        document.getElementById('brightnessValue').value = settings.brightnessValue;
+                        this.updateBrightnessDisplay();
+                    }
+                    
+                    if (settings.colorValue) {
+                        document.getElementById('colorValue').value = settings.colorValue;
+                        this.updateColorPreview();
+                    }
+                    
+                    if (settings.colorTempValue) {
+                        document.getElementById('colorTempValue').value = settings.colorTempValue;
+                        this.updateColorTempDisplay();
+                    }
+                }
+            }
+        }
+
+        // Initialize the property inspector when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new PropertyInspector();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+{
+	"Name": "Govee Light Management",
+	"Version": "1.0.0.0",
+	"Author": "Felix Geelhaar",
+	"Actions": [
+		{
+			"Name": "Light Control",
+			"UUID": "com.felixgeelhaar.govee-light-management.lights",
+			"Icon": "imgs/actions/light/icon",
+			"Tooltip": "Control individual Govee lights with advanced settings",
+			"PropertyInspectorPath": "ui/light-control.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/light/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Group Control",
+			"UUID": "com.felixgeelhaar.govee-light-management.groups",
+			"Icon": "imgs/actions/group/icon",
+			"Tooltip": "Control multiple Govee lights as a group",
+			"PropertyInspectorPath": "ui/group-control.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/group/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		}
+	],
+	"Category": "Govee Light Management",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"CodePath": "bin/plugin.js",
+	"Description": "Enterprise-grade management of Govee smart lights with advanced group control and DDD architecture",
+	"Icon": "imgs/plugin/marketplace",
+	"SDKVersion": 2,
+	"Software": {
+		"MinimumVersion": "6.5"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "12"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "20",
+		"Debug": "enabled"
+	},
+	"UUID": "com.felixgeelhaar.govee-light-management"
+}

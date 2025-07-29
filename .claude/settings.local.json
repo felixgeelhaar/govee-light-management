@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Ref__ref_search_documentation",
+      "mcp__Ref__ref_read_url",
+      "Bash(npm install)",
+      "Bash(npm run build:*)",
+      "mcp__github__get_file_contents",
+      "mcp__github__get_file_contents",
+      "Bash(npm install:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm test)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(streamdeck:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(find:*)",
+      "mcp__github__search_issues",
+      "mcp__github__list_issues",
+      "Bash(chmod:*)",
+      "mcp__github__add_issue_comment"
+    ],
+    "deny": []
+  }
+}

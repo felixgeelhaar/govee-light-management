@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Group Control</title>
+    <link rel="stylesheet" href="sdpi.css">
+</head>
+<body>
+    <div class="sdpi-wrapper">
+        <div type="group" class="first">
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="title">API Configuration</div>
+                </div>
+            </div>
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="text">API Key</div>
+                </div>
+                <div type="column">
+                    <input class="sdpi-item-value" type="password" name="apiKey" placeholder="Enter your Govee API key">
+                </div>
+            </div>
+        </div>
+
+        <div type="group">
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="title">Group Management</div>
+                </div>
+            </div>
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="text">Light Group</div>
+                </div>
+                <div type="column">
+                    <select class="sdpi-item-value" name="selectedGroup">
+                        <option value="">Select a group...</option>
+                    </select>
+                </div>
+            </div>
+            <div type="row">
+                <div type="column">
+                    <button class="sdpi-item-value" type="button" id="createGroup">Create New Group</button>
+                </div>
+                <div type="column">
+                    <button class="sdpi-item-value" type="button" id="refreshGroups">Refresh Groups</button>
+                </div>
+            </div>
+        </div>
+
+        <div type="group" id="createGroupPanel" style="display: none;">
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="title">Create Group</div>
+                </div>
+            </div>
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="text">Group Name</div>
+                </div>
+                <div type="column">
+                    <input class="sdpi-item-value" type="text" id="groupName" placeholder="Enter group name">
+                </div>
+            </div>
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="text">Select Lights</div>
+                </div>
+                <div type="column">
+                    <div id="lightsList" class="lights-list"></div>
+                </div>
+            </div>
+            <div type="row">
+                <div type="column">
+                    <button class="sdpi-item-value" type="button" id="saveGroup">Save Group</button>
+                </div>
+                <div type="column">
+                    <button class="sdpi-item-value" type="button" id="cancelGroup">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div type="group">
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="title">Control Settings</div>
+                </div>
+            </div>
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="text">Control Mode</div>
+                </div>
+                <div type="column">
+                    <select class="sdpi-item-value" name="controlMode">
+                        <option value="toggle">Toggle</option>
+                        <option value="on">Turn On</option>
+                        <option value="off">Turn Off</option>
+                        <option value="brightness">Set Brightness</option>
+                        <option value="color">Set Color</option>
+                        <option value="colorTemp">Color Temperature</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div type="group" id="brightnessGroup" style="display: none;">
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="text">Brightness</div>
+                </div>
+                <div type="column">
+                    <input class="sdpi-item-value" type="range" name="brightnessValue" min="1" max="100" value="50">
+                    <div type="text" class="brightness-value">50%</div>
+                </div>
+            </div>
+        </div>
+
+        <div type="group" id="colorGroup" style="display: none;">
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="text">Color</div>
+                </div>
+                <div type="column">
+                    <input class="sdpi-item-value" type="color" name="colorValue" value="#ffffff">
+                </div>
+            </div>
+        </div>
+
+        <div type="group" id="colorTempGroup" style="display: none;">
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="text">Color Temperature</div>
+                </div>
+                <div type="column">
+                    <input class="sdpi-item-value" type="range" name="colorTempValue" min="2000" max="9000" value="6500">
+                    <div type="text" class="temp-value">6500K</div>
+                </div>
+            </div>
+        </div>
+
+        <div type="group">
+            <div type="row">
+                <div type="column">
+                    <button class="sdpi-item-value" type="button" id="testGroup">Test Group</button>
+                </div>
+                <div type="column">
+                    <button class="sdpi-item-value" type="button" id="refreshState">Refresh State</button>
+                </div>
+            </div>
+            <div type="row">
+                <div type="column">
+                    <div type="text" class="status" id="status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize property inspector
+        let settings = {};
+        let websocket = null;
+        let uuid = null;
+        let availableLights = [];
+
+        function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo) {
+            uuid = inUUID;
+            settings = JSON.parse(inActionInfo).payload.settings;
+            
+            websocket = new WebSocket('ws://localhost:' + inPort);
+            
+            websocket.onopen = function() {
+                const registerEvent = {
+                    event: inRegisterEvent,
+                    uuid: uuid
+                };
+                websocket.send(JSON.stringify(registerEvent));
+                
+                // Load settings
+                loadSettings();
+            };
+            
+            websocket.onmessage = function(evt) {
+                const jsonObj = JSON.parse(evt.data);
+                if (jsonObj.event === 'sendToPropertyInspector') {
+                    handlePluginMessage(jsonObj.payload);
+                }
+            };
+        }
+
+        function loadSettings() {
+            // Load existing settings
+            if (settings.apiKey) {
+                document.querySelector('[name="apiKey"]').value = settings.apiKey;
+                fetchGroups();
+                fetchLights();
+            }
+            if (settings.selectedGroupId) {
+                document.querySelector('[name="selectedGroup"]').value = settings.selectedGroupId;
+            }
+            if (settings.controlMode) {
+                document.querySelector('[name="controlMode"]').value = settings.controlMode;
+                showControlOptions(settings.controlMode);
+            }
+            if (settings.brightnessValue) {
+                document.querySelector('[name="brightnessValue"]').value = settings.brightnessValue;
+                updateBrightnessDisplay(settings.brightnessValue);
+            }
+            if (settings.colorValue) {
+                document.querySelector('[name="colorValue"]').value = settings.colorValue;
+            }
+            if (settings.colorTempValue) {
+                document.querySelector('[name="colorTempValue"]').value = settings.colorTempValue;
+                updateTempDisplay(settings.colorTempValue);
+            }
+        }
+
+        function sendSettings() {
+            if (websocket && websocket.readyState === 1) {
+                const setSettings = {
+                    event: 'setSettings',
+                    context: uuid,
+                    payload: settings
+                };
+                websocket.send(JSON.stringify(setSettings));
+            }
+        }
+
+        function sendToPlugin(payload) {
+            if (websocket && websocket.readyState === 1) {
+                const event = {
+                    event: 'sendToPlugin',
+                    context: uuid,
+                    payload: payload
+                };
+                websocket.send(JSON.stringify(event));
+            }
+        }
+
+        function handlePluginMessage(payload) {
+            if (payload.event === 'getGroups' && payload.items) {
+                const select = document.querySelector('[name="selectedGroup"]');
+                select.innerHTML = '<option value="">Select a group...</option>';
+                payload.items.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.value;
+                    option.textContent = item.label;
+                    select.appendChild(option);
+                });
+            } else if (payload.event === 'getLights' && payload.items) {
+                availableLights = payload.items;
+                updateLightsList();
+            } else if (payload.event === 'groupCreated') {
+                if (payload.success) {
+                    showStatus('Group created successfully!', true);
+                    hideCreateGroupPanel();
+                    fetchGroups();
+                } else {
+                    showStatus(payload.message || 'Failed to create group', false);
+                }
+            } else if (payload.event === 'testResult') {
+                showStatus(payload.message, payload.success);
+            } else if (payload.event === 'error') {
+                showStatus(payload.message, false);
+            }
+        }
+
+        function fetchGroups() {
+            sendToPlugin({ event: 'getGroups' });
+        }
+
+        function fetchLights() {
+            sendToPlugin({ event: 'getLights' });
+        }
+
+        function showCreateGroupPanel() {
+            document.getElementById('createGroupPanel').style.display = 'block';
+            if (availableLights.length === 0) {
+                fetchLights();
+            }
+        }
+
+        function hideCreateGroupPanel() {
+            document.getElementById('createGroupPanel').style.display = 'none';
+            document.getElementById('groupName').value = '';
+            updateLightsList();
+        }
+
+        function updateLightsList() {
+            const container = document.getElementById('lightsList');
+            container.innerHTML = '';
+            
+            availableLights.forEach(light => {
+                const div = document.createElement('div');
+                div.className = 'light-checkbox';
+                div.innerHTML = `
+                    <label>
+                        <input type="checkbox" value="${light.value}">
+                        <span>${light.label}</span>
+                    </label>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function getSelectedLights() {
+            const checkboxes = document.querySelectorAll('#lightsList input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        function showControlOptions(mode) {
+            document.getElementById('brightnessGroup').style.display = 'none';
+            document.getElementById('colorGroup').style.display = 'none';
+            document.getElementById('colorTempGroup').style.display = 'none';
+
+            if (mode === 'brightness') {
+                document.getElementById('brightnessGroup').style.display = 'block';
+            } else if (mode === 'color') {
+                document.getElementById('colorGroup').style.display = 'block';
+            } else if (mode === 'colorTemp') {
+                document.getElementById('colorTempGroup').style.display = 'block';
+            }
+        }
+
+        function updateBrightnessDisplay(value) {
+            document.querySelector('.brightness-value').textContent = value + '%';
+        }
+
+        function updateTempDisplay(value) {
+            document.querySelector('.temp-value').textContent = value + 'K';
+        }
+
+        function showStatus(message, success) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = 'status ' + (success ? 'success' : 'error');
+            setTimeout(() => {
+                statusEl.textContent = '';
+                statusEl.className = 'status';
+            }, 3000);
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // API Key change
+            document.querySelector('[name="apiKey"]').addEventListener('change', function() {
+                settings.apiKey = this.value;
+                sendSettings();
+                if (this.value) {
+                    fetchGroups();
+                    fetchLights();
+                }
+            });
+
+            // Group selection change
+            document.querySelector('[name="selectedGroup"]').addEventListener('change', function() {
+                settings.selectedGroupId = this.value;
+                settings.selectedGroupName = this.options[this.selectedIndex].text;
+                sendSettings();
+            });
+
+            // Control mode change
+            document.querySelector('[name="controlMode"]').addEventListener('change', function() {
+                settings.controlMode = this.value;
+                sendSettings();
+                showControlOptions(this.value);
+            });
+
+            // Brightness change
+            document.querySelector('[name="brightnessValue"]').addEventListener('input', function() {
+                settings.brightnessValue = parseInt(this.value);
+                sendSettings();
+                updateBrightnessDisplay(this.value);
+            });
+
+            // Color change
+            document.querySelector('[name="colorValue"]').addEventListener('change', function() {
+                settings.colorValue = this.value;
+                sendSettings();
+            });
+
+            // Color temperature change
+            document.querySelector('[name="colorTempValue"]').addEventListener('input', function() {
+                settings.colorTempValue = parseInt(this.value);
+                sendSettings();
+                updateTempDisplay(this.value);
+            });
+
+            // Create group button
+            document.getElementById('createGroup').addEventListener('click', function() {
+                showCreateGroupPanel();
+            });
+
+            // Save group button
+            document.getElementById('saveGroup').addEventListener('click', function() {
+                const groupName = document.getElementById('groupName').value.trim();
+                const selectedLights = getSelectedLights();
+                
+                if (!groupName) {
+                    showStatus('Please enter a group name', false);
+                    return;
+                }
+                
+                if (selectedLights.length === 0) {
+                    showStatus('Please select at least one light', false);
+                    return;
+                }
+                
+                sendToPlugin({
+                    event: 'createGroup',
+                    groupName: groupName,
+                    selectedLightIds: selectedLights
+                });
+            });
+
+            // Cancel group button
+            document.getElementById('cancelGroup').addEventListener('click', function() {
+                hideCreateGroupPanel();
+            });
+
+            // Refresh groups button
+            document.getElementById('refreshGroups').addEventListener('click', function() {
+                fetchGroups();
+            });
+
+            // Test group button
+            document.getElementById('testGroup').addEventListener('click', function() {
+                sendToPlugin({ event: 'testGroup' });
+            });
+
+            // Refresh state button
+            document.getElementById('refreshState').addEventListener('click', function() {
+                sendToPlugin({ event: 'refreshState' });
+            });
+        });
+    </script>
+    <style>
+        .status {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .status.success {
+            color: #4CAF50;
+        }
+        .status.error {
+            color: #f44336;
+        }
+        .brightness-value, .temp-value {
+            font-size: 11px;
+            color: #969696;
+            text-align: center;
+            margin-top: 2px;
+        }
+        .lights-list {
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            padding: 5px;
+        }
+        .light-checkbox {
+            margin: 3px 0;
+        }
+        .light-checkbox label {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .light-checkbox input[type="checkbox"] {
+            margin-right: 8px;
+        }
+    </style>
+</body>
+</html>
