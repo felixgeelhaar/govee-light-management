@@ -1,5 +1,7 @@
 import { setup, assign, fromPromise } from 'xstate'
 import { websocketService } from '../services/websocketService'
+import { apiCacheService } from '../services/cacheService'
+import { performanceService } from '../services/performanceService'
 
 /**
  * Context for the API connection state machine
@@ -73,36 +75,50 @@ export const apiConnectionMachine = setup({
   
   actors: {
     validateApiKey: fromPromise(async ({ input }: { input: { apiKey: string } }) => {
-      // Production-ready WebSocket-based API key validation
-      if (!websocketService.isConnected) {
-        throw new Error('WebSocket not connected to Stream Deck')
-      }
+      const operationId = `apikey-validation-${Date.now()}`
       
-      return new Promise<boolean>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          websocketService.off('sendToPropertyInspector', responseHandler)
-          reject(new Error('API key validation timeout'))
-        }, 10000) // 10 second timeout for network operations
-        
-        const responseHandler = (message: any) => {
-          if (message.payload?.event === 'apiKeyValidated') {
-            clearTimeout(timeout)
-            websocketService.off('sendToPropertyInspector', responseHandler)
-            
-            if (message.payload.isValid) {
-              resolve(true)
-            } else {
-              reject(new Error(message.payload.error || 'Invalid API key'))
-            }
-          }
+      return performanceService.timeAsync(operationId, 'API Key Validation', async () => {
+        // Check cache first for faster validation
+        const cachedResult = apiCacheService.getCachedApiKeyValidation(input.apiKey)
+        if (cachedResult !== null) {
+          console.log('API key validation result retrieved from cache')
+          return cachedResult
+        }
+
+        // Production-ready WebSocket-based API key validation
+        if (!websocketService.isConnected) {
+          throw new Error('WebSocket not connected to Stream Deck')
         }
         
-        // Listen for response
-        websocketService.on('sendToPropertyInspector', responseHandler)
-        
-        // Send validation request
-        websocketService.validateApiKey(input.apiKey)
-      })
+        return new Promise<boolean>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            websocketService.off('sendToPropertyInspector', responseHandler)
+            reject(new Error('API key validation timeout'))
+          }, 10000) // 10 second timeout for network operations
+          
+          const responseHandler = (message: any) => {
+            if (message.payload?.event === 'apiKeyValidated') {
+              clearTimeout(timeout)
+              websocketService.off('sendToPropertyInspector', responseHandler)
+              
+              if (message.payload.isValid) {
+                // Cache successful validation
+                apiCacheService.cacheApiKeyValidation(input.apiKey, true)
+                resolve(true)
+              } else {
+                // Don't cache failures as they might be temporary network issues
+                reject(new Error(message.payload.error || 'Invalid API key'))
+              }
+            }
+          }
+          
+          // Listen for response
+          websocketService.on('sendToPropertyInspector', responseHandler)
+          
+          // Send validation request
+          websocketService.validateApiKey(input.apiKey)
+        })
+      }, { operation: 'api-validation' })
     }),
   },
 }).createMachine({
@@ -138,7 +154,7 @@ export const apiConnectionMachine = setup({
         onError: {
           target: 'error',
           actions: assign({
-            error: ({ event }) => event.error.message,
+            error: ({ event }) => event.error instanceof Error ? event.error.message : String(event.error),
           }),
         },
       },

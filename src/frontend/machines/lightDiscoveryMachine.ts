@@ -1,6 +1,8 @@
 import { setup, assign, fromPromise } from 'xstate'
 import type { LightItem } from '@shared/types'
 import { websocketService } from '../services/websocketService'
+import { apiCacheService } from '../services/cacheService'
+import { performanceService } from '../services/performanceService'
 
 /**
  * Context for the light discovery state machine
@@ -110,36 +112,60 @@ export const lightDiscoveryMachine = setup({
   
   actors: {
     fetchLights: fromPromise(async ({ input }: { input: LightDiscoveryInput }) => {
-      // Production-ready WebSocket-based light discovery
-      if (!websocketService.isConnected) {
-        throw new Error('WebSocket not connected to Stream Deck')
-      }
+      const operationId = `lights-discovery-${Date.now()}`
       
-      return new Promise<LightItem[]>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          websocketService.off('sendToPropertyInspector', responseHandler)
-          reject(new Error('Light discovery timeout'))
-        }, 15000) // 15 second timeout for light discovery
+      return performanceService.timeAsync(operationId, 'Light Discovery', async () => {
+        // Try to get API key from current settings for caching
+        const currentSettings = websocketService.getCurrentSettings()
+        const apiKey = currentSettings?.apiKey
         
-        const responseHandler = (message: any) => {
-          if (message.payload?.event === 'lightsReceived') {
-            clearTimeout(timeout)
-            websocketService.off('sendToPropertyInspector', responseHandler)
-            
-            if (message.payload.error) {
-              reject(new Error(message.payload.error))
-            } else {
-              resolve(message.payload.lights || [])
-            }
+        // Check cache first if we have an API key
+        if (apiKey) {
+          const cachedLights = apiCacheService.getCachedLights(apiKey)
+          if (cachedLights) {
+            console.log('Lights retrieved from cache')
+            return cachedLights
           }
         }
+
+        // Production-ready WebSocket-based light discovery
+        if (!websocketService.isConnected) {
+          throw new Error('WebSocket not connected to Stream Deck')
+        }
         
-        // Listen for response
-        websocketService.on('sendToPropertyInspector', responseHandler)
-        
-        // Send lights request
-        websocketService.requestLights()
-      })
+        return new Promise<LightItem[]>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            websocketService.off('sendToPropertyInspector', responseHandler)
+            reject(new Error('Light discovery timeout'))
+          }, 15000) // 15 second timeout for light discovery
+          
+          const responseHandler = (message: any) => {
+            if (message.payload?.event === 'lightsReceived') {
+              clearTimeout(timeout)
+              websocketService.off('sendToPropertyInspector', responseHandler)
+              
+              if (message.payload.error) {
+                reject(new Error(message.payload.error))
+              } else {
+                const lights = message.payload.lights || []
+                
+                // Cache the results if we have an API key
+                if (apiKey && lights.length > 0) {
+                  apiCacheService.cacheLights(apiKey, lights)
+                }
+                
+                resolve(lights)
+              }
+            }
+          }
+          
+          // Listen for response
+          websocketService.on('sendToPropertyInspector', responseHandler)
+          
+          // Send lights request
+          websocketService.requestLights()
+        })
+      }, { operation: 'light-discovery', cached: apiKey && apiCacheService.getCachedLights(apiKey) !== null })
     }),
   },
 }).createMachine({

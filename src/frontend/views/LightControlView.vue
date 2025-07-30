@@ -203,27 +203,81 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import type { LightControlSettings, ControlMode } from '@shared/types'
+import { ref, computed, watch, onMounted } from 'vue'
+import type { ControlMode } from '@shared/types'
 import { useApiConnection } from '../composables/useApiConnection'
 import { useLightDiscovery } from '../composables/useLightDiscovery'
+import { useLightControlSettings } from '../composables/useSettings'
+import { useFeedbackHelpers } from '../composables/useFeedback'
 
 // XState composables
 const apiConnection = useApiConnection()
 const lightDiscovery = useLightDiscovery()
 
-// Local reactive state
-const localApiKey = ref<string>('')
-const selectedLight = ref<string>('')
-const controlMode = ref<ControlMode>('toggle')
-const brightnessValue = ref<number>(100)
-const colorValue = ref<string>('#ffffff')
-const colorTempValue = ref<number>(6500)
+// Settings composable with persistence
+const settingsManager = useLightControlSettings()
+
+// Feedback system for user notifications
+const feedback = useFeedbackHelpers()
+
+// Local reactive state for UI
 const searchQuery = ref<string>('')
+
+// Computed values bound to settings
+const localApiKey = computed({
+  get: () => settingsManager.settings.apiKey || '',
+  set: (value: string) => settingsManager.updateSetting('apiKey', value || undefined)
+})
+
+const selectedLight = computed({
+  get: () => {
+    const deviceId = settingsManager.settings.selectedDeviceId
+    const model = settingsManager.settings.selectedModel
+    return deviceId && model ? `${deviceId}|${model}` : ''
+  },
+  set: (value: string) => {
+    if (value) {
+      const [deviceId, model] = value.split('|')
+      const lightName = lightDiscovery.filteredLights.value.find(l => l.value === value)?.label
+      settingsManager.updateSettings({
+        selectedDeviceId: deviceId,
+        selectedModel: model,
+        selectedLightName: lightName
+      })
+    } else {
+      settingsManager.updateSettings({
+        selectedDeviceId: undefined,
+        selectedModel: undefined,
+        selectedLightName: undefined
+      })
+    }
+  }
+})
+
+const controlMode = computed({
+  get: () => settingsManager.settings.controlMode || 'toggle',
+  set: (value: ControlMode) => settingsManager.updateSetting('controlMode', value)
+})
+
+const brightnessValue = computed({
+  get: () => settingsManager.settings.brightnessValue || 100,
+  set: (value: number) => settingsManager.updateSetting('brightnessValue', value)
+})
+
+const colorValue = computed({
+  get: () => settingsManager.settings.colorValue || '#ffffff',
+  set: (value: string) => settingsManager.updateSetting('colorValue', value)
+})
+
+const colorTempValue = computed({
+  get: () => settingsManager.settings.colorTempValue || 6500,
+  set: (value: number) => settingsManager.updateSetting('colorTempValue', value)
+})
 
 // Actions
 const connectToApi = () => {
   if (localApiKey.value) {
+    feedback.showInfo('Connecting to API', 'Validating your API key...')
     apiConnection.connect(localApiKey.value)
   }
 }
@@ -236,29 +290,83 @@ const clearSearch = () => {
 // Watch for API connection changes to automatically fetch lights
 watch(
   () => apiConnection.isConnected.value,
-  (isConnected) => {
-    if (isConnected && lightDiscovery.isIdle.value) {
-      lightDiscovery.fetchLights()
+  (isConnected, wasConnected) => {
+    if (isConnected && !wasConnected) {
+      feedback.showSuccessToast('API Connected', 'Successfully connected to Govee API')
+      if (lightDiscovery.isIdle.value) {
+        lightDiscovery.fetchLights()
+      }
     }
   }
 )
 
-// Computed settings object for Stream Deck integration
-const settings = computed<LightControlSettings>(() => ({
-  apiKey: apiConnection.apiKey.value || undefined,
-  selectedDeviceId: selectedLight.value.split('|')[0] || undefined,
-  selectedModel: selectedLight.value.split('|')[1] || undefined,
-  selectedLightName: selectedLight.value ? 
-    lightDiscovery.filteredLights.value.find(l => l.value === selectedLight.value)?.label : undefined,
-  controlMode: controlMode.value,
-  brightnessValue: controlMode.value === 'brightness' ? brightnessValue.value : undefined,
-  colorValue: controlMode.value === 'color' ? colorValue.value : undefined,
-  colorTempValue: controlMode.value === 'colorTemp' ? colorTempValue.value : undefined,
-}))
+// Watch for API connection errors
+watch(
+  () => apiConnection.error.value,
+  (error) => {
+    if (error) {
+      feedback.showApiError({ message: error }, 'API Connection Failed')
+    }
+  }
+)
 
-// TODO: Implement WebSocket communication with Stream Deck plugin
-// TODO: Implement settings persistence and restoration
-// TODO: Emit settings changes to parent component
+// Watch for light discovery success
+watch(
+  () => lightDiscovery.isReady.value,
+  (isReady, wasReady) => {
+    if (isReady && !wasReady && lightDiscovery.hasLights.value) {
+      const lightCount = lightDiscovery.lights.value.length
+      feedback.showSuccessToast(
+        'Lights Discovered', 
+        `Found ${lightCount} light${lightCount !== 1 ? 's' : ''}`
+      )
+    }
+  }
+)
+
+// Watch for light discovery errors
+watch(
+  () => lightDiscovery.error.value,
+  (error) => {
+    if (error) {
+      feedback.showApiError({ message: error }, 'Light Discovery Failed')
+    }
+  }
+)
+
+// Watch for API key changes in settings to update connection
+watch(
+  () => settingsManager.settings.apiKey,
+  (newApiKey) => {
+    if (newApiKey && !apiConnection.isConnected.value) {
+      apiConnection.connect(newApiKey)
+    }
+  }
+)
+
+// Watch for settings save events
+watch(
+  () => settingsManager.lastSaved.value,
+  (lastSaved) => {
+    if (lastSaved) {
+      feedback.showSuccessToast('Settings Saved', 'Your configuration has been saved')
+    }
+  }
+)
+
+// Initialize on mount
+onMounted(() => {
+  // Enable auto-save with 500ms delay for responsive UI
+  settingsManager.enableAutoSave(500)
+  
+  // Load existing settings
+  settingsManager.loadSettings()
+  
+  // If we have an API key in settings, connect automatically
+  if (settingsManager.settings.apiKey) {
+    apiConnection.connect(settingsManager.settings.apiKey)
+  }
+})
 </script>
 
 <style scoped>

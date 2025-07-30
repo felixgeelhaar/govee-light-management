@@ -33,7 +33,7 @@ export function useGroupManagement() {
   
   // Initialize the actor and subscribe to state changes
   onMounted(() => {
-    actor.value = createActor(groupManagementMachine)
+    actor.value = createActor(groupManagementMachine, {})
     
     // Subscribe to state changes
     actor.value.subscribe((snapshot) => {

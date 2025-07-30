@@ -9,11 +9,21 @@
         <!-- Content will be injected here -->
       </slot>
     </main>
+    
+    <!-- Global feedback system -->
+    <FeedbackSystem ref="feedbackSystem" />
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, provide } from 'vue'
+import FeedbackSystem from './components/FeedbackSystem.vue'
+
 // Main application component for Govee Light Management Property Inspector
+const feedbackSystem = ref<InstanceType<typeof FeedbackSystem>>()
+
+// Provide feedback system to all child components
+provide('feedbackSystem', feedbackSystem)
 </script>
 
 <style scoped>

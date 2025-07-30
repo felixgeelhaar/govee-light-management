@@ -3,8 +3,12 @@ import nodeResolve from "@rollup/plugin-node-resolve";
 import terser from "@rollup/plugin-terser";
 import typescript from "@rollup/plugin-typescript";
 import json from "@rollup/plugin-json";
+import alias from "@rollup/plugin-alias";
 import path from "node:path";
 import url from "node:url";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const isWatching = !!process.env.ROLLUP_WATCH;
 const sdPlugin = "com.felixgeelhaar.govee-light-management.sdPlugin";
@@ -28,6 +32,11 @@ const config = {
 				this.addWatchFile(`${sdPlugin}/manifest.json`);
 			},
 		},
+		alias({
+			entries: [
+				{ find: '@shared', replacement: path.resolve(__dirname, 'src/shared') }
+			]
+		}),
 		typescript({
 			mapRoot: isWatching ? "./" : undefined
 		}),

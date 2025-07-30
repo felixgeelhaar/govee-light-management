@@ -107,23 +107,23 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 		const settings = await ev.action.getSettings();
 
 		switch (ev.payload.event) {
+			case 'validateApiKey':
+				await this.handleValidateApiKey(ev);
+				break;
 			case 'getGroups':
-				await this.handleGetGroups(settings);
+				await this.handleGetGroups(ev, settings);
 				break;
 			case 'getLights':
-				await this.handleGetLights(settings);
+				await this.handleGetLights(ev, settings);
 				break;
-			case 'createGroup':
-				await this.handleCreateGroup(ev, settings);
-				break;
-			case 'getGroupDetails':
-				await this.handleGetGroupDetails(ev, settings);
-				break;
-			case 'editGroup':
-				await this.handleEditGroup(ev, settings);
+			case 'saveGroup':
+				await this.handleSaveGroup(ev, settings);
 				break;
 			case 'deleteGroup':
 				await this.handleDeleteGroup(ev, settings);
+				break;
+			case 'setSettings':
+				await this.handleSetSettings(ev);
 				break;
 			case 'testGroup':
 				await this.handleTestGroup(ev, settings);
@@ -296,9 +296,15 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 	/**
 	 * Handle request for available groups from property inspector
 	 */
-	private async handleGetGroups(settings: GroupControlSettings): Promise<void> {
+	private async handleGetGroups(
+		ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
+		settings: GroupControlSettings
+	): Promise<void> {
 		if (!settings.apiKey) {
-			streamDeck.logger.warn('API key required to fetch groups');
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'groupsReceived',
+				error: 'API key required to fetch groups'
+			});
 			return;
 		}
 
@@ -308,20 +314,22 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 			}
 
 			const groups = await this.groupService!.getAllGroups();
-			const items = groups.map(group => ({
+			const groupItems = groups.map(group => ({
 				label: `${group.name} (${group.size} lights)`,
 				value: group.id,
 			}));
 
 			await streamDeck.ui.current?.sendToPropertyInspector({
-				event: 'getGroups',
-				items,
+				event: 'groupsReceived',
+				groups: groupItems
 			});
+
+			streamDeck.logger.info(`Sent ${groupItems.length} groups to property inspector`);
 		} catch (error) {
 			streamDeck.logger.error('Failed to fetch groups:', error);
 			await streamDeck.ui.current?.sendToPropertyInspector({
-				event: 'error',
-				message: 'Failed to fetch groups.',
+				event: 'groupsReceived',
+				error: 'Failed to fetch groups. Check your API key and connection.'
 			});
 		}
 	}
@@ -329,9 +337,15 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 	/**
 	 * Handle request for available lights from property inspector
 	 */
-	private async handleGetLights(settings: GroupControlSettings): Promise<void> {
+	private async handleGetLights(
+		ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
+		settings: GroupControlSettings
+	): Promise<void> {
 		if (!settings.apiKey) {
-			streamDeck.logger.warn('API key required to fetch lights');
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'lightsReceived',
+				error: 'API key required to fetch lights'
+			});
 			return;
 		}
 
@@ -341,20 +355,22 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 			}
 
 			const lights = await this.lightRepository!.getAllLights();
-			const items = lights.map(light => ({
+			const lightItems = lights.map(light => ({
 				label: `${light.name} (${light.model})`,
 				value: `${light.deviceId}|${light.model}`,
 			}));
 
 			await streamDeck.ui.current?.sendToPropertyInspector({
-				event: 'getLights',
-				items,
+				event: 'lightsReceived',
+				lights: lightItems
 			});
+
+			streamDeck.logger.info(`Sent ${lightItems.length} lights to property inspector`);
 		} catch (error) {
 			streamDeck.logger.error('Failed to fetch lights:', error);
 			await streamDeck.ui.current?.sendToPropertyInspector({
-				event: 'error',
-				message: 'Failed to fetch lights. Check your API key.',
+				event: 'lightsReceived',
+				error: 'Failed to fetch lights. Check your API key and connection.'
 			});
 		}
 	}
@@ -395,7 +411,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 			});
 
 			// Refresh the groups list
-			await this.handleGetGroups(settings);
+			await this.handleGetGroups(ev, settings);
 		} catch (error) {
 			streamDeck.logger.error('Failed to create group:', error);
 			await streamDeck.ui.current?.sendToPropertyInspector({
@@ -488,7 +504,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 			});
 
 			// Refresh the groups list
-			await this.handleGetGroups(settings);
+			await this.handleGetGroups(ev, settings);
 		} catch (error) {
 			streamDeck.logger.error('Failed to edit group:', error);
 			await streamDeck.ui.current?.sendToPropertyInspector({
@@ -525,7 +541,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 			});
 
 			// Refresh the groups list
-			await this.handleGetGroups(settings);
+			await this.handleGetGroups(ev, settings);
 		} catch (error) {
 			streamDeck.logger.error('Failed to delete group:', error);
 			await streamDeck.ui.current?.sendToPropertyInspector({
@@ -593,6 +609,154 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 			} catch (error) {
 				streamDeck.logger.error('Failed to refresh group state:', error);
 			}
+		}
+	}
+
+	/**
+	 * Handle API key validation from property inspector
+	 */
+	private async handleValidateApiKey(
+		ev: SendToPluginEvent<JsonValue, GroupControlSettings>
+	): Promise<void> {
+		const payload = ev.payload as any;
+		const apiKey = payload.apiKey;
+
+		if (!apiKey) {
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'apiKeyValidated',
+				isValid: false,
+				error: 'API key is required'
+			});
+			return;
+		}
+
+		try {
+			// Test API key by attempting to create repository and fetch lights
+			const testRepository = new GoveeLightRepository(apiKey, true);
+			await testRepository.getAllLights();
+
+			// If successful, API key is valid
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'apiKeyValidated',
+				isValid: true
+			});
+
+			streamDeck.logger.info('API key validated successfully');
+		} catch (error) {
+			streamDeck.logger.error('API key validation failed:', error);
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'apiKeyValidated',
+				isValid: false,
+				error: 'Invalid API key or network error'
+			});
+		}
+	}
+
+	/**
+	 * Handle save group request from property inspector
+	 */
+	private async handleSaveGroup(
+		ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
+		settings: GroupControlSettings
+	): Promise<void> {
+		if (!settings.apiKey) {
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'groupSaved',
+				success: false,
+				error: 'API key required to save group'
+			});
+			return;
+		}
+
+		const payload = ev.payload as any;
+		const group = payload.group;
+
+		if (!group || !group.name || !group.lightIds) {
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'groupSaved',
+				success: false,
+				error: 'Invalid group data'
+			});
+			return;
+		}
+
+		try {
+			if (!this.groupService) {
+				this.initializeServices(settings.apiKey);
+			}
+
+			// Parse light IDs from the format "deviceId|model"
+			const lightIds = group.lightIds.map((id: string) => {
+				const [deviceId, model] = id.split('|');
+				return { deviceId, model };
+			});
+
+			const savedGroup = await this.groupService!.createGroup(group.name, lightIds);
+
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'groupSaved',
+				success: true,
+				group: {
+					id: savedGroup.id,
+					name: savedGroup.name,
+					lightCount: savedGroup.size
+				}
+			});
+
+			streamDeck.logger.info(`Group "${group.name}" saved successfully`);
+		} catch (error) {
+			streamDeck.logger.error('Failed to save group:', error);
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'groupSaved',
+				success: false,
+				error: 'Failed to save group. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Handle settings update from property inspector
+	 */
+	private async handleSetSettings(
+		ev: SendToPluginEvent<JsonValue, GroupControlSettings>
+	): Promise<void> {
+		const payload = ev.payload as any;
+		const newSettings = payload.settings as GroupControlSettings;
+
+		if (!newSettings) {
+			return;
+		}
+
+		try {
+			// Update action settings
+			await ev.action.setSettings(newSettings);
+
+			// Re-initialize services if API key changed
+			if (newSettings.apiKey && newSettings.apiKey !== (await ev.action.getSettings()).apiKey) {
+				this.initializeServices(newSettings.apiKey);
+			}
+
+			// Update current group if selection changed
+			if (newSettings.selectedGroupId && this.groupService) {
+				try {
+					const foundGroup = await this.groupService.findGroupById(newSettings.selectedGroupId);
+					this.currentGroup = foundGroup || undefined;
+					if (this.currentGroup) {
+						await this.refreshGroupLightStates(this.currentGroup);
+						await this.updateActionAppearance(ev.action, this.currentGroup, newSettings);
+					}
+				} catch (error) {
+					streamDeck.logger.error('Failed to load selected group:', error);
+				}
+			}
+
+			// Update action title
+			const title = this.getActionTitle(newSettings);
+			await ev.action.setTitle(title);
+
+			streamDeck.logger.info('Settings updated successfully');
+		} catch (error) {
+			streamDeck.logger.error('Failed to update settings:', error);
 		}
 	}
 }

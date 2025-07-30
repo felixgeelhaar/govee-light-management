@@ -99,6 +99,17 @@ export class WebSocketService {
     try {
       const message = JSON.parse(event.data)
       
+      // Handle settings updates specifically
+      if (message.event === 'didReceiveSettings' && message.payload?.settings) {
+        // Update stored action info with new settings
+        if (this.actionInfo) {
+          this.actionInfo.payload = {
+            ...this.actionInfo.payload,
+            settings: message.payload.settings
+          }
+        }
+      }
+      
       // Handle different message types
       if (message.event) {
         const handlers = this.messageHandlers.get(message.event)
@@ -238,6 +249,16 @@ export class WebSocketService {
   }
   
   /**
+   * Request current settings from plugin
+   */
+  requestSettings(): void {
+    this.sendMessage({
+      event: 'getSettings',
+      context: this.uuid || ''
+    })
+  }
+  
+  /**
    * Add event listener for specific message types
    */
   on(event: string, handler: (data: any) => void): void {
@@ -279,6 +300,16 @@ export class WebSocketService {
    */
   get getActionInfo(): Record<string, any> | null {
     return this.actionInfo
+  }
+  
+  /**
+   * Get current settings from action info
+   */
+  getCurrentSettings(): Record<string, any> | null {
+    if (this.actionInfo?.payload?.settings) {
+      return this.actionInfo.payload.settings
+    }
+    return null
   }
   
   /**

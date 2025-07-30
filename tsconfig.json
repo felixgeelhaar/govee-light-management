@@ -6,7 +6,10 @@
 		],
 		"module": "ES2022",
 		"moduleResolution": "Bundler",
-		"noImplicitOverride": true
+		"noImplicitOverride": true,
+		"paths": {
+			"@shared/*": ["./src/shared/*"]
+		}
 	},
 	"include": [
 		"src/**/*.ts"

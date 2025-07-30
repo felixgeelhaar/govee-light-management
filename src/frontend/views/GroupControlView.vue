@@ -298,23 +298,19 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import type { GroupControlSettings, ControlMode, LightGroup } from '@shared/types'
+import type { ControlMode, LightGroup } from '@shared/types'
 import { useApiConnection } from '../composables/useApiConnection'
 import { useLightDiscovery } from '../composables/useLightDiscovery'
 import { useGroupManagement } from '../composables/useGroupManagement'
+import { useGroupControlSettings } from '../composables/useSettings'
 
 // XState composables
 const apiConnection = useApiConnection()
 const lightDiscovery = useLightDiscovery()
 const groupManagement = useGroupManagement()
 
-// Local reactive state
-const localApiKey = ref<string>('')
-const selectedGroup = ref<string>('')
-const controlMode = ref<ControlMode>('toggle')
-const brightnessValue = ref<number>(100)
-const colorValue = ref<string>('#ffffff')
-const colorTempValue = ref<number>(6500)
+// Settings composable with persistence
+const settingsManager = useGroupControlSettings()
 
 // Group form state
 const groupName = ref<string>('')
@@ -323,6 +319,49 @@ const groupName = ref<string>('')
 const showCreateForm = computed(() => groupManagement.isCreatingNew.value)
 const showEditForm = computed(() => groupManagement.isEditingExisting.value)
 const selectedLights = computed(() => groupManagement.selectedLights.value)
+
+// Computed values bound to settings
+const localApiKey = computed({
+  get: () => settingsManager.settings.apiKey || '',
+  set: (value: string) => settingsManager.updateSetting('apiKey', value || undefined)
+})
+
+const selectedGroup = computed({
+  get: () => settingsManager.settings.selectedGroupId || '',
+  set: (value: string) => {
+    settingsManager.updateSetting('selectedGroupId', value || undefined)
+    
+    // Update group name in settings for display
+    if (value) {
+      const group = groupManagement.groups.value.find(g => g.id === value)
+      if (group) {
+        settingsManager.updateSetting('selectedGroupName', group.name)
+      }
+    } else {
+      settingsManager.updateSetting('selectedGroupName', undefined)
+    }
+  }
+})
+
+const controlMode = computed({
+  get: () => settingsManager.settings.controlMode || 'toggle',
+  set: (value: ControlMode) => settingsManager.updateSetting('controlMode', value)
+})
+
+const brightnessValue = computed({
+  get: () => settingsManager.settings.brightnessValue || 100,
+  set: (value: number) => settingsManager.updateSetting('brightnessValue', value)
+})
+
+const colorValue = computed({
+  get: () => settingsManager.settings.colorValue || '#ffffff',
+  set: (value: string) => settingsManager.updateSetting('colorValue', value)
+})
+
+const colorTempValue = computed({
+  get: () => settingsManager.settings.colorTempValue || 6500,
+  set: (value: number) => settingsManager.updateSetting('colorTempValue', value)
+})
 
 // Actions
 const connectToApi = () => {
@@ -390,27 +429,36 @@ watch(
   }
 )
 
+// Watch for API key changes in settings to update connection
+watch(
+  () => settingsManager.settings.apiKey,
+  (newApiKey) => {
+    if (newApiKey && !apiConnection.isConnected.value) {
+      apiConnection.connect(newApiKey)
+    }
+  }
+)
+
 // Initialize on mount
 onMounted(() => {
+  // Enable auto-save with 500ms delay for responsive UI
+  settingsManager.enableAutoSave(500)
+  
+  // Load existing settings
+  settingsManager.loadSettings()
+  
+  // If we have an API key in settings, connect automatically
+  if (settingsManager.settings.apiKey) {
+    apiConnection.connect(settingsManager.settings.apiKey)
+  }
+  
+  // Load groups if already connected
   if (apiConnection.isConnected.value) {
     if (groupManagement.isIdle.value) {
       groupManagement.loadGroups()
     }
   }
 })
-
-// Computed settings object for Stream Deck integration
-const settings = computed<GroupControlSettings>(() => ({
-  apiKey: apiConnection.apiKey.value || undefined,
-  selectedGroupId: selectedGroup.value || undefined,
-  controlMode: controlMode.value,
-  brightnessValue: controlMode.value === 'brightness' ? brightnessValue.value : undefined,
-  colorValue: controlMode.value === 'color' ? colorValue.value : undefined,
-  colorTempValue: controlMode.value === 'colorTemp' ? colorTempValue.value : undefined,
-}))
-
-// TODO: Implement WebSocket communication with Stream Deck plugin
-// TODO: Implement settings persistence and restoration
 </script>
 
 <style scoped>
