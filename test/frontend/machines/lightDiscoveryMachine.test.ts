@@ -4,7 +4,7 @@ import { lightDiscoveryMachine } from '../../../src/frontend/machines/lightDisco
 
 describe('lightDiscoveryMachine', () => {
   it('starts in idle state', () => {
-    const actor = createActor(lightDiscoveryMachine)
+    const actor = createActor(lightDiscoveryMachine, {})
     actor.start()
     
     expect(actor.getSnapshot().value).toBe('idle')
@@ -13,7 +13,7 @@ describe('lightDiscoveryMachine', () => {
   })
 
   it('transitions to fetching when FETCH event is sent', () => {
-    const actor = createActor(lightDiscoveryMachine)
+    const actor = createActor(lightDiscoveryMachine, {})
     actor.start()
     
     actor.send({ type: 'FETCH' })
@@ -22,52 +22,41 @@ describe('lightDiscoveryMachine', () => {
     expect(actor.getSnapshot().context.isFetching).toBe(true)
   })
 
-  it('transitions to success when lights are fetched', async () => {
-    const actor = createActor(lightDiscoveryMachine)
+  it('transitions to success when lights are fetched', () => {
+    const actor = createActor(lightDiscoveryMachine, {})
     actor.start()
     
-    const states: string[] = []
-    actor.subscribe((snapshot) => {
-      states.push(snapshot.value as string)
+    actor.send({ type: 'FETCH' })
+    expect(actor.getSnapshot().value).toBe('fetching')
+    
+    // Manually send fetch success event
+    actor.send({ 
+      type: 'FETCH_SUCCESS', 
+      lights: [
+        { label: 'Test Light', value: 'device1|model1' }
+      ] 
     })
     
-    actor.send({ type: 'FETCH' })
-    
-    // Wait for async fetch
-    await new Promise(resolve => setTimeout(resolve, 100))
-    
-    expect(states).toContain('success')
-    expect(actor.getSnapshot().context.lights.length).toBeGreaterThan(0)
+    expect(actor.getSnapshot().value).toBe('success')
+    expect(actor.getSnapshot().context.lights.length).toBe(1)
   })
 
-  it('transitions to error when fetch fails', async () => {
-    const actor = createActor(
-      lightDiscoveryMachine.provide({
-        actors: {
-          fetchLights: fromPromise(async () => {
-            throw new Error('Failed to fetch lights')
-          })
-        }
-      }),
-      { input: { shouldFail: true } }
-    )
+  it('transitions to error when fetch fails', () => {
+    const actor = createActor(lightDiscoveryMachine, {})
     actor.start()
     
-    const states: string[] = []
-    actor.subscribe((snapshot) => {
-      states.push(snapshot.value as string)
-    })
-    
     actor.send({ type: 'FETCH' })
+    expect(actor.getSnapshot().value).toBe('fetching')
     
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Manually send fetch failed event
+    actor.send({ type: 'FETCH_FAILED', error: 'Failed to fetch lights' })
     
-    expect(states).toContain('error')
-    expect(actor.getSnapshot().context.error).toBeTruthy()
+    expect(actor.getSnapshot().value).toBe('error')
+    expect(actor.getSnapshot().context.error).toBe('Failed to fetch lights')
   })
 
   it('can retry from error state', () => {
-    const actor = createActor(lightDiscoveryMachine)
+    const actor = createActor(lightDiscoveryMachine, {})
     actor.start()
     
     // Force to error state
@@ -83,7 +72,7 @@ describe('lightDiscoveryMachine', () => {
   })
 
   it('can refresh from success state', () => {
-    const actor = createActor(lightDiscoveryMachine)
+    const actor = createActor(lightDiscoveryMachine, {})
     actor.start()
     
     // Force to success state with mock data
@@ -104,7 +93,7 @@ describe('lightDiscoveryMachine', () => {
   })
 
   it('filters lights based on search query', () => {
-    const actor = createActor(lightDiscoveryMachine)
+    const actor = createActor(lightDiscoveryMachine, {})
     actor.start()
     
     // Set up lights

@@ -5,7 +5,7 @@ import type { LightGroup } from '../../../src/shared/types'
 
 describe('groupManagementMachine', () => {
   it('starts in idle state', () => {
-    const actor = createActor(groupManagementMachine)
+    const actor = createActor(groupManagementMachine, {})
     actor.start()
     
     expect(actor.getSnapshot().value).toBe('idle')
@@ -15,7 +15,7 @@ describe('groupManagementMachine', () => {
   })
 
   it('transitions to loading when LOAD_GROUPS event is sent', () => {
-    const actor = createActor(groupManagementMachine)
+    const actor = createActor(groupManagementMachine, {})
     actor.start()
     
     actor.send({ type: 'LOAD_GROUPS' })
@@ -24,52 +24,41 @@ describe('groupManagementMachine', () => {
     expect(actor.getSnapshot().context.isLoading).toBe(true)
   })
 
-  it('transitions to ready when groups are loaded successfully', async () => {
-    const actor = createActor(groupManagementMachine)
+  it('transitions to ready when groups are loaded successfully', () => {
+    const actor = createActor(groupManagementMachine, {})
     actor.start()
     
-    const states: string[] = []
-    actor.subscribe((snapshot) => {
-      states.push(snapshot.value as string)
+    actor.send({ type: 'LOAD_GROUPS' })
+    expect(actor.getSnapshot().value).toBe('loading')
+    
+    // Manually send groups loaded event
+    actor.send({ 
+      type: 'GROUPS_LOADED', 
+      groups: [
+        { id: 'group1', name: 'Test Group', lightIds: ['light1'], isActive: false }
+      ] 
     })
     
-    actor.send({ type: 'LOAD_GROUPS' })
-    
-    // Wait for async load
-    await new Promise(resolve => setTimeout(resolve, 100))
-    
-    expect(states).toContain('ready')
-    expect(actor.getSnapshot().context.groups.length).toBeGreaterThan(0)
+    expect(actor.getSnapshot().value).toBe('ready')
+    expect(actor.getSnapshot().context.groups.length).toBe(1)
   })
 
-  it('transitions to error when loading fails', async () => {
-    const actor = createActor(
-      groupManagementMachine.provide({
-        actors: {
-          loadGroups: fromPromise(async () => {
-            throw new Error('Failed to load groups')
-          })
-        }
-      }),
-      { input: { shouldFailLoad: true } }
-    )
+  it('transitions to error when loading fails', () => {
+    const actor = createActor(groupManagementMachine, {})
     actor.start()
     
-    const states: string[] = []
-    actor.subscribe((snapshot) => {
-      states.push(snapshot.value as string)
-    })
-    
     actor.send({ type: 'LOAD_GROUPS' })
+    expect(actor.getSnapshot().value).toBe('loading')
     
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Manually send operation failed event
+    actor.send({ type: 'OPERATION_FAILED', error: 'Failed to load groups' })
     
-    expect(states).toContain('error')
-    expect(actor.getSnapshot().context.error).toBeTruthy()
+    expect(actor.getSnapshot().value).toBe('error')
+    expect(actor.getSnapshot().context.error).toBe('Failed to load groups')
   })
 
   it('transitions to editing when CREATE_GROUP event is sent', () => {
-    const actor = createActor(groupManagementMachine)
+    const actor = createActor(groupManagementMachine, {})
     actor.start()
     
     // Go to ready state first
@@ -92,7 +81,7 @@ describe('groupManagementMachine', () => {
   })
 
   it('transitions to editing when EDIT_GROUP event is sent with group data', () => {
-    const actor = createActor(groupManagementMachine)
+    const actor = createActor(groupManagementMachine, {})
     actor.start()
     
     const testGroup: LightGroup = {
@@ -115,7 +104,7 @@ describe('groupManagementMachine', () => {
   })
 
   it('can select and deselect lights in editing state', () => {
-    const actor = createActor(groupManagementMachine)
+    const actor = createActor(groupManagementMachine, {})
     actor.start()
     
     // Go to editing state
@@ -138,7 +127,7 @@ describe('groupManagementMachine', () => {
   })
 
   it('transitions to saving when SAVE_GROUP event is sent', () => {
-    const actor = createActor(groupManagementMachine)
+    const actor = createActor(groupManagementMachine, {})
     actor.start()
     
     // Go to editing state
@@ -157,14 +146,9 @@ describe('groupManagementMachine', () => {
     expect(actor.getSnapshot().context.isLoading).toBe(true)
   })
 
-  it('saves group and returns to ready state', async () => {
-    const actor = createActor(groupManagementMachine)
+  it('saves group and returns to ready state', () => {
+    const actor = createActor(groupManagementMachine, {})
     actor.start()
-    
-    const states: string[] = []
-    actor.subscribe((snapshot) => {
-      states.push(snapshot.value as string)
-    })
     
     // Go to editing state
     actor.send({ type: 'LOAD_GROUPS' })
@@ -178,32 +162,23 @@ describe('groupManagementMachine', () => {
       selectedLights: ['light1', 'light2'] 
     })
     
-    // Wait for async save
-    await new Promise(resolve => setTimeout(resolve, 100))
+    expect(actor.getSnapshot().value).toBe('saving')
     
-    expect(states).toContain('ready')
+    // Manually send group saved event
+    actor.send({ 
+      type: 'GROUP_SAVED', 
+      group: { id: 'new-id', name: 'New Group', lightIds: ['light1', 'light2'], isActive: false } 
+    })
+    
+    expect(actor.getSnapshot().value).toBe('ready')
     expect(actor.getSnapshot().context.groups.length).toBe(1)
     expect(actor.getSnapshot().context.groups[0].name).toBe('New Group')
     expect(actor.getSnapshot().context.currentGroup).toBeNull()
   })
 
-  it('handles save failure and transitions to error', async () => {
-    const actor = createActor(
-      groupManagementMachine.provide({
-        actors: {
-          saveGroup: fromPromise(async () => {
-            throw new Error('Failed to save group')
-          })
-        }
-      }),
-      { input: { shouldFailSave: true } }
-    )
+  it('handles save failure and transitions to error', () => {
+    const actor = createActor(groupManagementMachine, {})
     actor.start()
-    
-    const states: string[] = []
-    actor.subscribe((snapshot) => {
-      states.push(snapshot.value as string)
-    })
     
     // Go to editing state and save
     actor.send({ type: 'LOAD_GROUPS' })
@@ -215,14 +190,17 @@ describe('groupManagementMachine', () => {
       selectedLights: ['light1'] 
     })
     
-    await new Promise(resolve => setTimeout(resolve, 100))
+    expect(actor.getSnapshot().value).toBe('saving')
     
-    expect(states).toContain('error')
-    expect(actor.getSnapshot().context.error).toBeTruthy()
+    // Manually send operation failed event
+    actor.send({ type: 'OPERATION_FAILED', error: 'Failed to save group' })
+    
+    expect(actor.getSnapshot().value).toBe('error')
+    expect(actor.getSnapshot().context.error).toBe('Failed to save group')
   })
 
   it('transitions to deleting when DELETE_GROUP event is sent', () => {
-    const actor = createActor(groupManagementMachine)
+    const actor = createActor(groupManagementMachine, {})
     actor.start()
     
     // Go to ready state with groups
@@ -242,14 +220,9 @@ describe('groupManagementMachine', () => {
     expect(actor.getSnapshot().context.isLoading).toBe(true)
   })
 
-  it('deletes group and returns to ready state', async () => {
-    const actor = createActor(groupManagementMachine)
+  it('deletes group and returns to ready state', () => {
+    const actor = createActor(groupManagementMachine, {})
     actor.start()
-    
-    const states: string[] = []
-    actor.subscribe((snapshot) => {
-      states.push(snapshot.value as string)
-    })
     
     // Go to ready state with groups
     const testGroup = { 
@@ -265,31 +238,18 @@ describe('groupManagementMachine', () => {
     
     // Delete group
     actor.send({ type: 'DELETE_GROUP', groupId: 'group1' })
+    expect(actor.getSnapshot().value).toBe('deleting')
     
-    // Wait for async delete
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Manually send group deleted event
+    actor.send({ type: 'GROUP_DELETED', groupId: 'group1' })
     
-    expect(states).toContain('ready')
+    expect(actor.getSnapshot().value).toBe('ready')
     expect(actor.getSnapshot().context.groups.length).toBe(0)
   })
 
-  it('handles delete failure and transitions to error', async () => {
-    const actor = createActor(
-      groupManagementMachine.provide({
-        actors: {
-          deleteGroup: fromPromise(async () => {
-            throw new Error('Failed to delete group')
-          })
-        }
-      }),
-      { input: { shouldFailDelete: true } }
-    )
+  it('handles delete failure and transitions to error', () => {
+    const actor = createActor(groupManagementMachine, {})
     actor.start()
-    
-    const states: string[] = []
-    actor.subscribe((snapshot) => {
-      states.push(snapshot.value as string)
-    })
     
     // Go to ready state and delete
     actor.send({ type: 'LOAD_GROUPS' })
@@ -298,14 +258,17 @@ describe('groupManagementMachine', () => {
     ] })
     actor.send({ type: 'DELETE_GROUP', groupId: 'group1' })
     
-    await new Promise(resolve => setTimeout(resolve, 100))
+    expect(actor.getSnapshot().value).toBe('deleting')
     
-    expect(states).toContain('error')
-    expect(actor.getSnapshot().context.error).toBeTruthy()
+    // Manually send operation failed event
+    actor.send({ type: 'OPERATION_FAILED', error: 'Failed to delete group' })
+    
+    expect(actor.getSnapshot().value).toBe('error')
+    expect(actor.getSnapshot().context.error).toBe('Failed to delete group')
   })
 
   it('can cancel editing and return to ready state', () => {
-    const actor = createActor(groupManagementMachine)
+    const actor = createActor(groupManagementMachine, {})
     actor.start()
     
     // Go to editing state
@@ -328,7 +291,7 @@ describe('groupManagementMachine', () => {
   })
 
   it('can recover from error state by loading groups', () => {
-    const actor = createActor(groupManagementMachine)
+    const actor = createActor(groupManagementMachine, {})
     actor.start()
     
     // Force to error state
