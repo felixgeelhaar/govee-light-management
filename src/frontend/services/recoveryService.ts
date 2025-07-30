@@ -236,7 +236,7 @@ export class RecoveryService {
 
     // Check performance trends
     const performanceData = performanceService.getResourceTrends()
-    if (performanceData.memoryTrend === 'increasing') {
+    if (performanceData.memory.trend === 'increasing') {
       issues.push('Memory usage increasing')
       recoveryActions.push('Suggesting memory optimization')
     }

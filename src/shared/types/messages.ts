@@ -1,6 +1,7 @@
 /**
  * WebSocket message types for communication between Property Inspector and Stream Deck plugin
  */
+import type { LightItem } from './lights';
 
 /**
  * Base message structure for all WebSocket communications
@@ -157,9 +158,9 @@ export namespace PluginMessages {
 }
 
 /**
- * Light item for selection lists
+ * Light item for dropdown selection lists
  */
-export interface LightItem {
+export interface LightDropdownItem {
   /** Display label for the light */
   label: string;
   /** Value in format "deviceId|model" */

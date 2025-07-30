@@ -426,8 +426,8 @@ export class HealthMonitoringService {
     diagnostics.push({
       category: 'Performance',
       test: 'Memory Trend',
-      result: trends.memoryTrend === 'increasing' ? 'warning' : 'pass',
-      message: `Memory trend: ${trends.memoryTrend}`,
+      result: trends.memory.trend === 'increasing' ? 'warning' : 'pass',
+      message: `Memory trend: ${trends.memory.trend}`,
       details: trends,
       timestamp: now
     })

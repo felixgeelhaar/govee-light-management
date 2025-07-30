@@ -24,6 +24,22 @@ export interface PerformanceReport {
   recommendations: string[]
 }
 
+export interface PerformanceBottleneck {
+  type: string
+  severity: 'low' | 'medium' | 'high' | 'critical'
+  description: string
+  impact: string
+  recommendation: string
+  metrics: PerformanceMetric[]
+}
+
+export interface TrendAnalysis {
+  trend: 'increasing' | 'decreasing' | 'stable'
+  rate?: number
+  confidence: number
+  recommendation?: string
+}
+
 export interface ResourceUsage {
   memoryUsage: number
   cacheHitRate: number
@@ -239,20 +255,8 @@ export class PerformanceService {
   /**
    * Get performance insights and bottlenecks
    */
-  getBottlenecks(): Array<{
-    operation: string
-    averageTime: number
-    count: number
-    severity: 'low' | 'medium' | 'high'
-    recommendation: string
-  }> {
-    const bottlenecks: Array<{
-      operation: string
-      averageTime: number
-      count: number
-      severity: 'low' | 'medium' | 'high'
-      recommendation: string
-    }> = []
+  getBottlenecks(): PerformanceBottleneck[] {
+    const bottlenecks: PerformanceBottleneck[] = []
 
     // Group metrics by operation name
     const operationGroups = new Map<string, PerformanceMetric[]>()
@@ -291,38 +295,34 @@ export class PerformanceService {
 
       if (severity !== 'low') {
         bottlenecks.push({
-          operation: operationName,
-          averageTime: Number(averageTime.toFixed(2)),
-          count,
-          severity,
-          recommendation
+          type: 'performance',
+          severity: severity as 'low' | 'medium' | 'high' | 'critical',
+          description: `${operationName} performance bottleneck`,
+          impact: `Average response time: ${averageTime.toFixed(2)}ms (${count} operations)`,
+          recommendation,
+          metrics: metrics
         })
       }
     })
 
-    // Sort by severity and average time
+    // Sort by severity
     return bottlenecks.sort((a, b) => {
-      const severityOrder = { high: 3, medium: 2, low: 1 }
-      const severityDiff = severityOrder[b.severity] - severityOrder[a.severity]
-      return severityDiff !== 0 ? severityDiff : b.averageTime - a.averageTime
+      const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 }
+      return severityOrder[b.severity] - severityOrder[a.severity]
     })
   }
 
   /**
    * Get resource usage trends
    */
-  getResourceTrends(): {
-    memoryTrend: 'increasing' | 'decreasing' | 'stable'
-    errorTrend: 'increasing' | 'decreasing' | 'stable'
-    recommendations: string[]
-  } {
+  getResourceTrends(): { memory: TrendAnalysis; responseTime: TrendAnalysis; throughput: TrendAnalysis } {
     const recommendations: string[] = []
     
     if (this.resourceHistory.length < 2) {
       return {
-        memoryTrend: 'stable',
-        errorTrend: 'stable',
-        recommendations: ['Insufficient data for trend analysis']
+        memory: { trend: 'stable', confidence: 0, recommendation: 'Insufficient data for analysis' },
+        responseTime: { trend: 'stable', confidence: 0, recommendation: 'Insufficient data for analysis' },
+        throughput: { trend: 'stable', confidence: 0, recommendation: 'Insufficient data for analysis' }
       }
     }
 
@@ -343,9 +343,9 @@ export class PerformanceService {
     }
 
     return {
-      memoryTrend,
-      errorTrend,
-      recommendations
+      memory: { trend: memoryTrend, confidence: 0.8, recommendation: memoryTrend === 'increasing' ? 'Monitor memory usage' : '' },
+      responseTime: { trend: errorTrend, confidence: 0.8, recommendation: errorTrend === 'increasing' ? 'Investigate performance issues' : '' },
+      throughput: { trend: 'stable', confidence: 0.5, recommendation: 'Monitoring throughput' }
     }
   }
 
@@ -365,8 +365,8 @@ export class PerformanceService {
     metrics: PerformanceMetric[]
     resourceHistory: ResourceUsage[]
     report: PerformanceReport
-    bottlenecks: ReturnType<typeof this.getBottlenecks>
-    trends: ReturnType<typeof this.getResourceTrends>
+    bottlenecks: PerformanceBottleneck[]
+    trends: { memory: TrendAnalysis; responseTime: TrendAnalysis; throughput: TrendAnalysis }
   } {
     return {
       metrics: this.metrics,

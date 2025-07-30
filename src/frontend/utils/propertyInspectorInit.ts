@@ -151,17 +151,9 @@ export function addStreamDeckEventListener<T = any>(
   return () => {} // No-op cleanup for SSR
 }
 
-// Declare global types for TypeScript
+// Global types are defined in frontend/types/global.d.ts
 declare global {
   interface Window {
-    connectElgatoStreamDeckSocket: (
-      port: number,
-      uuid: string,
-      registerEvent: string,
-      info: string,
-      actionInfo: string
-    ) => void
-    
     settingsSaveTimeout?: number
   }
   

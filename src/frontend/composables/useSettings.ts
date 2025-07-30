@@ -63,10 +63,10 @@ export function useSettings<T extends ActionSettings>(defaultSettings: T) {
         const loadedSettings = currentSettings as T
         
         // Merge with defaults to ensure all properties are present
-        state.settings = {
+        Object.assign(state.settings, {
           ...defaultSettings,
           ...loadedSettings
-        }
+        })
 
         // Update original settings for change tracking
         originalSettings.value = { ...state.settings }
@@ -140,7 +140,7 @@ export function useSettings<T extends ActionSettings>(defaultSettings: T) {
    * Update a specific setting value
    */
   const updateSetting = <K extends keyof T>(key: K, value: T[K]): void => {
-    state.settings[key] = value
+    (state.settings as T)[key] = value
     checkForChanges()
   }
 
@@ -166,7 +166,7 @@ export function useSettings<T extends ActionSettings>(defaultSettings: T) {
    * Reset settings to defaults
    */
   const resetToDefaults = (): void => {
-    state.settings = { ...defaultSettings }
+    Object.assign(state.settings, { ...defaultSettings })
     checkForChanges()
   }
 
@@ -294,10 +294,10 @@ export function useSettings<T extends ActionSettings>(defaultSettings: T) {
       }
 
       // Merge with defaults to ensure all properties are present
-      state.settings = {
+      Object.assign(state.settings, {
         ...defaultSettings,
         ...importedSettings
-      }
+      })
 
       checkForChanges()
       return true

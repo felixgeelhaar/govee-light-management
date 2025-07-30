@@ -7,6 +7,8 @@
 		"module": "ES2022",
 		"moduleResolution": "Bundler",
 		"noImplicitOverride": true,
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"types": ["node"],
 		"paths": {
 			"@shared/*": ["./src/shared/*"]
 		}

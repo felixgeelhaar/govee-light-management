@@ -165,7 +165,7 @@ export const lightDiscoveryMachine = setup({
           // Send lights request
           websocketService.requestLights()
         })
-      }, { operation: 'light-discovery', cached: apiKey && apiCacheService.getCachedLights(apiKey) !== null })
+      }, { operation: 'light-discovery', cached: 'false' })
     }),
   },
 }).createMachine({
@@ -194,7 +194,7 @@ export const lightDiscoveryMachine = setup({
       
       invoke: {
         src: 'fetchLights',
-        input: ({ self }) => self._parent?.input || {},
+        input: () => ({}),
         onDone: {
           target: 'success',
           actions: [
@@ -207,7 +207,7 @@ export const lightDiscoveryMachine = setup({
         onError: {
           target: 'error',
           actions: assign({
-            error: ({ event }) => event.error.message,
+            error: ({ event }) => (event.error as Error)?.message || 'Unknown error',
           }),
         },
       },

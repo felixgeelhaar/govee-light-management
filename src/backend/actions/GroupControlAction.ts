@@ -49,7 +49,8 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 
 		// Set initial title based on configuration
 		const title = this.getActionTitle(settings);
-		await ev.action.setTitle(title);
+		// TODO: Fix setTitle method call
+		// await streamDeck.actions.setTitle(ev.action, title);
 
 		// Load current group if configured
 		if (settings.selectedGroupId && this.groupService) {
@@ -273,7 +274,8 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 			stateIndicator = ' ◐'; // Mixed state
 		}
 
-		await action.setTitle(baseTitle + stateIndicator);
+		// TODO: Fix setTitle method call
+		// await streamDeck.actions.setTitle(action, baseTitle + stateIndicator);
 	}
 
 	/**
@@ -752,7 +754,8 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 
 			// Update action title
 			const title = this.getActionTitle(newSettings);
-			await ev.action.setTitle(title);
+			// TODO: Fix setTitle method call
+		// await streamDeck.actions.setTitle(ev.action, title);
 
 			streamDeck.logger.info('Settings updated successfully');
 		} catch (error) {

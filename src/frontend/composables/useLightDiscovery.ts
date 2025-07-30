@@ -28,7 +28,7 @@ export function useLightDiscovery() {
   
   // Initialize the actor and subscribe to state changes
   onMounted(() => {
-    actor.value = createActor(lightDiscoveryMachine, {})
+    actor.value = createActor(lightDiscoveryMachine, { input: {} })
     
     // Subscribe to state changes
     actor.value.subscribe((snapshot) => {

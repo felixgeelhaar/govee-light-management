@@ -268,6 +268,8 @@ export class CacheService {
     status: 'healthy' | 'warning' | 'critical'
     sizeUsage: number
     memoryUsage: number
+    hitRate: number
+    size: number
     recommendations: string[]
   } {
     const stats = this.getStats()
@@ -301,6 +303,8 @@ export class CacheService {
       status,
       sizeUsage: Number(sizeUsage.toFixed(2)),
       memoryUsage: Number(memoryUsage.toFixed(2)),
+      hitRate: Number(stats.hitRate.toFixed(2)),
+      size: stats.entries,
       recommendations
     }
   }

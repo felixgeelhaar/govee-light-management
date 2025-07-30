@@ -9,6 +9,8 @@ export interface LightItem {
   deviceId: string;
   model: string;
   name: string;
+  label: string; // Display label for dropdown lists
+  value: string; // Value in format "deviceId|model"
   controllable: boolean;
   retrievable: boolean;
   supportedCommands: string[];

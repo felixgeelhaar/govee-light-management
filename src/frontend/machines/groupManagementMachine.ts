@@ -289,7 +289,7 @@ export const groupManagementMachine = setup({
       
       invoke: {
         src: 'loadGroups',
-        input: ({ self }) => self._parent?.input || {},
+        input: () => ({}),
         onDone: {
           target: 'ready',
           actions: assign({
@@ -299,7 +299,7 @@ export const groupManagementMachine = setup({
         onError: {
           target: 'error',
           actions: assign({
-            error: ({ event }) => event.error.message,
+            error: ({ event }) => (event.error as Error)?.message || 'Unknown error',
           }),
         },
       },
@@ -326,7 +326,7 @@ export const groupManagementMachine = setup({
           target: 'editing',
           actions: ['setCurrentGroup', assign({
             selectedLights: ({ event }) => 
-              event.type === 'EDIT_GROUP' ? event.group.lightIds : []
+              event.type === 'EDIT_GROUP' ? (event.group.lightIds || []) : []
           })],
         },
         DELETE_GROUP: {
@@ -363,16 +363,17 @@ export const groupManagementMachine = setup({
       invoke: {
         src: 'saveGroup',
         input: ({ context, event, self }) => {
-          const baseInput = self._parent?.input || {}
           if (event.type === 'SAVE_GROUP') {
             return {
-              ...baseInput,
               name: event.name,
               selectedLights: event.selectedLights,
               groupId: context.currentGroup?.id,
             }
           }
-          return baseInput
+          return {
+            name: '',
+            selectedLights: []
+          }
         },
         onDone: {
           target: 'ready',
@@ -398,7 +399,7 @@ export const groupManagementMachine = setup({
         onError: {
           target: 'error',
           actions: assign({
-            error: ({ event }) => event.error.message,
+            error: ({ event }) => (event.error as Error)?.message || 'Unknown error',
           }),
         },
       },
@@ -422,14 +423,14 @@ export const groupManagementMachine = setup({
       invoke: {
         src: 'deleteGroup',
         input: ({ event, self }) => {
-          const baseInput = self._parent?.input || {}
           if (event.type === 'DELETE_GROUP') {
             return {
-              ...baseInput,
               groupId: event.groupId,
             }
           }
-          return baseInput
+          return {
+            groupId: ''
+          }
         },
         onDone: {
           target: 'ready',
@@ -441,7 +442,7 @@ export const groupManagementMachine = setup({
         onError: {
           target: 'error',
           actions: assign({
-            error: ({ event }) => event.error.message,
+            error: ({ event }) => (event.error as Error)?.message || 'Unknown error',
           }),
         },
       },

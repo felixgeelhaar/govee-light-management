@@ -1,4 +1,4 @@
-import type { PropertyInspectorMessages, PluginMessages } from '@shared/types/messages'
+import type { PropertyInspectorMessages, PluginMessages, BaseMessage } from '@shared/types/messages'
 import { createAppError, ErrorCodes, logError } from '../utils/errorHandling'
 
 /**
@@ -158,7 +158,7 @@ export class WebSocketService {
   /**
    * Send message to Stream Deck plugin
    */
-  sendMessage(message: PropertyInspectorMessages.BaseMessage): void {
+  sendMessage(message: BaseMessage): void {
     if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
       this.websocket.send(JSON.stringify(message))
     } else {
@@ -333,18 +333,7 @@ export class WebSocketService {
 // Singleton instance
 export const websocketService = new WebSocketService()
 
-// Global initialization function for Stream Deck
-declare global {
-  interface Window {
-    connectElgatoStreamDeckSocket: (
-      port: number,
-      uuid: string,
-      registerEvent: string,
-      info: string,
-      actionInfo: string
-    ) => void
-  }
-}
+// Global types are defined in frontend/types/global.d.ts
 
 // Stream Deck initialization callback
 window.connectElgatoStreamDeckSocket = (
