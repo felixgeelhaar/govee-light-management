@@ -4,9 +4,15 @@
     "description": "Enterprise-grade Stream Deck plugin for managing Govee lights with advanced group functionality",
     "main": "com.felixgeelhaar.govee-light-management.sdPlugin/bin/plugin.js",
     "scripts": {
-        "build": "rollup -c",
-        "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.felixgeelhaar.govee-light-management\"",
+        "build": "npm run build:backend && npm run build:frontend",
+        "build:backend": "rollup -c",
+        "build:frontend": "vite build",
+        "dev": "npm run dev:backend & npm run dev:frontend",
+        "dev:backend": "rollup -c -w --watch.onEnd=\"streamdeck restart com.felixgeelhaar.govee-light-management\"",
+        "dev:frontend": "vite",
+        "watch": "npm run dev:backend",
         "test": "vitest",
+        "test:frontend": "vitest --config vite.config.ts",
         "test:coverage": "vitest --coverage",
         "test:ui": "vitest --ui",
         "test:e2e": "playwright test",
@@ -14,11 +20,13 @@
         "test:e2e:debug": "playwright test --debug",
         "test:server": "node test/server/test-server.js",
         "test:server:background": "node test/server/test-server.js &",
-        "lint": "eslint src/**/*.ts",
-        "lint:fix": "eslint src/**/*.ts --fix",
-        "type-check": "tsc --noEmit",
-        "format": "prettier --write \"src/**/*.{ts,js,json}\"",
-        "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
+        "lint": "eslint src/**/*.ts src/**/*.vue",
+        "lint:fix": "eslint src/**/*.ts src/**/*.vue --fix",
+        "type-check": "tsc --noEmit && vue-tsc --noEmit",
+        "type-check:backend": "tsc --noEmit",
+        "type-check:frontend": "vue-tsc --noEmit",
+        "format": "prettier --write \"src/**/*.{ts,js,json,vue}\"",
+        "format:check": "prettier --check \"src/**/*.{ts,js,json,vue}\"",
         "prepare": "husky install",
         "pre-commit": "lint-staged"
     },
@@ -35,22 +43,30 @@
         "@types/node": "~20.15.0",
         "@typescript-eslint/eslint-plugin": "^8.0.0",
         "@typescript-eslint/parser": "^8.0.0",
+        "@vitejs/plugin-vue": "5.2.4",
         "@vitest/coverage-v8": "^3.2.4",
         "@vitest/ui": "^3.2.4",
+        "@vue/test-utils": "2.4.6",
         "eslint": "^9.0.0",
         "eslint-config-prettier": "^9.1.0",
         "eslint-plugin-prettier": "^5.2.1",
         "husky": "^9.0.11",
+        "jsdom": "23.2.0",
         "lint-staged": "^15.2.10",
         "prettier": "^3.3.3",
         "rollup": "^4.0.2",
         "tslib": "^2.6.2",
         "typescript": "^5.6.3",
-        "vitest": "^3.2.4"
+        "vite": "5.4.19",
+        "vitest": "^3.2.4",
+        "vue-tsc": "2.2.12"
     },
     "dependencies": {
         "@elgato/streamdeck": "^1.0.0",
-        "@felixgeelhaar/govee-api-client": "2.0.1"
+        "@felixgeelhaar/govee-api-client": "2.0.1",
+        "@xstate/vue": "3.1.4",
+        "vue": "3.5.18",
+        "xstate": "5.20.1"
     },
     "engines": {
         "node": ">=18.0.0"
@@ -69,7 +85,7 @@
     "author": "Felix Geelhaar",
     "license": "MIT",
     "lint-staged": {
-        "src/**/*.{ts,js}": [
+        "src/**/*.{ts,js,vue}": [
             "eslint --fix",
             "prettier --write"
         ],
