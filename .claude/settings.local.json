@@ -22,7 +22,9 @@
       "Bash(git add:*)",
       "WebFetch(domain:sdpi-components.dev)",
       "mcp__playwright__browser_take_screenshot",
-      "mcp__playwright__browser_navigate"
+      "mcp__playwright__browser_navigate",
+      "Bash(mv:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

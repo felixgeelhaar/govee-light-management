@@ -13,7 +13,7 @@ const sdPlugin = "com.felixgeelhaar.govee-light-management.sdPlugin";
  * @type {import('rollup').RollupOptions}
  */
 const config = {
-	input: "src/plugin.ts",
+	input: "src/backend/plugin.ts",
 	output: {
 		file: `${sdPlugin}/bin/plugin.js`,
 		sourcemap: isWatching,
