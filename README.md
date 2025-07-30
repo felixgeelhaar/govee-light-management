@@ -40,11 +40,11 @@
 - Robust error handling and state management
 - WebSocket communication for real-time updates
 
-## Screenshots
+## Demo
 
-| Individual Light Control | Group Management | Group Creation |
-|--------------------------|------------------|----------------|
-| ![Light Control](docs/images/light-control.png) | ![Group Management](docs/images/group-management.png) | ![Group Creation](docs/images/group-creation.png) |
+> 📸 **Screenshots coming soon!** We're working on capturing the perfect screenshots to showcase the plugin in action.
+> 
+> For now, check out the [Usage](#usage) section below for detailed instructions on how to use each feature.
 
 ## Installation
 
