@@ -1,4 +1,5 @@
 import { setup, assign, fromPromise } from 'xstate'
+import { websocketService } from '../services/websocketService'
 
 /**
  * Context for the API connection state machine
@@ -72,18 +73,35 @@ export const apiConnectionMachine = setup({
   
   actors: {
     validateApiKey: fromPromise(async ({ input }: { input: { apiKey: string } }) => {
-      // Simulate API validation
-      // In real implementation, this would call the backend to validate
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          if (input.apiKey === 'invalid-key') {
-            reject(new Error('Invalid API key'))
-          } else if (input.apiKey.startsWith('valid') || input.apiKey.startsWith('test') || input.apiKey.length >= 32) {
-            resolve(true)
-          } else {
-            reject(new Error('API key validation failed'))
+      // Production-ready WebSocket-based API key validation
+      if (!websocketService.isConnected) {
+        throw new Error('WebSocket not connected to Stream Deck')
+      }
+      
+      return new Promise<boolean>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          websocketService.off('sendToPropertyInspector', responseHandler)
+          reject(new Error('API key validation timeout'))
+        }, 10000) // 10 second timeout for network operations
+        
+        const responseHandler = (message: any) => {
+          if (message.payload?.event === 'apiKeyValidated') {
+            clearTimeout(timeout)
+            websocketService.off('sendToPropertyInspector', responseHandler)
+            
+            if (message.payload.isValid) {
+              resolve(true)
+            } else {
+              reject(new Error(message.payload.error || 'Invalid API key'))
+            }
           }
-        }, 50)
+        }
+        
+        // Listen for response
+        websocketService.on('sendToPropertyInspector', responseHandler)
+        
+        // Send validation request
+        websocketService.validateApiKey(input.apiKey)
       })
     }),
   },

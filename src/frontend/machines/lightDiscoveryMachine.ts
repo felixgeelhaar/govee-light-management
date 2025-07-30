@@ -1,5 +1,6 @@
 import { setup, assign, fromPromise } from 'xstate'
 import type { LightItem } from '@shared/types'
+import { websocketService } from '../services/websocketService'
 
 /**
  * Context for the light discovery state machine
@@ -109,22 +110,35 @@ export const lightDiscoveryMachine = setup({
   
   actors: {
     fetchLights: fromPromise(async ({ input }: { input: LightDiscoveryInput }) => {
-      // Simulate API call to fetch lights
-      // In real implementation, this would call the WebSocket API
+      // Production-ready WebSocket-based light discovery
+      if (!websocketService.isConnected) {
+        throw new Error('WebSocket not connected to Stream Deck')
+      }
+      
       return new Promise<LightItem[]>((resolve, reject) => {
-        setTimeout(() => {
-          if (input.shouldFail) {
-            reject(new Error('Failed to fetch lights'))
-          } else {
-            // Mock light data
-            resolve([
-              { label: 'Living Room Light (H6054)', value: 'device1|H6054' },
-              { label: 'Bedroom Strip (H6072)', value: 'device2|H6072' },
-              { label: 'Kitchen Under Cabinet (H6056)', value: 'device3|H6056' },
-              { label: 'Office Desk Light (H6117)', value: 'device4|H6117' },
-            ])
+        const timeout = setTimeout(() => {
+          websocketService.off('sendToPropertyInspector', responseHandler)
+          reject(new Error('Light discovery timeout'))
+        }, 15000) // 15 second timeout for light discovery
+        
+        const responseHandler = (message: any) => {
+          if (message.payload?.event === 'lightsReceived') {
+            clearTimeout(timeout)
+            websocketService.off('sendToPropertyInspector', responseHandler)
+            
+            if (message.payload.error) {
+              reject(new Error(message.payload.error))
+            } else {
+              resolve(message.payload.lights || [])
+            }
           }
-        }, 50)
+        }
+        
+        // Listen for response
+        websocketService.on('sendToPropertyInspector', responseHandler)
+        
+        // Send lights request
+        websocketService.requestLights()
       })
     }),
   },

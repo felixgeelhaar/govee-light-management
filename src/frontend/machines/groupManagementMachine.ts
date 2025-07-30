@@ -1,5 +1,6 @@
 import { setup, assign, fromPromise } from 'xstate'
 import type { LightGroup, LightItem } from '@shared/types'
+import { websocketService } from '../services/websocketService'
 
 /**
  * Context for the group management state machine
@@ -152,30 +153,35 @@ export const groupManagementMachine = setup({
   
   actors: {
     loadGroups: fromPromise(async ({ input }: { input: GroupManagementInput }) => {
-      // Simulate loading groups from storage
-      // In real implementation, this would load from WebSocket API or local storage
+      // Production-ready WebSocket-based group loading
+      if (!websocketService.isConnected) {
+        throw new Error('WebSocket not connected to Stream Deck')
+      }
+      
       return new Promise<LightGroup[]>((resolve, reject) => {
-        setTimeout(() => {
-          if (input.shouldFailLoad) {
-            reject(new Error('Failed to load groups'))
-          } else {
-            // Mock group data
-            resolve([
-              {
-                id: 'group1',
-                name: 'Living Room',
-                lightIds: ['device1|H6054', 'device2|H6072'],
-                isActive: true,
-              },
-              {
-                id: 'group2',
-                name: 'Bedroom',
-                lightIds: ['device3|H6056'],
-                isActive: false,
-              },
-            ])
+        const timeout = setTimeout(() => {
+          websocketService.off('sendToPropertyInspector', responseHandler)
+          reject(new Error('Group loading timeout'))
+        }, 10000) // 10 second timeout
+        
+        const responseHandler = (message: any) => {
+          if (message.payload?.event === 'groupsReceived') {
+            clearTimeout(timeout)
+            websocketService.off('sendToPropertyInspector', responseHandler)
+            
+            if (message.payload.error) {
+              reject(new Error(message.payload.error))
+            } else {
+              resolve(message.payload.groups || [])
+            }
           }
-        }, 50)
+        }
+        
+        // Listen for response
+        websocketService.on('sendToPropertyInspector', responseHandler)
+        
+        // Send groups request
+        websocketService.requestGroups()
       })
     }),
     
@@ -186,38 +192,73 @@ export const groupManagementMachine = setup({
         groupId?: string 
       } 
     }) => {
-      // Simulate saving group
-      // In real implementation, this would save via WebSocket API
+      // Production-ready WebSocket-based group saving
+      if (!websocketService.isConnected) {
+        throw new Error('WebSocket not connected to Stream Deck')
+      }
+      
       return new Promise<LightGroup>((resolve, reject) => {
-        setTimeout(() => {
-          if (input.shouldFailSave) {
-            reject(new Error('Failed to save group'))
-          } else {
-            const group: LightGroup = {
-              id: input.groupId || `group_${Date.now()}`,
-              name: input.name,
-              lightIds: input.selectedLights,
-              isActive: false,
+        const timeout = setTimeout(() => {
+          websocketService.off('sendToPropertyInspector', responseHandler)
+          reject(new Error('Group save timeout'))
+        }, 10000) // 10 second timeout
+        
+        const responseHandler = (message: any) => {
+          if (message.payload?.event === 'groupSaved') {
+            clearTimeout(timeout)
+            websocketService.off('sendToPropertyInspector', responseHandler)
+            
+            if (message.payload.error) {
+              reject(new Error(message.payload.error))
+            } else {
+              resolve(message.payload.group)
             }
-            resolve(group)
           }
-        }, 50)
+        }
+        
+        // Listen for response
+        websocketService.on('sendToPropertyInspector', responseHandler)
+        
+        // Send save request
+        websocketService.saveGroup({
+          name: input.name,
+          lightIds: input.selectedLights
+        })
       })
     }),
     
     deleteGroup: fromPromise(async ({ input }: { 
       input: GroupManagementInput & { groupId: string } 
     }) => {
-      // Simulate deleting group
-      // In real implementation, this would delete via WebSocket API
+      // Production-ready WebSocket-based group deletion
+      if (!websocketService.isConnected) {
+        throw new Error('WebSocket not connected to Stream Deck')
+      }
+      
       return new Promise<string>((resolve, reject) => {
-        setTimeout(() => {
-          if (input.shouldFailDelete) {
-            reject(new Error('Failed to delete group'))
-          } else {
-            resolve(input.groupId)
+        const timeout = setTimeout(() => {
+          websocketService.off('sendToPropertyInspector', responseHandler)
+          reject(new Error('Group delete timeout'))
+        }, 10000) // 10 second timeout
+        
+        const responseHandler = (message: any) => {
+          if (message.payload?.event === 'groupDeleted') {
+            clearTimeout(timeout)
+            websocketService.off('sendToPropertyInspector', responseHandler)
+            
+            if (message.payload.error) {
+              reject(new Error(message.payload.error))
+            } else {
+              resolve(message.payload.groupId)
+            }
           }
-        }, 50)
+        }
+        
+        // Listen for response
+        websocketService.on('sendToPropertyInspector', responseHandler)
+        
+        // Send delete request
+        websocketService.deleteGroup(input.groupId)
       })
     }),
   },
