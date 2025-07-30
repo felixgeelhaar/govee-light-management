@@ -19,7 +19,10 @@
       "Bash(chmod:*)",
       "mcp__github__add_issue_comment",
       "Bash(git commit:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "WebFetch(domain:sdpi-components.dev)",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_navigate"
     ],
     "deny": []
   }

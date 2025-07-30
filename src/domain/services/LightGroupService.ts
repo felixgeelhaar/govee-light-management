@@ -101,6 +101,38 @@ export class LightGroupService {
   }
 
   /**
+   * Update group with new name and lights
+   */
+  async updateGroup(groupId: string, newName: string, lightIds: Array<{deviceId: string, model: string}>): Promise<LightGroup> {
+    const group = await this.groupRepository.findGroupById(groupId);
+    if (!group) {
+      throw new Error(`Group with ID ${groupId} not found`);
+    }
+
+    // Check if new name is available (excluding current group)
+    const isNameAvailable = await this.groupRepository.isGroupNameAvailable(newName, groupId);
+    if (!isNameAvailable) {
+      throw new Error(`Group name "${newName}" is already taken`);
+    }
+
+    // Fetch lights and validate they exist
+    const lights: Light[] = [];
+    for (const lightId of lightIds) {
+      const light = await this.lightRepository.findLight(lightId.deviceId, lightId.model);
+      if (!light) {
+        throw new Error(`Light with device ID ${lightId.deviceId} and model ${lightId.model} not found`);
+      }
+      lights.push(light);
+    }
+
+    // Create updated group
+    const updatedGroup = LightGroup.create(groupId, newName, lights);
+    await this.groupRepository.saveGroup(updatedGroup);
+
+    return updatedGroup;
+  }
+
+  /**
    * Delete a group
    */
   async deleteGroup(groupId: string): Promise<void> {

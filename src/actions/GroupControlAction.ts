@@ -110,8 +110,20 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 			case 'getGroups':
 				await this.handleGetGroups(settings);
 				break;
+			case 'getLights':
+				await this.handleGetLights(settings);
+				break;
 			case 'createGroup':
 				await this.handleCreateGroup(ev, settings);
+				break;
+			case 'getGroupDetails':
+				await this.handleGetGroupDetails(ev, settings);
+				break;
+			case 'editGroup':
+				await this.handleEditGroup(ev, settings);
+				break;
+			case 'deleteGroup':
+				await this.handleDeleteGroup(ev, settings);
 				break;
 			case 'testGroup':
 				await this.handleTestGroup(ev, settings);
@@ -315,6 +327,39 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 	}
 
 	/**
+	 * Handle request for available lights from property inspector
+	 */
+	private async handleGetLights(settings: GroupControlSettings): Promise<void> {
+		if (!settings.apiKey) {
+			streamDeck.logger.warn('API key required to fetch lights');
+			return;
+		}
+
+		try {
+			if (!this.lightRepository) {
+				this.initializeServices(settings.apiKey);
+			}
+
+			const lights = await this.lightRepository!.getAllLights();
+			const items = lights.map(light => ({
+				label: `${light.name} (${light.model})`,
+				value: `${light.deviceId}|${light.model}`,
+			}));
+
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'getLights',
+				items,
+			});
+		} catch (error) {
+			streamDeck.logger.error('Failed to fetch lights:', error);
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'error',
+				message: 'Failed to fetch lights. Check your API key.',
+			});
+		}
+	}
+
+	/**
 	 * Handle create group request from property inspector
 	 */
 	private async handleCreateGroup(
@@ -357,6 +402,136 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 				event: 'groupCreated',
 				success: false,
 				message: error instanceof Error ? error.message : 'Failed to create group',
+			});
+		}
+	}
+
+	/**
+	 * Handle get group details request from property inspector
+	 */
+	private async handleGetGroupDetails(
+		ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
+		settings: GroupControlSettings
+	): Promise<void> {
+		const payload = ev.payload as any;
+		if (!payload.groupId || !this.groupService) {
+			return;
+		}
+
+		try {
+			const group = await this.groupService.findGroupById(payload.groupId);
+			if (group) {
+				const lightIds = group.lights.map(light => `${light.deviceId}|${light.model}`);
+				
+				await streamDeck.ui.current?.sendToPropertyInspector({
+					event: 'groupDetails',
+					group: {
+						id: group.id,
+						name: group.name,
+						lightIds,
+						lightCount: group.size,
+					},
+				});
+			} else {
+				await streamDeck.ui.current?.sendToPropertyInspector({
+					event: 'error',
+					message: 'Group not found',
+				});
+			}
+		} catch (error) {
+			streamDeck.logger.error('Failed to get group details:', error);
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'error',
+				message: 'Failed to get group details',
+			});
+		}
+	}
+
+	/**
+	 * Handle edit group request from property inspector
+	 */
+	private async handleEditGroup(
+		ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
+		settings: GroupControlSettings
+	): Promise<void> {
+		if (!settings.apiKey || !this.groupService) {
+			return;
+		}
+
+		const payload = ev.payload as any;
+		if (!payload.groupId || !payload.groupName || !payload.selectedLightIds) {
+			return;
+		}
+
+		try {
+			// Parse light IDs from the format "deviceId|model"
+			const lightIds = payload.selectedLightIds.map((id: string) => {
+				const [deviceId, model] = id.split('|');
+				return { deviceId, model };
+			});
+
+			// Update the group using the service method
+			const updatedGroup = await this.groupService.updateGroup(
+				payload.groupId,
+				payload.groupName,
+				lightIds
+			);
+
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'groupEdited',
+				success: true,
+				group: {
+					id: updatedGroup.id,
+					name: updatedGroup.name,
+					lightCount: updatedGroup.size,
+				},
+			});
+
+			// Refresh the groups list
+			await this.handleGetGroups(settings);
+		} catch (error) {
+			streamDeck.logger.error('Failed to edit group:', error);
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'groupEdited',
+				success: false,
+				message: error instanceof Error ? error.message : 'Failed to edit group',
+			});
+		}
+	}
+
+	/**
+	 * Handle delete group request from property inspector
+	 */
+	private async handleDeleteGroup(
+		ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
+		settings: GroupControlSettings
+	): Promise<void> {
+		if (!this.groupService) {
+			return;
+		}
+
+		const payload = ev.payload as any;
+		if (!payload.groupId) {
+			return;
+		}
+
+		try {
+			await this.groupService.deleteGroup(payload.groupId);
+
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'groupDeleted',
+				success: true,
+				message: 'Group deleted successfully',
+			});
+
+			// Refresh the groups list
+			await this.handleGetGroups(settings);
+		} catch (error) {
+			streamDeck.logger.error('Failed to delete group:', error);
+			await streamDeck.ui.current?.sendToPropertyInspector({
+				event: 'groupDeleted',
+				success: false,
+				message: error instanceof Error ? error.message : 'Failed to delete group',
 			});
 		}
 	}

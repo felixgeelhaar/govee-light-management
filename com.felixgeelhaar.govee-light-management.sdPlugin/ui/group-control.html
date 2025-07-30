@@ -1,167 +1,283 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Group Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Govee Group Control</title>
     <link rel="stylesheet" href="sdpi.css">
 </head>
 <body>
-    <div class="sdpi-wrapper">
-        <div type="group" class="first">
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="title">API Configuration</div>
-                </div>
+    <div class="sdpi-wrapper" role="main" aria-label="Govee Group Control Settings">
+        <div class="sdpi-item" type="group">
+            <div class="sdpi-item-group">
+                <div class="sdpi-item-label" role="heading" aria-level="2">API Configuration</div>
             </div>
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="text">API Key</div>
-                </div>
-                <div type="column">
-                    <input class="sdpi-item-value" type="password" name="apiKey" placeholder="Enter your Govee API key">
-                </div>
+        </div>
+        <div class="sdpi-item">
+            <div class="sdpi-item-label" for="apiKey">API Key</div>
+            <input class="sdpi-item-value" 
+                   type="password" 
+                   id="apiKey" 
+                   name="apiKey" 
+                   placeholder="Enter your Govee API key"
+                   aria-describedby="apiKeyHelp"
+                   autocomplete="off">
+        </div>
+        <div class="sdpi-item-help" id="apiKeyHelp">
+            <small>Get your API key from the Govee Home app → Settings → About Us → Apply for API Key</small>
+        </div>
+
+        <div class="sdpi-item" type="group">
+            <div class="sdpi-item-group">
+                <div class="sdpi-item-label" role="heading" aria-level="2">Group Management</div>
+            </div>
+        </div>
+        <div class="sdpi-item">
+            <div class="sdpi-item-label" for="selectedGroup">Light Group</div>
+            <select class="sdpi-item-value" 
+                    id="selectedGroup" 
+                    name="selectedGroup"
+                    aria-describedby="groupHelp">
+                <option value="" disabled>Select a light group...</option>
+            </select>
+        </div>
+        <div class="sdpi-item-help" id="groupHelp">
+            <small>Choose an existing group or create a new one below</small>
+        </div>
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">Group Actions</div>
+            <div class="sdpi-item-value sdpi-item-button-group">
+                <button type="button" 
+                        id="createGroup" 
+                        class="sdpi-item-value"
+                        aria-describedby="createHelp">➕ Create</button>
+                <button type="button" 
+                        id="editGroup" 
+                        class="sdpi-item-value"
+                        aria-describedby="editHelp"
+                        disabled>✏️ Edit</button>
+                <button type="button" 
+                        id="deleteGroup" 
+                        class="sdpi-item-value"
+                        aria-describedby="deleteHelp"
+                        disabled>🗑️ Delete</button>
+            </div>
+        </div>
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">Utilities</div>
+            <div class="sdpi-item-value">
+                <button type="button" 
+                        id="refreshGroups" 
+                        class="sdpi-item-value"
+                        aria-describedby="refreshGroupsHelp">🔄 Refresh Groups</button>
+            </div>
+        </div>
+        <div class="sdpi-item-help" id="createHelp">
+            <small>Create: Add new group | Edit: Modify selected group | Delete: Remove selected group</small>
+        </div>
+
+        <div class="sdpi-item" id="createGroupPanel" style="display: none;" type="group">
+            <div class="sdpi-item-group">
+                <div class="sdpi-item-label" role="heading" aria-level="2">➕ Create New Group</div>
+            </div>
+        </div>
+        <div class="sdpi-item" id="groupNameItem" style="display: none;">
+            <div class="sdpi-item-label" for="groupName">Group Name</div>
+            <input class="sdpi-item-value" 
+                   type="text" 
+                   id="groupName" 
+                   name="groupName"
+                   placeholder="Enter descriptive group name"
+                   aria-describedby="groupNameHelp"
+                   maxlength="50">
+        </div>
+        <div class="sdpi-item-help" id="groupNameHelp" style="display: none;">
+            <small>Choose a meaningful name like "Bedroom Lights" or "Kitchen Setup"</small>
+        </div>
+        <div class="sdpi-item" id="lightsSelectionItem" style="display: none;">
+            <div class="sdpi-item-label" for="lightsList">Select Lights</div>
+            <div class="sdpi-item-value">
+                <div id="lightsList" 
+                     class="lights-list" 
+                     role="group" 
+                     aria-labelledby="lightsSelectionLabel"
+                     aria-describedby="lightsSelectionHelp"></div>
+            </div>
+        </div>
+        <div class="sdpi-item-help" id="lightsSelectionHelp" style="display: none;">
+            <small>Select multiple lights to include in this group</small>
+        </div>
+        <div class="sdpi-item" id="groupActionsItem" style="display: none;">
+            <div class="sdpi-item-label">Group Creation</div>
+            <div class="sdpi-item-value sdpi-item-button-group">
+                <button type="button" 
+                        id="saveGroup" 
+                        class="sdpi-item-value"
+                        aria-describedby="saveHelp">✓ Save Group</button>
+                <button type="button" 
+                        id="cancelGroup" 
+                        class="sdpi-item-value"
+                        aria-describedby="cancelHelp">✖ Cancel</button>
+            </div>
+        </div>
+        <div class="sdpi-item-help" id="saveHelp" style="display: none;">
+            <small>Save: Create the group | Cancel: Discard changes</small>
+        </div>
+
+        <!-- Edit Group Panel -->
+        <div class="sdpi-item" id="editGroupPanel" style="display: none;" type="group">
+            <div class="sdpi-item-group">
+                <div class="sdpi-item-label" role="heading" aria-level="2">✏️ Edit Group</div>
+            </div>
+        </div>
+        <div class="sdpi-item" id="editGroupNameItem" style="display: none;">
+            <div class="sdpi-item-label" for="editGroupName">Group Name</div>
+            <input class="sdpi-item-value" 
+                   type="text" 
+                   id="editGroupName" 
+                   name="editGroupName"
+                   placeholder="Enter new group name"
+                   aria-describedby="editGroupNameHelp"
+                   maxlength="50">
+        </div>
+        <div class="sdpi-item-help" id="editGroupNameHelp" style="display: none;">
+            <small>Change the group name or modify light selection below</small>
+        </div>
+        <div class="sdpi-item" id="editLightsSelectionItem" style="display: none;">
+            <div class="sdpi-item-label" for="editLightsList">Group Lights</div>
+            <div class="sdpi-item-value">
+                <div id="editLightsList" 
+                     class="lights-list" 
+                     role="group" 
+                     aria-labelledby="editLightsSelectionLabel"
+                     aria-describedby="editLightsSelectionHelp"></div>
+            </div>
+        </div>
+        <div class="sdpi-item-help" id="editLightsSelectionHelp" style="display: none;">
+            <small>Check/uncheck lights to add or remove them from the group</small>
+        </div>
+        <div class="sdpi-item" id="editGroupActionsItem" style="display: none;">
+            <div class="sdpi-item-label">Save Changes</div>
+            <div class="sdpi-item-value sdpi-item-button-group">
+                <button type="button" 
+                        id="saveGroupEdit" 
+                        class="sdpi-item-value"
+                        aria-describedby="saveEditHelp">✓ Save Changes</button>
+                <button type="button" 
+                        id="cancelGroupEdit" 
+                        class="sdpi-item-value"
+                        aria-describedby="cancelEditHelp">✖ Cancel</button>
+            </div>
+        </div>
+        <div class="sdpi-item-help" id="saveEditHelp" style="display: none;">
+            <small>Save: Apply changes to group | Cancel: Discard changes</small>
+        </div>
+
+        <div class="sdpi-item" type="group">
+            <div class="sdpi-item-group">
+                <div class="sdpi-item-label" role="heading" aria-level="2">Control Settings</div>
+            </div>
+        </div>
+        <div class="sdpi-item">
+            <div class="sdpi-item-label" for="controlMode">Group Action</div>
+            <select class="sdpi-item-value" 
+                    id="controlMode" 
+                    name="controlMode"
+                    aria-describedby="groupModeHelp">
+                <option value="toggle">🔄 Toggle All Lights</option>
+                <option value="on">💡 Turn All On</option>
+                <option value="off">⚫ Turn All Off</option>
+                <option value="brightness">🔆 Set Group Brightness</option>
+                <option value="color">🌈 Set Group Color</option>
+                <option value="colorTemp">🌡️ Group Color Temperature</option>
+            </select>
+        </div>
+        <div class="sdpi-item-help" id="groupModeHelp">
+            <small>Choose what happens to all lights in the group when button is pressed</small>
+        </div>
+
+        <div class="sdpi-item" id="brightnessGroup" style="display: none;">
+            <div class="sdpi-item-label" for="brightnessValue">Group Brightness</div>
+            <div class="sdpi-item-value">
+                <input type="range" 
+                       id="brightnessValue" 
+                       name="brightnessValue" 
+                       min="1" 
+                       max="100" 
+                       value="50"
+                       aria-describedby="brightnessDisplay"
+                       class="sdpi-item-value">
+                <div class="sdpi-item-child" id="brightnessDisplay">50%</div>
             </div>
         </div>
 
-        <div type="group">
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="title">Group Management</div>
-                </div>
-            </div>
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="text">Light Group</div>
-                </div>
-                <div type="column">
-                    <select class="sdpi-item-value" name="selectedGroup">
-                        <option value="">Select a group...</option>
-                    </select>
-                </div>
-            </div>
-            <div type="row">
-                <div type="column">
-                    <button class="sdpi-item-value" type="button" id="createGroup">Create New Group</button>
-                </div>
-                <div type="column">
-                    <button class="sdpi-item-value" type="button" id="refreshGroups">Refresh Groups</button>
-                </div>
-            </div>
+        <div class="sdpi-item" id="colorGroup" style="display: none;">
+            <div class="sdpi-item-label" for="colorValue">Group Color</div>
+            <input class="sdpi-item-value" 
+                   type="color" 
+                   id="colorValue" 
+                   name="colorValue" 
+                   value="#ffffff"
+                   aria-describedby="groupColorHelp">
+        </div>
+        <div class="sdpi-item-help" id="groupColorHelp" style="display: none;">
+            <small>This color will be applied to all lights in the group</small>
         </div>
 
-        <div type="group" id="createGroupPanel" style="display: none;">
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="title">Create Group</div>
-                </div>
-            </div>
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="text">Group Name</div>
-                </div>
-                <div type="column">
-                    <input class="sdpi-item-value" type="text" id="groupName" placeholder="Enter group name">
-                </div>
-            </div>
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="text">Select Lights</div>
-                </div>
-                <div type="column">
-                    <div id="lightsList" class="lights-list"></div>
-                </div>
-            </div>
-            <div type="row">
-                <div type="column">
-                    <button class="sdpi-item-value" type="button" id="saveGroup">Save Group</button>
-                </div>
-                <div type="column">
-                    <button class="sdpi-item-value" type="button" id="cancelGroup">Cancel</button>
-                </div>
+        <div class="sdpi-item" id="colorTempGroup" style="display: none;">
+            <div class="sdpi-item-label" for="colorTempValue">Group Color Temperature</div>
+            <div class="sdpi-item-value">
+                <input type="range" 
+                       id="colorTempValue" 
+                       name="colorTempValue" 
+                       min="2000" 
+                       max="9000" 
+                       value="6500"
+                       aria-describedby="tempDisplay"
+                       class="sdpi-item-value">
+                <div class="sdpi-item-child" id="tempDisplay">6500K</div>
             </div>
         </div>
-
-        <div type="group">
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="title">Control Settings</div>
-                </div>
-            </div>
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="text">Control Mode</div>
-                </div>
-                <div type="column">
-                    <select class="sdpi-item-value" name="controlMode">
-                        <option value="toggle">Toggle</option>
-                        <option value="on">Turn On</option>
-                        <option value="off">Turn Off</option>
-                        <option value="brightness">Set Brightness</option>
-                        <option value="color">Set Color</option>
-                        <option value="colorTemp">Color Temperature</option>
-                    </select>
-                </div>
-            </div>
+        <div class="sdpi-item-help" id="groupTempHelp" style="display: none;">
+            <small>Warm (2000K) ← → Cool (9000K) - Applied to all group lights</small>
         </div>
 
-        <div type="group" id="brightnessGroup" style="display: none;">
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="text">Brightness</div>
-                </div>
-                <div type="column">
-                    <input class="sdpi-item-value" type="range" name="brightnessValue" min="1" max="100" value="50">
-                    <div type="text" class="brightness-value">50%</div>
-                </div>
+        <div class="sdpi-item" type="group">
+            <div class="sdpi-item-group">
+                <div class="sdpi-item-label" role="heading" aria-level="2">Testing & Status</div>
             </div>
         </div>
-
-        <div type="group" id="colorGroup" style="display: none;">
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="text">Color</div>
-                </div>
-                <div type="column">
-                    <input class="sdpi-item-value" type="color" name="colorValue" value="#ffffff">
-                </div>
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">Group Testing</div>
+            <div class="sdpi-item-value sdpi-item-button-group">
+                <button type="button" 
+                        id="testGroup" 
+                        class="sdpi-item-value"
+                        aria-describedby="testGroupHelp">🔍 Test Group</button>
+                <button type="button" 
+                        id="refreshState" 
+                        class="sdpi-item-value"
+                        aria-describedby="refreshStateHelp">🔄 Refresh</button>
             </div>
         </div>
-
-        <div type="group" id="colorTempGroup" style="display: none;">
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="text">Color Temperature</div>
-                </div>
-                <div type="column">
-                    <input class="sdpi-item-value" type="range" name="colorTempValue" min="2000" max="9000" value="6500">
-                    <div type="text" class="temp-value">6500K</div>
-                </div>
-            </div>
+        <div class="sdpi-item-help" id="testGroupHelp">
+            <small>Test: Blink all lights in group | Refresh: Update group status</small>
         </div>
-
-        <div type="group">
-            <div type="row">
-                <div type="column">
-                    <button class="sdpi-item-value" type="button" id="testGroup">Test Group</button>
-                </div>
-                <div type="column">
-                    <button class="sdpi-item-value" type="button" id="refreshState">Refresh State</button>
-                </div>
-            </div>
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="status" id="status"></div>
-                </div>
+        <div class="sdpi-item" id="statusContainer" style="display: none;">
+            <div class="sdpi-item-label">Status</div>
+            <div class="sdpi-item-value">
+                <div id="status" class="status" role="status" aria-live="polite"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // Initialize property inspector
+        // Enhanced group control property inspector
         let settings = {};
         let websocket = null;
         let uuid = null;
         let availableLights = [];
+        let isInitialized = false;
 
         function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo) {
             uuid = inUUID;
@@ -250,6 +366,30 @@
             } else if (payload.event === 'getLights' && payload.items) {
                 availableLights = payload.items;
                 updateLightsList();
+                updateEditLightsList();
+            } else if (payload.event === 'groupDetails' && payload.group) {
+                const group = payload.group;
+                showEditGroupPanel(group.id, group.name, group.lightIds);
+            } else if (payload.event === 'groupDeleted') {
+                if (payload.success) {
+                    showStatus('Group deleted successfully!', true);
+                    fetchGroups();
+                    // Clear selection
+                    settings.selectedGroupId = '';
+                    settings.selectedGroupName = '';
+                    sendSettings();
+                    enableGroupActions(false);
+                } else {
+                    showStatus(payload.message || 'Failed to delete group', false);
+                }
+            } else if (payload.event === 'groupEdited') {
+                if (payload.success) {
+                    showStatus('Group updated successfully!', true);
+                    hideEditGroupPanel();
+                    fetchGroups();
+                } else {
+                    showStatus(payload.message || 'Failed to update group', false);
+                }
             } else if (payload.event === 'groupCreated') {
                 if (payload.success) {
                     showStatus('Group created successfully!', true);
@@ -274,20 +414,97 @@
         }
 
         function showCreateGroupPanel() {
-            document.getElementById('createGroupPanel').style.display = 'block';
+            const elements = [
+                'createGroupPanel', 'groupNameItem', 'groupNameHelp',
+                'lightsSelectionItem', 'lightsSelectionHelp', 'groupActionsItem', 'saveHelp'
+            ];
+            
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.style.display = 'block';
+            });
+            
             if (availableLights.length === 0) {
                 fetchLights();
+            }
+            
+            // Focus on group name input
+            const groupNameInput = document.getElementById('groupName');
+            if (groupNameInput) {
+                setTimeout(() => groupNameInput.focus(), 100);
             }
         }
 
         function hideCreateGroupPanel() {
-            document.getElementById('createGroupPanel').style.display = 'none';
-            document.getElementById('groupName').value = '';
+            const elements = [
+                'createGroupPanel', 'groupNameItem', 'groupNameHelp',
+                'lightsSelectionItem', 'lightsSelectionHelp', 'groupActionsItem', 'saveHelp'
+            ];
+            
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.style.display = 'none';
+            });
+            
+            // Clear form
+            const groupNameInput = document.getElementById('groupName');
+            if (groupNameInput) groupNameInput.value = '';
+            
             updateLightsList();
+        }
+        
+        function showEditGroupPanel(groupId, groupName, groupLights) {
+            const elements = [
+                'editGroupPanel', 'editGroupNameItem', 'editGroupNameHelp',
+                'editLightsSelectionItem', 'editLightsSelectionHelp', 'editGroupActionsItem', 'saveEditHelp'
+            ];
+            
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.style.display = 'block';
+            });
+            
+            // Set current group data
+            const groupNameInput = document.getElementById('editGroupName');
+            if (groupNameInput) groupNameInput.value = groupName;
+            
+            // Store current group info for editing
+            window.editingGroup = { id: groupId, name: groupName, lights: groupLights };
+            
+            // Load lights and mark current group lights as checked
+            if (availableLights.length === 0) {
+                fetchLights();
+            } else {
+                updateEditLightsList();
+            }
+            
+            // Focus on group name input
+            setTimeout(() => groupNameInput.focus(), 100);
+        }
+        
+        function hideEditGroupPanel() {
+            const elements = [
+                'editGroupPanel', 'editGroupNameItem', 'editGroupNameHelp',
+                'editLightsSelectionItem', 'editLightsSelectionHelp', 'editGroupActionsItem', 'saveEditHelp'
+            ];
+            
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.style.display = 'none';
+            });
+            
+            // Clear form and editing state
+            const groupNameInput = document.getElementById('editGroupName');
+            if (groupNameInput) groupNameInput.value = '';
+            
+            window.editingGroup = null;
+            updateEditLightsList();
         }
 
         function updateLightsList() {
             const container = document.getElementById('lightsList');
+            if (!container) return;
+            
             container.innerHTML = '';
             
             availableLights.forEach(light => {
@@ -302,23 +519,88 @@
                 container.appendChild(div);
             });
         }
+        
+        function updateEditLightsList() {
+            const container = document.getElementById('editLightsList');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            if (!window.editingGroup) return;
+            
+            availableLights.forEach(light => {
+                const div = document.createElement('div');
+                div.className = 'light-checkbox';
+                
+                // Check if this light is currently in the group being edited
+                const isInGroup = window.editingGroup.lights.some(groupLight => 
+                    groupLight === light.value
+                );
+                
+                div.innerHTML = `
+                    <label>
+                        <input type="checkbox" value="${light.value}" ${isInGroup ? 'checked' : ''}>
+                        <span>${light.label}</span>
+                    </label>
+                `;
+                container.appendChild(div);
+            });
+        }
 
         function getSelectedLights() {
             const checkboxes = document.querySelectorAll('#lightsList input[type="checkbox"]:checked');
             return Array.from(checkboxes).map(cb => cb.value);
         }
+        
+        function getEditSelectedLights() {
+            const checkboxes = document.querySelectorAll('#editLightsList input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+        
+        function enableGroupActions(hasSelectedGroup) {
+            const editButton = document.getElementById('editGroup');
+            const deleteButton = document.getElementById('deleteGroup');
+            
+            if (editButton) editButton.disabled = !hasSelectedGroup;
+            if (deleteButton) deleteButton.disabled = !hasSelectedGroup;
+        }
 
         function showControlOptions(mode) {
-            document.getElementById('brightnessGroup').style.display = 'none';
-            document.getElementById('colorGroup').style.display = 'none';
-            document.getElementById('colorTempGroup').style.display = 'none';
+            // Hide all conditional groups
+            const groups = [
+                { id: 'brightnessGroup', help: null },
+                { id: 'colorGroup', help: 'groupColorHelp' },
+                { id: 'colorTempGroup', help: 'groupTempHelp' }
+            ];
+            
+            groups.forEach(group => {
+                const element = document.getElementById(group.id);
+                if (element) element.style.display = 'none';
+                
+                if (group.help) {
+                    const helpElement = document.getElementById(group.help);
+                    if (helpElement) helpElement.style.display = 'none';
+                }
+            });
 
-            if (mode === 'brightness') {
-                document.getElementById('brightnessGroup').style.display = 'block';
-            } else if (mode === 'color') {
-                document.getElementById('colorGroup').style.display = 'block';
-            } else if (mode === 'colorTemp') {
-                document.getElementById('colorTempGroup').style.display = 'block';
+            // Show relevant group based on mode
+            switch (mode) {
+                case 'brightness':
+                    const brightnessGroup = document.getElementById('brightnessGroup');
+                    if (brightnessGroup) brightnessGroup.style.display = 'block';
+                    break;
+                case 'color':
+                    const colorGroup = document.getElementById('colorGroup');
+                    const colorHelp = document.getElementById('groupColorHelp');
+                    if (colorGroup) colorGroup.style.display = 'block';
+                    if (colorHelp) colorHelp.style.display = 'block';
+                    break;
+                case 'colorTemp':
+                    const tempGroup = document.getElementById('colorTempGroup');
+                    const tempHelp = document.getElementById('groupTempHelp');
+                    if (tempGroup) tempGroup.style.display = 'block';
+                    if (tempHelp) tempHelp.style.display = 'block';
+                    break;
             }
         }
 
@@ -332,59 +614,103 @@
 
         function showStatus(message, success) {
             const statusEl = document.getElementById('status');
-            statusEl.textContent = message;
-            statusEl.className = 'status ' + (success ? 'success' : 'error');
-            setTimeout(() => {
-                statusEl.textContent = '';
-                statusEl.className = 'status';
-            }, 3000);
+            const statusContainer = document.getElementById('statusContainer');
+            
+            if (statusEl && statusContainer) {
+                statusEl.textContent = message;
+                statusEl.className = 'status ' + (success ? 'success' : 'error');
+                statusContainer.style.display = 'block';
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    statusEl.textContent = '';
+                    statusEl.className = 'status';
+                    statusContainer.style.display = 'none';
+                }, 5000);
+            }
         }
 
         // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
-            // API Key change
-            document.querySelector('[name="apiKey"]').addEventListener('change', function() {
-                settings.apiKey = this.value;
-                sendSettings();
-                if (this.value) {
-                    fetchGroups();
-                    fetchLights();
-                }
-            });
+            // API Key change with validation
+            const apiKeyInput = document.getElementById('apiKey');
+            if (apiKeyInput) {
+                apiKeyInput.addEventListener('input', debounce(function() {
+                    const value = this.value.trim();
+                    if (value && value.length >= 32) {
+                        settings.apiKey = value;
+                        sendSettings();
+                        fetchGroups();
+                        fetchLights();
+                        showStatus('API key updated', true);
+                    } else if (value.length > 0 && value.length < 32) {
+                        showStatus('API key must be at least 32 characters', false);
+                    }
+                }, 500));
+            }
 
             // Group selection change
-            document.querySelector('[name="selectedGroup"]').addEventListener('change', function() {
-                settings.selectedGroupId = this.value;
-                settings.selectedGroupName = this.options[this.selectedIndex].text;
-                sendSettings();
-            });
+            const groupSelect = document.getElementById('selectedGroup');
+            if (groupSelect) {
+                groupSelect.addEventListener('change', function() {
+                    if (this.value) {
+                        settings.selectedGroupId = this.value;
+                        settings.selectedGroupName = this.options[this.selectedIndex].text;
+                        sendSettings();
+                        showStatus(`Selected: ${settings.selectedGroupName}`, true);
+                        enableGroupActions(true);
+                    } else {
+                        enableGroupActions(false);
+                    }
+                });
+            }
 
             // Control mode change
-            document.querySelector('[name="controlMode"]').addEventListener('change', function() {
-                settings.controlMode = this.value;
-                sendSettings();
-                showControlOptions(this.value);
-            });
+            const controlModeSelect = document.getElementById('controlMode');
+            if (controlModeSelect) {
+                controlModeSelect.addEventListener('change', function() {
+                    settings.controlMode = this.value;
+                    sendSettings();
+                    showControlOptions(this.value);
+                });
+            }
 
-            // Brightness change
-            document.querySelector('[name="brightnessValue"]').addEventListener('input', function() {
-                settings.brightnessValue = parseInt(this.value);
-                sendSettings();
-                updateBrightnessDisplay(this.value);
-            });
+            // Brightness slider with real-time updates
+            const brightnessSlider = document.getElementById('brightnessValue');
+            if (brightnessSlider) {
+                brightnessSlider.addEventListener('input', function() {
+                    const value = parseInt(this.value);
+                    updateBrightnessDisplay(value);
+                });
+                
+                brightnessSlider.addEventListener('change', function() {
+                    settings.brightnessValue = parseInt(this.value);
+                    sendSettings();
+                });
+            }
 
-            // Color change
-            document.querySelector('[name="colorValue"]').addEventListener('change', function() {
-                settings.colorValue = this.value;
-                sendSettings();
-            });
+            // Color picker
+            const colorInput = document.getElementById('colorValue');
+            if (colorInput) {
+                colorInput.addEventListener('change', function() {
+                    settings.colorValue = this.value;
+                    sendSettings();
+                });
+            }
 
-            // Color temperature change
-            document.querySelector('[name="colorTempValue"]').addEventListener('input', function() {
-                settings.colorTempValue = parseInt(this.value);
-                sendSettings();
-                updateTempDisplay(this.value);
-            });
+            // Color temperature slider with real-time updates
+            const tempSlider = document.getElementById('colorTempValue');
+            if (tempSlider) {
+                tempSlider.addEventListener('input', function() {
+                    const value = parseInt(this.value);
+                    updateTempDisplay(value);
+                });
+                
+                tempSlider.addEventListener('change', function() {
+                    settings.colorTempValue = parseInt(this.value);
+                    sendSettings();
+                });
+            }
 
             // Create group button
             document.getElementById('createGroup').addEventListener('click', function() {
@@ -418,6 +744,51 @@
                 hideCreateGroupPanel();
             });
 
+            // Edit group button
+            const editButton = document.getElementById('editGroup');
+            if (editButton) {
+                editButton.addEventListener('click', function() {
+                    if (!settings.selectedGroupId) {
+                        showStatus('Please select a group to edit', false);
+                        return;
+                    }
+                    
+                    // Request group details for editing
+                    sendToPlugin({ 
+                        event: 'getGroupDetails', 
+                        groupId: settings.selectedGroupId 
+                    });
+                });
+            }
+            
+            // Delete group button
+            const deleteButton = document.getElementById('deleteGroup');
+            if (deleteButton) {
+                deleteButton.addEventListener('click', function() {
+                    if (!settings.selectedGroupId) {
+                        showStatus('Please select a group to delete', false);
+                        return;
+                    }
+                    
+                    const groupName = settings.selectedGroupName || 'this group';
+                    if (confirm(`Are you sure you want to delete "${groupName}"? This action cannot be undone.`)) {
+                        this.disabled = true;
+                        this.textContent = '🗑️ Deleting...';
+                        
+                        sendToPlugin({ 
+                            event: 'deleteGroup', 
+                            groupId: settings.selectedGroupId 
+                        });
+                        
+                        // Re-enable after 3 seconds
+                        setTimeout(() => {
+                            this.disabled = false;
+                            this.textContent = '🗑️ Delete';
+                        }, 3000);
+                    }
+                });
+            }
+            
             // Refresh groups button
             document.getElementById('refreshGroups').addEventListener('click', function() {
                 fetchGroups();
@@ -428,47 +799,219 @@
                 sendToPlugin({ event: 'testGroup' });
             });
 
+            // Save group edit button
+            const saveEditButton = document.getElementById('saveGroupEdit');
+            if (saveEditButton) {
+                saveEditButton.addEventListener('click', function() {
+                    const groupName = document.getElementById('editGroupName').value.trim();
+                    const selectedLights = getEditSelectedLights();
+                    
+                    if (!groupName) {
+                        showStatus('Please enter a group name', false);
+                        return;
+                    }
+                    
+                    if (selectedLights.length === 0) {
+                        showStatus('Please select at least one light', false);
+                        return;
+                    }
+                    
+                    if (!window.editingGroup) {
+                        showStatus('No group selected for editing', false);
+                        return;
+                    }
+                    
+                    sendToPlugin({
+                        event: 'editGroup',
+                        groupId: window.editingGroup.id,
+                        groupName: groupName,
+                        selectedLightIds: selectedLights
+                    });
+                });
+            }
+            
+            // Cancel group edit button
+            const cancelEditButton = document.getElementById('cancelGroupEdit');
+            if (cancelEditButton) {
+                cancelEditButton.addEventListener('click', function() {
+                    hideEditGroupPanel();
+                });
+            }
+            
             // Refresh state button
             document.getElementById('refreshState').addEventListener('click', function() {
                 sendToPlugin({ event: 'refreshState' });
             });
         });
+        
+        // Utility function for debouncing input events
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func.apply(this, args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
     </script>
     <style>
+        /* Enhanced SDPI styling for group control */
+        .sdpi-item-help {
+            margin-top: 4px;
+            margin-bottom: 8px;
+        }
+        
+        .sdpi-item-help small {
+            color: var(--sdpi-color-secondary, #969696);
+            font-size: 11px;
+            line-height: 1.3;
+        }
+        
+        .sdpi-item-button-group {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .sdpi-item-button-group button {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .sdpi-item-child {
+            font-size: 11px;
+            color: var(--sdpi-color-secondary, #969696);
+            text-align: center;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+        
         .status {
             font-size: 12px;
-            margin-top: 5px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            border-left: 3px solid;
+            background: var(--sdpi-color-bg-secondary, #2d2d30);
         }
+        
         .status.success {
+            border-left-color: #4CAF50;
             color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
         }
+        
         .status.error {
+            border-left-color: #f44336;
             color: #f44336;
+            background: rgba(244, 67, 54, 0.1);
         }
-        .brightness-value, .temp-value {
-            font-size: 11px;
-            color: #969696;
-            text-align: center;
-            margin-top: 2px;
-        }
+        
+        /* Enhanced lights list styling */
         .lights-list {
             max-height: 150px;
             overflow-y: auto;
-            border: 1px solid #3a3a3a;
+            border: 1px solid var(--sdpi-color-border, #3a3a3a);
             border-radius: 4px;
-            padding: 5px;
+            padding: 8px;
+            background: var(--sdpi-color-bg, #1e1e1e);
         }
+        
         .light-checkbox {
-            margin: 3px 0;
+            margin: 6px 0;
         }
+        
         .light-checkbox label {
             display: flex;
             align-items: center;
             font-size: 12px;
             cursor: pointer;
+            padding: 4px;
+            border-radius: 3px;
+            transition: background-color 0.15s ease;
         }
+        
+        .light-checkbox label:hover {
+            background: var(--sdpi-color-bg-hover, #2a2a2a);
+        }
+        
         .light-checkbox input[type="checkbox"] {
             margin-right: 8px;
+            accent-color: var(--sdpi-color-accent, #0099ff);
+        }
+        
+        .light-checkbox input[type="checkbox"]:focus {
+            outline: 2px solid var(--sdpi-color-focus, #0099ff);
+            outline-offset: 2px;
+        }
+        
+        /* Enhanced accessibility */
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* Improved form controls */
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 4px;
+        }
+        
+        input[type="color"] {
+            width: 100%;
+            height: 32px;
+            border: 1px solid var(--sdpi-color-border, #3a3a3a);
+            border-radius: 4px;
+            padding: 2px;
+        }
+        
+        input[type="text"] {
+            transition: border-color 0.15s ease;
+        }
+        
+        input[type="text"]:focus {
+            border-color: var(--sdpi-color-focus, #0099ff);
+        }
+        
+        select option:disabled {
+            color: var(--sdpi-color-disabled, #666);
+            font-style: italic;
+        }
+        
+        /* Focus indicators for accessibility */
+        button:focus,
+        input:focus,
+        select:focus {
+            outline: 2px solid var(--sdpi-color-focus, #0099ff);
+            outline-offset: 2px;
+        }
+        
+        /* Loading states */
+        .loading {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.1),
+                transparent
+            );
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { left: -100%; }
+            100% { left: 100%; }
         }
     </style>
 </body>

@@ -1,122 +1,153 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Light Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Govee Light Control</title>
     <link rel="stylesheet" href="sdpi.css">
 </head>
 <body>
-    <div class="sdpi-wrapper">
-        <div type="group" class="first">
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="title">API Configuration</div>
-                </div>
+    <div class="sdpi-wrapper" role="main" aria-label="Govee Light Control Settings">
+        <div class="sdpi-item" type="group">
+            <div class="sdpi-item-group">
+                <div class="sdpi-item-label" role="heading" aria-level="2">API Configuration</div>
             </div>
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="text">API Key</div>
-                </div>
-                <div type="column">
-                    <input class="sdpi-item-value" type="password" name="apiKey" placeholder="Enter your Govee API key">
-                </div>
+        </div>
+        <div class="sdpi-item">
+            <div class="sdpi-item-label" for="apiKey">API Key</div>
+            <input class="sdpi-item-value" 
+                   type="password" 
+                   id="apiKey" 
+                   name="apiKey" 
+                   placeholder="Enter your Govee API key"
+                   aria-describedby="apiKeyHelp"
+                   autocomplete="off">
+        </div>
+        <div class="sdpi-item-help" id="apiKeyHelp">
+            <small>Get your API key from the Govee Home app → Settings → About Us → Apply for API Key</small>
+        </div>
+
+        <div class="sdpi-item" type="group">
+            <div class="sdpi-item-group">
+                <div class="sdpi-item-label" role="heading" aria-level="2">Light Selection</div>
+            </div>
+        </div>
+        <div class="sdpi-item">
+            <div class="sdpi-item-label" for="selectedLight">Light Device</div>
+            <select class="sdpi-item-value" 
+                    id="selectedLight" 
+                    name="selectedLight"
+                    aria-describedby="lightHelp">
+                <option value="" disabled>Select a light device...</option>
+            </select>
+        </div>
+        <div class="sdpi-item-help" id="lightHelp">
+            <small>Choose the Govee light device to control</small>
+        </div>
+        <div class="sdpi-item">
+            <div class="sdpi-item-label" for="controlMode">Action</div>
+            <select class="sdpi-item-value" 
+                    id="controlMode" 
+                    name="controlMode"
+                    aria-describedby="modeHelp">
+                <option value="toggle">🔄 Toggle Power</option>
+                <option value="on">💡 Turn On</option>
+                <option value="off">⚫ Turn Off</option>
+                <option value="brightness">🔆 Set Brightness</option>
+                <option value="color">🌈 Set Color</option>
+                <option value="colorTemp">🌡️ Color Temperature</option>
+            </select>
+        </div>
+        <div class="sdpi-item-help" id="modeHelp">
+            <small>Choose what happens when you press the Stream Deck button</small>
+        </div>
+
+        <div class="sdpi-item" id="brightnessGroup" style="display: none;">
+            <div class="sdpi-item-label" for="brightnessValue">Brightness Level</div>
+            <div class="sdpi-item-value">
+                <input type="range" 
+                       id="brightnessValue" 
+                       name="brightnessValue" 
+                       min="1" 
+                       max="100" 
+                       value="50"
+                       aria-describedby="brightnessDisplay"
+                       class="sdpi-item-value">
+                <div class="sdpi-item-child" id="brightnessDisplay">50%</div>
             </div>
         </div>
 
-        <div type="group">
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="title">Light Selection</div>
-                </div>
-            </div>
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="text">Light</div>
-                </div>
-                <div type="column">
-                    <select class="sdpi-item-value" name="selectedLight">
-                        <option value="">Select a light...</option>
-                    </select>
-                </div>
-            </div>
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="text">Control Mode</div>
-                </div>
-                <div type="column">
-                    <select class="sdpi-item-value" name="controlMode">
-                        <option value="toggle">Toggle</option>
-                        <option value="on">Turn On</option>
-                        <option value="off">Turn Off</option>
-                        <option value="brightness">Set Brightness</option>
-                        <option value="color">Set Color</option>
-                        <option value="colorTemp">Color Temperature</option>
-                    </select>
-                </div>
-            </div>
+        <div class="sdpi-item" id="colorGroup" style="display: none;">
+            <div class="sdpi-item-label" for="colorValue">Color</div>
+            <input class="sdpi-item-value" 
+                   type="color" 
+                   id="colorValue" 
+                   name="colorValue" 
+                   value="#ffffff"
+                   aria-describedby="colorHelp">
+        </div>
+        <div class="sdpi-item-help" id="colorHelp" style="display: none;">
+            <small>Select the color to set when the button is pressed</small>
         </div>
 
-        <div type="group" id="brightnessGroup" style="display: none;">
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="text">Brightness</div>
-                </div>
-                <div type="column">
-                    <input class="sdpi-item-value" type="range" name="brightnessValue" min="1" max="100" value="50">
-                    <div type="text" class="brightness-value">50%</div>
-                </div>
+        <div class="sdpi-item" id="colorTempGroup" style="display: none;">
+            <div class="sdpi-item-label" for="colorTempValue">Color Temperature</div>
+            <div class="sdpi-item-value">
+                <input type="range" 
+                       id="colorTempValue" 
+                       name="colorTempValue" 
+                       min="2000" 
+                       max="9000" 
+                       value="6500"
+                       aria-describedby="tempDisplay"
+                       class="sdpi-item-value">
+                <div class="sdpi-item-child" id="tempDisplay">6500K</div>
             </div>
         </div>
-
-        <div type="group" id="colorGroup" style="display: none;">
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="text">Color</div>
-                </div>
-                <div type="column">
-                    <input class="sdpi-item-value" type="color" name="colorValue" value="#ffffff">
-                </div>
-            </div>
+        <div class="sdpi-item-help" id="tempHelp" style="display: none;">
+            <small>Warm (2000K) ← → Cool (9000K)</small>
         </div>
 
-        <div type="group" id="colorTempGroup" style="display: none;">
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="text">Color Temperature</div>
-                </div>
-                <div type="column">
-                    <input class="sdpi-item-value" type="range" name="colorTempValue" min="2000" max="9000" value="6500">
-                    <div type="text" class="temp-value">6500K</div>
-                </div>
+        <div class="sdpi-item" type="group">
+            <div class="sdpi-item-group">
+                <div class="sdpi-item-label" role="heading" aria-level="2">Actions</div>
             </div>
         </div>
-
-        <div type="group">
-            <div type="row">
-                <div type="column">
-                    <button class="sdpi-item-value" type="button" id="testLight">Test Light</button>
-                </div>
-                <div type="column">
-                    <button class="sdpi-item-value" type="button" id="refreshLights">Refresh Lights</button>
-                </div>
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">Test & Configuration</div>
+            <div class="sdpi-item-value sdpi-item-button-group">
+                <button type="button" 
+                        id="testLight" 
+                        class="sdpi-item-value"
+                        aria-describedby="testHelp">🔍 Test Light</button>
+                <button type="button" 
+                        id="refreshLights" 
+                        class="sdpi-item-value"
+                        aria-describedby="refreshHelp">🔄 Refresh</button>
             </div>
-            <div type="row">
-                <div type="column">
-                    <div type="text" class="status" id="status"></div>
-                </div>
+        </div>
+        <div class="sdpi-item-help" id="testHelp">
+            <small>Test: Blink the selected light | Refresh: Reload available devices</small>
+        </div>
+        <div class="sdpi-item" id="statusContainer" style="display: none;">
+            <div class="sdpi-item-label">Status</div>
+            <div class="sdpi-item-value">
+                <div id="status" class="status" role="status" aria-live="polite"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // Initialize property inspector
+        // Enhanced property inspector with SDPI best practices
         let settings = {};
         let websocket = null;
         let uuid = null;
+        let isInitialized = false;
 
         function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo) {
             uuid = inUUID;
-            settings = JSON.parse(inActionInfo).payload.settings;
+            const actionInfo = JSON.parse(inActionInfo);
+            settings = actionInfo.payload.settings || {};
             
             websocket = new WebSocket('ws://localhost:' + inPort);
             
@@ -127,52 +158,112 @@
                 };
                 websocket.send(JSON.stringify(registerEvent));
                 
-                // Load settings
+                // Initialize UI after connection
+                initializeUI();
                 loadSettings();
+                isInitialized = true;
             };
             
             websocket.onmessage = function(evt) {
-                const jsonObj = JSON.parse(evt.data);
-                if (jsonObj.event === 'sendToPropertyInspector') {
-                    handlePluginMessage(jsonObj.payload);
+                try {
+                    const jsonObj = JSON.parse(evt.data);
+                    if (jsonObj.event === 'sendToPropertyInspector') {
+                        handlePluginMessage(jsonObj.payload);
+                    }
+                } catch (error) {
+                    console.error('Error parsing WebSocket message:', error);
                 }
+            };
+            
+            websocket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                showStatus('Connection error', false);
             };
         }
 
+        function initializeUI() {
+            // Set default values
+            const controlModeSelect = document.getElementById('controlMode');
+            const brightnessSlider = document.getElementById('brightnessValue');
+            const colorTempSlider = document.getElementById('colorTempValue');
+            
+            // Initialize default values
+            if (!settings.controlMode) {
+                controlModeSelect.value = 'toggle';
+                settings.controlMode = 'toggle';
+            }
+            
+            if (!settings.brightnessValue) {
+                brightnessSlider.value = 50;
+                settings.brightnessValue = 50;
+            }
+            
+            if (!settings.colorTempValue) {
+                colorTempSlider.value = 6500;
+                settings.colorTempValue = 6500;
+            }
+        }
+        
         function loadSettings() {
-            // Load existing settings
-            if (settings.apiKey) {
-                document.querySelector('[name="apiKey"]').value = settings.apiKey;
-                fetchLights();
-            }
-            if (settings.selectedLight) {
-                document.querySelector('[name="selectedLight"]').value = settings.selectedLight;
-            }
-            if (settings.controlMode) {
-                document.querySelector('[name="controlMode"]').value = settings.controlMode;
-                showControlOptions(settings.controlMode);
-            }
-            if (settings.brightnessValue) {
-                document.querySelector('[name="brightnessValue"]').value = settings.brightnessValue;
-                updateBrightnessDisplay(settings.brightnessValue);
-            }
-            if (settings.colorValue) {
-                document.querySelector('[name="colorValue"]').value = settings.colorValue;
-            }
-            if (settings.colorTempValue) {
-                document.querySelector('[name="colorTempValue"]').value = settings.colorTempValue;
-                updateTempDisplay(settings.colorTempValue);
+            try {
+                // Load API key
+                const apiKeyInput = document.getElementById('apiKey');
+                if (settings.apiKey && apiKeyInput) {
+                    apiKeyInput.value = settings.apiKey;
+                    fetchLights();
+                }
+                
+                // Load selected light
+                const lightSelect = document.getElementById('selectedLight');
+                if (settings.selectedLight && lightSelect) {
+                    lightSelect.value = settings.selectedLight;
+                }
+                
+                // Load control mode and show appropriate options
+                const modeSelect = document.getElementById('controlMode');
+                if (settings.controlMode && modeSelect) {
+                    modeSelect.value = settings.controlMode;
+                    showControlOptions(settings.controlMode);
+                }
+                
+                // Load brightness value
+                const brightnessSlider = document.getElementById('brightnessValue');
+                if (settings.brightnessValue && brightnessSlider) {
+                    brightnessSlider.value = settings.brightnessValue;
+                    updateBrightnessDisplay(settings.brightnessValue);
+                }
+                
+                // Load color value
+                const colorInput = document.getElementById('colorValue');
+                if (settings.colorValue && colorInput) {
+                    colorInput.value = settings.colorValue;
+                }
+                
+                // Load color temperature
+                const tempSlider = document.getElementById('colorTempValue');
+                if (settings.colorTempValue && tempSlider) {
+                    tempSlider.value = settings.colorTempValue;
+                    updateTempDisplay(settings.colorTempValue);
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+                showStatus('Error loading settings', false);
             }
         }
 
         function sendSettings() {
-            if (websocket && websocket.readyState === 1) {
-                const setSettings = {
-                    event: 'setSettings',
-                    context: uuid,
-                    payload: settings
-                };
-                websocket.send(JSON.stringify(setSettings));
+            if (websocket && websocket.readyState === 1 && isInitialized) {
+                try {
+                    const setSettings = {
+                        event: 'setSettings',
+                        context: uuid,
+                        payload: settings
+                    };
+                    websocket.send(JSON.stringify(setSettings));
+                } catch (error) {
+                    console.error('Error sending settings:', error);
+                    showStatus('Error saving settings', false);
+                }
             }
         }
 
@@ -188,19 +279,43 @@
         }
 
         function handlePluginMessage(payload) {
-            if (payload.event === 'getLights' && payload.items) {
-                const select = document.querySelector('[name="selectedLight"]');
-                select.innerHTML = '<option value="">Select a light...</option>';
-                payload.items.forEach(item => {
-                    const option = document.createElement('option');
-                    option.value = item.value;
-                    option.textContent = item.label;
-                    select.appendChild(option);
-                });
-            } else if (payload.event === 'testResult') {
-                showStatus(payload.message, payload.success);
-            } else if (payload.event === 'error') {
-                showStatus(payload.message, false);
+            try {
+                if (payload.event === 'getLights' && payload.items) {
+                    const select = document.getElementById('selectedLight');
+                    if (select) {
+                        // Clear existing options except the first disabled one
+                        select.innerHTML = '<option value="" disabled>Select a light device...</option>';
+                        
+                        if (payload.items.length === 0) {
+                            const option = document.createElement('option');
+                            option.value = '';
+                            option.textContent = 'No lights found';
+                            option.disabled = true;
+                            select.appendChild(option);
+                            showStatus('No lights found. Check your API key.', false);
+                        } else {
+                            payload.items.forEach(item => {
+                                const option = document.createElement('option');
+                                option.value = item.value;
+                                option.textContent = item.label;
+                                select.appendChild(option);
+                            });
+                            showStatus(`Found ${payload.items.length} light(s)`, true);
+                        }
+                        
+                        // Restore selected value if it exists
+                        if (settings.selectedLight) {
+                            select.value = settings.selectedLight;
+                        }
+                    }
+                } else if (payload.event === 'testResult') {
+                    showStatus(payload.message, payload.success);
+                } else if (payload.event === 'error') {
+                    showStatus(payload.message, false);
+                }
+            } catch (error) {
+                console.error('Error handling plugin message:', error);
+                showStatus('Error processing response', false);
             }
         }
 
@@ -209,111 +324,321 @@
         }
 
         function showControlOptions(mode) {
-            document.getElementById('brightnessGroup').style.display = 'none';
-            document.getElementById('colorGroup').style.display = 'none';
-            document.getElementById('colorTempGroup').style.display = 'none';
+            // Hide all conditional groups
+            const groups = ['brightnessGroup', 'colorGroup', 'colorTempGroup'];
+            const helpElements = ['colorHelp', 'tempHelp'];
+            
+            groups.forEach(groupId => {
+                const element = document.getElementById(groupId);
+                if (element) element.style.display = 'none';
+            });
+            
+            helpElements.forEach(helpId => {
+                const element = document.getElementById(helpId);
+                if (element) element.style.display = 'none';
+            });
 
-            if (mode === 'brightness') {
-                document.getElementById('brightnessGroup').style.display = 'block';
-            } else if (mode === 'color') {
-                document.getElementById('colorGroup').style.display = 'block';
-            } else if (mode === 'colorTemp') {
-                document.getElementById('colorTempGroup').style.display = 'block';
+            // Show relevant group based on mode
+            switch (mode) {
+                case 'brightness':
+                    const brightnessGroup = document.getElementById('brightnessGroup');
+                    if (brightnessGroup) brightnessGroup.style.display = 'block';
+                    break;
+                case 'color':
+                    const colorGroup = document.getElementById('colorGroup');
+                    const colorHelp = document.getElementById('colorHelp');
+                    if (colorGroup) colorGroup.style.display = 'block';
+                    if (colorHelp) colorHelp.style.display = 'block';
+                    break;
+                case 'colorTemp':
+                    const tempGroup = document.getElementById('colorTempGroup');
+                    const tempHelp = document.getElementById('tempHelp');
+                    if (tempGroup) tempGroup.style.display = 'block';
+                    if (tempHelp) tempHelp.style.display = 'block';
+                    break;
             }
         }
 
         function updateBrightnessDisplay(value) {
-            document.querySelector('.brightness-value').textContent = value + '%';
+            const display = document.getElementById('brightnessDisplay');
+            if (display) {
+                display.textContent = value + '%';
+            }
         }
 
         function updateTempDisplay(value) {
-            document.querySelector('.temp-value').textContent = value + 'K';
+            const display = document.getElementById('tempDisplay');
+            if (display) {
+                display.textContent = value + 'K';
+            }
         }
 
         function showStatus(message, success) {
             const statusEl = document.getElementById('status');
-            statusEl.textContent = message;
-            statusEl.className = 'status ' + (success ? 'success' : 'error');
-            setTimeout(() => {
-                statusEl.textContent = '';
-                statusEl.className = 'status';
-            }, 3000);
+            const statusContainer = document.getElementById('statusContainer');
+            
+            if (statusEl && statusContainer) {
+                statusEl.textContent = message;
+                statusEl.className = 'status ' + (success ? 'success' : 'error');
+                statusContainer.style.display = 'block';
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    statusEl.textContent = '';
+                    statusEl.className = 'status';
+                    statusContainer.style.display = 'none';
+                }, 5000);
+            }
         }
 
-        // Event listeners
+        // Enhanced event listeners with validation and error handling
         document.addEventListener('DOMContentLoaded', function() {
-            // API Key change
-            document.querySelector('[name="apiKey"]').addEventListener('change', function() {
-                settings.apiKey = this.value;
-                sendSettings();
-                if (this.value) {
-                    fetchLights();
-                }
-            });
+            // API Key change with validation
+            const apiKeyInput = document.getElementById('apiKey');
+            if (apiKeyInput) {
+                apiKeyInput.addEventListener('input', debounce(function() {
+                    const value = this.value.trim();
+                    if (value && value.length >= 32) {
+                        settings.apiKey = value;
+                        sendSettings();
+                        fetchLights();
+                        showStatus('API key updated', true);
+                    } else if (value.length > 0 && value.length < 32) {
+                        showStatus('API key must be at least 32 characters', false);
+                    }
+                }, 500));
+            }
 
-            // Light selection change
-            document.querySelector('[name="selectedLight"]').addEventListener('change', function() {
-                const parts = this.value.split('|');
-                settings.selectedDeviceId = parts[0];
-                settings.selectedModel = parts[1];
-                settings.selectedLightName = this.options[this.selectedIndex].text;
-                sendSettings();
-            });
+            // Light selection change with validation
+            const lightSelect = document.getElementById('selectedLight');
+            if (lightSelect) {
+                lightSelect.addEventListener('change', function() {
+                    if (this.value) {
+                        const parts = this.value.split('|');
+                        if (parts.length >= 2) {
+                            settings.selectedLight = this.value;
+                            settings.selectedDeviceId = parts[0];
+                            settings.selectedModel = parts[1];
+                            settings.selectedLightName = this.options[this.selectedIndex].text;
+                            sendSettings();
+                            showStatus(`Selected: ${settings.selectedLightName}`, true);
+                        }
+                    }
+                });
+            }
 
             // Control mode change
-            document.querySelector('[name="controlMode"]').addEventListener('change', function() {
-                settings.controlMode = this.value;
-                sendSettings();
-                showControlOptions(this.value);
-            });
+            const controlModeSelect = document.getElementById('controlMode');
+            if (controlModeSelect) {
+                controlModeSelect.addEventListener('change', function() {
+                    settings.controlMode = this.value;
+                    sendSettings();
+                    showControlOptions(this.value);
+                });
+            }
 
-            // Brightness change
-            document.querySelector('[name="brightnessValue"]').addEventListener('input', function() {
-                settings.brightnessValue = parseInt(this.value);
-                sendSettings();
-                updateBrightnessDisplay(this.value);
-            });
+            // Brightness slider with real-time updates
+            const brightnessSlider = document.getElementById('brightnessValue');
+            if (brightnessSlider) {
+                brightnessSlider.addEventListener('input', function() {
+                    const value = parseInt(this.value);
+                    updateBrightnessDisplay(value);
+                });
+                
+                brightnessSlider.addEventListener('change', function() {
+                    settings.brightnessValue = parseInt(this.value);
+                    sendSettings();
+                });
+            }
 
-            // Color change
-            document.querySelector('[name="colorValue"]').addEventListener('change', function() {
-                settings.colorValue = this.value;
-                sendSettings();
-            });
+            // Color picker
+            const colorInput = document.getElementById('colorValue');
+            if (colorInput) {
+                colorInput.addEventListener('change', function() {
+                    settings.colorValue = this.value;
+                    sendSettings();
+                });
+            }
 
-            // Color temperature change
-            document.querySelector('[name="colorTempValue"]').addEventListener('input', function() {
-                settings.colorTempValue = parseInt(this.value);
-                sendSettings();
-                updateTempDisplay(this.value);
-            });
+            // Color temperature slider with real-time updates
+            const tempSlider = document.getElementById('colorTempValue');
+            if (tempSlider) {
+                tempSlider.addEventListener('input', function() {
+                    const value = parseInt(this.value);
+                    updateTempDisplay(value);
+                });
+                
+                tempSlider.addEventListener('change', function() {
+                    settings.colorTempValue = parseInt(this.value);
+                    sendSettings();
+                });
+            }
 
-            // Test light button
-            document.getElementById('testLight').addEventListener('click', function() {
-                sendToPlugin({ event: 'testLight' });
-            });
+            // Test light button with loading state
+            const testButton = document.getElementById('testLight');
+            if (testButton) {
+                testButton.addEventListener('click', function() {
+                    if (!settings.selectedLight) {
+                        showStatus('Please select a light first', false);
+                        return;
+                    }
+                    
+                    this.disabled = true;
+                    this.textContent = '🔄 Testing...';
+                    sendToPlugin({ event: 'testLight' });
+                    
+                    // Re-enable after 3 seconds
+                    setTimeout(() => {
+                        this.disabled = false;
+                        this.textContent = '🔍 Test Light';
+                    }, 3000);
+                });
+            }
 
-            // Refresh lights button
-            document.getElementById('refreshLights').addEventListener('click', function() {
-                fetchLights();
-            });
+            // Refresh lights button with loading state
+            const refreshButton = document.getElementById('refreshLights');
+            if (refreshButton) {
+                refreshButton.addEventListener('click', function() {
+                    if (!settings.apiKey) {
+                        showStatus('Please enter your API key first', false);
+                        return;
+                    }
+                    
+                    this.disabled = true;
+                    this.textContent = '🔄 Loading...';
+                    fetchLights();
+                    
+                    // Re-enable after 2 seconds
+                    setTimeout(() => {
+                        this.disabled = false;
+                        this.textContent = '🔄 Refresh';
+                    }, 2000);
+                });
+            }
         });
+        
+        // Utility function for debouncing input events
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func.apply(this, args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
     </script>
     <style>
+        /* Enhanced SDPI styling following official guidelines */
+        .sdpi-item-help {
+            margin-top: 4px;
+            margin-bottom: 8px;
+        }
+        
+        .sdpi-item-help small {
+            color: var(--sdpi-color-secondary, #969696);
+            font-size: 11px;
+            line-height: 1.3;
+        }
+        
+        .sdpi-item-button-group {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .sdpi-item-button-group button {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .sdpi-item-child {
+            font-size: 11px;
+            color: var(--sdpi-color-secondary, #969696);
+            text-align: center;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+        
         .status {
             font-size: 12px;
-            margin-top: 5px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            border-left: 3px solid;
+            background: var(--sdpi-color-bg-secondary, #2d2d30);
         }
+        
         .status.success {
+            border-left-color: #4CAF50;
             color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
         }
+        
         .status.error {
+            border-left-color: #f44336;
             color: #f44336;
+            background: rgba(244, 67, 54, 0.1);
         }
-        .brightness-value, .temp-value {
-            font-size: 11px;
-            color: #969696;
-            text-align: center;
-            margin-top: 2px;
+        
+        /* Enhanced accessibility */
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* Improved form controls */
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 4px;
+        }
+        
+        input[type="color"] {
+            width: 100%;
+            height: 32px;
+            border: 1px solid var(--sdpi-color-border, #3a3a3a);
+            border-radius: 4px;
+            padding: 2px;
+        }
+        
+        select option:disabled {
+            color: var(--sdpi-color-disabled, #666);
+            font-style: italic;
+        }
+        
+        /* Loading states */
+        .loading {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.1),
+                transparent
+            );
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        /* Focus indicators for accessibility */
+        button:focus,
+        input:focus,
+        select:focus {
+            outline: 2px solid var(--sdpi-color-focus, #0099ff);
+            outline-offset: 2px;
         }
     </style>
 </body>
