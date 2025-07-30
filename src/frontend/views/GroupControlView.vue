@@ -13,13 +13,13 @@
             class="form-input"
             placeholder="Enter your Govee API key"
             autocomplete="off"
-            :disabled="apiConnection.isConnecting"
+            :disabled="apiConnection.isConnecting.value"
             @keyup.enter="connectToApi"
           />
           <button
             v-if="apiConnection.isDisconnected || apiConnection.hasError"
             class="btn btn-primary"
-            :disabled="!localApiKey || apiConnection.isConnecting"
+            :disabled="!localApiKey || apiConnection.isConnecting.value"
             @click="connectToApi"
           >
             <span v-if="apiConnection.isConnecting">Connecting...</span>
@@ -100,11 +100,11 @@
               {{ groupManagement.hasGroups ? 'Select a light group...' : 'No groups found' }}
             </option>
             <option
-              v-for="group in groupManagement.groups"
+              v-for="group in groupManagement.groups.value"
               :key="group.id"
               :value="group.id"
             >
-              {{ group.name }} ({{ group.lightIds.length }} lights)
+              {{ group.name }} ({{ group.lightIds?.length || 0 }} lights)
             </option>
           </select>
         </div>
@@ -113,7 +113,7 @@
           <button
             type="button"
             class="btn btn-secondary"
-            :disabled="!selectedGroup || groupManagement.isLoading"
+            :disabled="!selectedGroup || groupManagement.isLoading.value"
             @click="editGroup"
           >
             ✏️ Edit
@@ -121,7 +121,7 @@
           <button
             type="button"
             class="btn btn-danger"
-            :disabled="!selectedGroup || groupManagement.isLoading"
+            :disabled="!selectedGroup || groupManagement.isLoading.value"
             @click="deleteGroup"
           >
             <span v-if="groupManagement.isDeleting">Deleting...</span>
@@ -130,7 +130,7 @@
           <button
             type="button"
             class="btn btn-primary"
-            :disabled="groupManagement.isLoading"
+            :disabled="groupManagement.isLoading.value"
             @click="createNewGroup"
           >
             + Create New Group
@@ -162,7 +162,7 @@
             type="text"
             class="form-input"
             placeholder="Enter group name"
-            :disabled="groupManagement.isLoading"
+            :disabled="groupManagement.isLoading.value"
           />
         </div>
 
@@ -191,7 +191,7 @@
           <!-- Light selection -->
           <div v-else-if="lightDiscovery.isReady && lightDiscovery.hasLights" class="light-selection">
             <div
-              v-for="light in lightDiscovery.lights"
+              v-for="light in lightDiscovery.lights.value"
               :key="light.value"
               class="light-checkbox"
             >
@@ -219,7 +219,7 @@
           <button
             type="button"
             class="btn btn-secondary"
-            :disabled="groupManagement.isLoading"
+            :disabled="groupManagement.isLoading.value"
             @click="cancelGroupForm"
           >
             Cancel
@@ -227,7 +227,7 @@
           <button
             type="button"
             class="btn btn-primary"
-            :disabled="!groupName || selectedLights.length === 0 || groupManagement.isLoading"
+            :disabled="!groupName || selectedLights.length === 0 || groupManagement.isLoading.value"
             @click="saveGroup"
           >
             {{ showEditForm ? 'Update Group' : 'Create Group' }}

@@ -13,13 +13,13 @@
             class="form-input"
             placeholder="Enter your Govee API key"
             autocomplete="off"
-            :disabled="apiConnection.isConnecting"
+            :disabled="apiConnection.isConnecting.value"
             @keyup.enter="connectToApi"
           />
           <button
             v-if="apiConnection.isDisconnected || apiConnection.hasError"
             class="btn btn-primary"
-            :disabled="!localApiKey || apiConnection.isConnecting"
+            :disabled="!localApiKey || apiConnection.isConnecting.value"
             @click="connectToApi"
           >
             <span v-if="apiConnection.isConnecting">Connecting...</span>
@@ -119,7 +119,7 @@
               {{ lightDiscovery.hasFilteredLights ? 'Select a light...' : 'No lights found' }}
             </option>
             <option
-              v-for="light in lightDiscovery.filteredLights"
+              v-for="light in lightDiscovery.filteredLights.value"
               :key="light.value"
               :value="light.value"
             >
@@ -346,7 +346,7 @@ watch(
 
 // Watch for settings save events
 watch(
-  () => settingsManager.lastSaved.value,
+  () => settingsManager.lastSaved,
   (lastSaved) => {
     if (lastSaved) {
       feedback.showSuccessToast('Settings Saved', 'Your configuration has been saved')

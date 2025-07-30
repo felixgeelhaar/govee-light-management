@@ -148,7 +148,7 @@ const updateToastProgress = (id: string, progress: number) => {
   }
 }
 
-const handleToastAction = async (action: Toast['actions'][0], toastId: string) => {
+const handleToastAction = async (action: NonNullable<Toast['actions']>[0], toastId: string) => {
   if (action.action) {
     try {
       await action.action()
