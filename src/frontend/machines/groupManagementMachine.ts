@@ -1,0 +1,433 @@
+import { setup, assign, fromPromise } from 'xstate'
+import type { LightGroup, LightItem } from '@shared/types'
+
+/**
+ * Context for the group management state machine
+ */
+export interface GroupManagementContext {
+  groups: LightGroup[]
+  currentGroup: LightGroup | null
+  availableLights: LightItem[]
+  selectedLights: string[]
+  error: string | null
+  isLoading: boolean
+}
+
+/**
+ * Input for the group management machine
+ */
+export interface GroupManagementInput {
+  shouldFailSave?: boolean
+  shouldFailDelete?: boolean
+  shouldFailLoad?: boolean
+}
+
+/**
+ * Events that can be sent to the group management machine
+ */
+export type GroupManagementEvent =
+  | { type: 'LOAD_GROUPS' }
+  | { type: 'CREATE_GROUP' }
+  | { type: 'EDIT_GROUP'; group: LightGroup }
+  | { type: 'SAVE_GROUP'; name: string; selectedLights: string[] }
+  | { type: 'DELETE_GROUP'; groupId: string }
+  | { type: 'CANCEL_EDIT' }
+  | { type: 'GROUPS_LOADED'; groups: LightGroup[] }
+  | { type: 'GROUP_SAVED'; group: LightGroup }
+  | { type: 'GROUP_DELETED'; groupId: string }
+  | { type: 'OPERATION_FAILED'; error: string }
+  | { type: 'SELECT_LIGHT'; lightId: string }
+  | { type: 'DESELECT_LIGHT'; lightId: string }
+
+/**
+ * State machine for managing light groups
+ * 
+ * States:
+ * - idle: Initial state, groups not loaded
+ * - loading: Loading groups from storage
+ * - ready: Groups loaded, ready for operations
+ * - editing: Creating or editing a group
+ * - saving: Saving group changes
+ * - deleting: Deleting a group
+ * - error: Operation failed
+ */
+export const groupManagementMachine = setup({
+  types: {
+    context: {} as GroupManagementContext,
+    events: {} as GroupManagementEvent,
+    input: {} as GroupManagementInput,
+  },
+  actions: {
+    setGroups: assign({
+      groups: ({ event }) => {
+        if (event.type === 'GROUPS_LOADED') {
+          return event.groups
+        }
+        return []
+      },
+    }),
+    
+    setCurrentGroup: assign({
+      currentGroup: ({ event }) => {
+        if (event.type === 'EDIT_GROUP') {
+          return event.group
+        }
+        return null
+      },
+    }),
+    
+    clearCurrentGroup: assign({
+      currentGroup: null,
+      selectedLights: [],
+    }),
+    
+    selectLight: assign({
+      selectedLights: ({ context, event }) => {
+        if (event.type === 'SELECT_LIGHT') {
+          if (!context.selectedLights.includes(event.lightId)) {
+            return [...context.selectedLights, event.lightId]
+          }
+        }
+        return context.selectedLights
+      },
+    }),
+    
+    deselectLight: assign({
+      selectedLights: ({ context, event }) => {
+        if (event.type === 'DESELECT_LIGHT') {
+          return context.selectedLights.filter(id => id !== event.lightId)
+        }
+        return context.selectedLights
+      },
+    }),
+    
+    addOrUpdateGroup: assign({
+      groups: ({ context, event }) => {
+        if (event.type === 'GROUP_SAVED') {
+          const existingIndex = context.groups.findIndex(g => g.id === event.group.id)
+          if (existingIndex >= 0) {
+            // Update existing group
+            const newGroups = [...context.groups]
+            newGroups[existingIndex] = event.group
+            return newGroups
+          } else {
+            // Add new group
+            return [...context.groups, event.group]
+          }
+        }
+        return context.groups
+      },
+    }),
+    
+    removeGroup: assign({
+      groups: ({ context, event }) => {
+        if (event.type === 'GROUP_DELETED') {
+          return context.groups.filter(g => g.id !== event.groupId)
+        }
+        return context.groups
+      },
+    }),
+    
+    setError: assign({
+      error: ({ event }) => {
+        if (event.type === 'OPERATION_FAILED') {
+          return event.error
+        }
+        return null
+      },
+    }),
+    
+    clearError: assign({
+      error: null,
+    }),
+    
+    startLoading: assign({
+      isLoading: true,
+    }),
+    
+    stopLoading: assign({
+      isLoading: false,
+    }),
+  },
+  
+  actors: {
+    loadGroups: fromPromise(async ({ input }: { input: GroupManagementInput }) => {
+      // Simulate loading groups from storage
+      // In real implementation, this would load from WebSocket API or local storage
+      return new Promise<LightGroup[]>((resolve, reject) => {
+        setTimeout(() => {
+          if (input.shouldFailLoad) {
+            reject(new Error('Failed to load groups'))
+          } else {
+            // Mock group data
+            resolve([
+              {
+                id: 'group1',
+                name: 'Living Room',
+                lightIds: ['device1|H6054', 'device2|H6072'],
+                isActive: true,
+              },
+              {
+                id: 'group2',
+                name: 'Bedroom',
+                lightIds: ['device3|H6056'],
+                isActive: false,
+              },
+            ])
+          }
+        }, 50)
+      })
+    }),
+    
+    saveGroup: fromPromise(async ({ input }: { 
+      input: GroupManagementInput & { 
+        name: string
+        selectedLights: string[]
+        groupId?: string 
+      } 
+    }) => {
+      // Simulate saving group
+      // In real implementation, this would save via WebSocket API
+      return new Promise<LightGroup>((resolve, reject) => {
+        setTimeout(() => {
+          if (input.shouldFailSave) {
+            reject(new Error('Failed to save group'))
+          } else {
+            const group: LightGroup = {
+              id: input.groupId || `group_${Date.now()}`,
+              name: input.name,
+              lightIds: input.selectedLights,
+              isActive: false,
+            }
+            resolve(group)
+          }
+        }, 50)
+      })
+    }),
+    
+    deleteGroup: fromPromise(async ({ input }: { 
+      input: GroupManagementInput & { groupId: string } 
+    }) => {
+      // Simulate deleting group
+      // In real implementation, this would delete via WebSocket API
+      return new Promise<string>((resolve, reject) => {
+        setTimeout(() => {
+          if (input.shouldFailDelete) {
+            reject(new Error('Failed to delete group'))
+          } else {
+            resolve(input.groupId)
+          }
+        }, 50)
+      })
+    }),
+  },
+}).createMachine({
+  id: 'groupManagement',
+  initial: 'idle',
+  context: ({ input }) => ({
+    groups: [],
+    currentGroup: null,
+    availableLights: [],
+    selectedLights: [],
+    error: null,
+    isLoading: false,
+  }),
+  
+  states: {
+    idle: {
+      on: {
+        LOAD_GROUPS: {
+          target: 'loading',
+        },
+      },
+    },
+    
+    loading: {
+      entry: ['startLoading', 'clearError'],
+      exit: 'stopLoading',
+      
+      invoke: {
+        src: 'loadGroups',
+        input: ({ self }) => self._parent?.input || {},
+        onDone: {
+          target: 'ready',
+          actions: assign({
+            groups: ({ event }) => event.output,
+          }),
+        },
+        onError: {
+          target: 'error',
+          actions: assign({
+            error: ({ event }) => event.error.message,
+          }),
+        },
+      },
+      
+      on: {
+        GROUPS_LOADED: {
+          target: 'ready',
+          actions: 'setGroups',
+        },
+        OPERATION_FAILED: {
+          target: 'error',
+          actions: 'setError',
+        },
+      },
+    },
+    
+    ready: {
+      on: {
+        CREATE_GROUP: {
+          target: 'editing',
+          actions: 'clearCurrentGroup',
+        },
+        EDIT_GROUP: {
+          target: 'editing',
+          actions: ['setCurrentGroup', assign({
+            selectedLights: ({ event }) => 
+              event.type === 'EDIT_GROUP' ? event.group.lightIds : []
+          })],
+        },
+        DELETE_GROUP: {
+          target: 'deleting',
+        },
+        LOAD_GROUPS: {
+          target: 'loading',
+        },
+      },
+    },
+    
+    editing: {
+      on: {
+        SAVE_GROUP: {
+          target: 'saving',
+        },
+        CANCEL_EDIT: {
+          target: 'ready',
+          actions: 'clearCurrentGroup',
+        },
+        SELECT_LIGHT: {
+          actions: 'selectLight',
+        },
+        DESELECT_LIGHT: {
+          actions: 'deselectLight',
+        },
+      },
+    },
+    
+    saving: {
+      entry: ['startLoading', 'clearError'],
+      exit: 'stopLoading',
+      
+      invoke: {
+        src: 'saveGroup',
+        input: ({ context, event, self }) => {
+          const baseInput = self._parent?.input || {}
+          if (event.type === 'SAVE_GROUP') {
+            return {
+              ...baseInput,
+              name: event.name,
+              selectedLights: event.selectedLights,
+              groupId: context.currentGroup?.id,
+            }
+          }
+          return baseInput
+        },
+        onDone: {
+          target: 'ready',
+          actions: [
+            assign({
+              groups: ({ context, event }) => {
+                const savedGroup = event.output
+                const existingIndex = context.groups.findIndex(g => g.id === savedGroup.id)
+                if (existingIndex >= 0) {
+                  // Update existing group
+                  const newGroups = [...context.groups]
+                  newGroups[existingIndex] = savedGroup
+                  return newGroups
+                } else {
+                  // Add new group
+                  return [...context.groups, savedGroup]
+                }
+              },
+            }),
+            'clearCurrentGroup',
+          ],
+        },
+        onError: {
+          target: 'error',
+          actions: assign({
+            error: ({ event }) => event.error.message,
+          }),
+        },
+      },
+      
+      on: {
+        GROUP_SAVED: {
+          target: 'ready',
+          actions: ['addOrUpdateGroup', 'clearCurrentGroup'],
+        },
+        OPERATION_FAILED: {
+          target: 'error',
+          actions: 'setError',
+        },
+      },
+    },
+    
+    deleting: {
+      entry: ['startLoading', 'clearError'],
+      exit: 'stopLoading',
+      
+      invoke: {
+        src: 'deleteGroup',
+        input: ({ event, self }) => {
+          const baseInput = self._parent?.input || {}
+          if (event.type === 'DELETE_GROUP') {
+            return {
+              ...baseInput,
+              groupId: event.groupId,
+            }
+          }
+          return baseInput
+        },
+        onDone: {
+          target: 'ready',
+          actions: assign({
+            groups: ({ context, event }) => 
+              context.groups.filter(g => g.id !== event.output)
+          }),
+        },
+        onError: {
+          target: 'error',
+          actions: assign({
+            error: ({ event }) => event.error.message,
+          }),
+        },
+      },
+      
+      on: {
+        GROUP_DELETED: {
+          target: 'ready',
+          actions: 'removeGroup',
+        },
+        OPERATION_FAILED: {
+          target: 'error',
+          actions: 'setError',
+        },
+      },
+    },
+    
+    error: {
+      on: {
+        LOAD_GROUPS: {
+          target: 'loading',
+          actions: 'clearError',
+        },
+        CREATE_GROUP: {
+          target: 'editing',
+          actions: ['clearError', 'clearCurrentGroup'],
+        },
+      },
+    },
+  },
+})
