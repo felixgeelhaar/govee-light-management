@@ -5,14 +5,50 @@
       <h2>API Configuration</h2>
       <div class="form-group">
         <label for="apiKey">API Key</label>
-        <input
-          id="apiKey"
-          v-model="apiKey"
-          type="password"
-          class="form-input"
-          placeholder="Enter your Govee API key"
-          autocomplete="off"
-        />
+        <div class="input-group">
+          <input
+            id="apiKey"
+            v-model="localApiKey"
+            type="password"
+            class="form-input"
+            placeholder="Enter your Govee API key"
+            autocomplete="off"
+            :disabled="apiConnection.isConnecting"
+            @keyup.enter="connectToApi"
+          />
+          <button
+            v-if="apiConnection.isDisconnected || apiConnection.hasError"
+            class="btn btn-primary"
+            :disabled="!localApiKey || apiConnection.isConnecting"
+            @click="connectToApi"
+          >
+            <span v-if="apiConnection.isConnecting">Connecting...</span>
+            <span v-else>Connect</span>
+          </button>
+          <button
+            v-else-if="apiConnection.isConnected"
+            class="btn btn-secondary"
+            @click="apiConnection.disconnect"
+          >
+            Disconnect
+          </button>
+        </div>
+        
+        <!-- Connection Status -->
+        <div v-if="apiConnection.isConnecting" class="status-message status-loading">
+          <span class="status-icon">⏳</span>
+          Validating API key...
+        </div>
+        <div v-else-if="apiConnection.isConnected" class="status-message status-success">
+          <span class="status-icon">✅</span>
+          API key validated successfully
+        </div>
+        <div v-else-if="apiConnection.hasError" class="status-message status-error">
+          <span class="status-icon">❌</span>
+          {{ apiConnection.error }}
+          <button class="btn-link" @click="apiConnection.retry">Retry</button>
+        </div>
+        
         <small class="help-text">
           Get your API key from the Govee Home app → Settings → About Us → Apply for API Key
         </small>
@@ -23,50 +59,83 @@
     <section class="config-section" data-testid="group-management-section">
       <h2>Group Management</h2>
       
-      <div class="form-group">
-        <label for="groupSelect">Light Group</label>
-        <select
-          id="groupSelect"
-          v-model="selectedGroup"
-          class="form-select"
-          :disabled="!apiKey"
-        >
-          <option value="" disabled>Select a light group...</option>
-          <option
-            v-for="group in availableGroups"
-            :key="group.value"
-            :value="group.value"
-          >
-            {{ group.label }}
-          </option>
-        </select>
-      </div>
-
-      <div class="group-actions">
+      <!-- Loading Groups -->
+      <div v-if="groupManagement.isIdle" class="form-group">
         <button
-          type="button"
-          class="btn btn-secondary"
-          :disabled="!selectedGroup"
-          @click="editGroup"
-        >
-          ✏️ Edit
-        </button>
-        <button
-          type="button"
-          class="btn btn-danger"
-          :disabled="!selectedGroup"
-          @click="deleteGroup"
-        >
-          🗑️ Delete
-        </button>
-        <button
-          type="button"
           class="btn btn-primary"
-          :disabled="!apiKey"
-          @click="showCreateForm = true"
+          :disabled="!apiConnection.isConnected"
+          @click="groupManagement.loadGroups"
         >
-          + Create New Group
+          Load Groups
         </button>
+        <small class="help-text">
+          Connect your API key first, then load your light groups
+        </small>
+      </div>
+      
+      <!-- Loading State -->
+      <div v-else-if="groupManagement.isLoadingGroups" class="status-message status-loading">
+        <span class="status-icon">⏳</span>
+        Loading groups...
+      </div>
+      
+      <!-- Error State -->
+      <div v-else-if="groupManagement.hasError" class="status-message status-error">
+        <span class="status-icon">❌</span>
+        {{ groupManagement.error }}
+        <button class="btn-link" @click="groupManagement.loadGroups">Retry</button>
+      </div>
+      
+      <!-- Ready State - Group Selection -->
+      <div v-else-if="groupManagement.isReady" class="form-group">
+        <div class="form-group">
+          <label for="groupSelect">Light Group</label>
+          <select
+            id="groupSelect"
+            v-model="selectedGroup"
+            class="form-select"
+            :disabled="!groupManagement.hasGroups"
+          >
+            <option value="" disabled>
+              {{ groupManagement.hasGroups ? 'Select a light group...' : 'No groups found' }}
+            </option>
+            <option
+              v-for="group in groupManagement.groups"
+              :key="group.id"
+              :value="group.id"
+            >
+              {{ group.name }} ({{ group.lightIds.length }} lights)
+            </option>
+          </select>
+        </div>
+
+        <div class="group-actions">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            :disabled="!selectedGroup || groupManagement.isLoading"
+            @click="editGroup"
+          >
+            ✏️ Edit
+          </button>
+          <button
+            type="button"
+            class="btn btn-danger"
+            :disabled="!selectedGroup || groupManagement.isLoading"
+            @click="deleteGroup"
+          >
+            <span v-if="groupManagement.isDeleting">Deleting...</span>
+            <span v-else>🗑️ Delete</span>
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            :disabled="groupManagement.isLoading"
+            @click="createNewGroup"
+          >
+            + Create New Group
+          </button>
+        </div>
       </div>
     </section>
 
@@ -78,55 +147,92 @@
     >
       <h2>{{ showEditForm ? 'Edit Group' : 'Create New Group' }}</h2>
       
-      <div class="form-group">
-        <label for="groupName">Group Name</label>
-        <input
-          id="groupName"
-          v-model="groupName"
-          type="text"
-          class="form-input"
-          placeholder="Enter group name"
-        />
+      <!-- Saving State -->
+      <div v-if="groupManagement.isSaving" class="status-message status-loading">
+        <span class="status-icon">⏳</span>
+        {{ showEditForm ? 'Updating group...' : 'Creating group...' }}
       </div>
+      
+      <div v-else>
+        <div class="form-group">
+          <label for="groupName">Group Name</label>
+          <input
+            id="groupName"
+            v-model="groupName"
+            type="text"
+            class="form-input"
+            placeholder="Enter group name"
+            :disabled="groupManagement.isLoading"
+          />
+        </div>
 
-      <div class="form-group">
-        <label>Select Lights</label>
-        <div class="light-selection">
-          <div
-            v-for="light in availableLights"
-            :key="light.value"
-            class="light-checkbox"
-          >
-            <input
-              :id="`light-${light.value}`"
-              v-model="selectedLights"
-              type="checkbox"
-              :value="light.value"
-              class="checkbox"
-            />
-            <label :for="`light-${light.value}`" class="checkbox-label">
-              {{ light.label }}
-            </label>
+        <div class="form-group">
+          <label>Select Lights</label>
+          
+          <!-- Lights not loaded yet -->
+          <div v-if="lightDiscovery.isIdle" class="status-message status-loading">
+            <span class="status-icon">⏳</span>
+            Loading available lights...
+          </div>
+          
+          <!-- Lights loading -->
+          <div v-else-if="lightDiscovery.isFetchingLights" class="status-message status-loading">
+            <span class="status-icon">⏳</span>
+            Discovering lights...
+          </div>
+          
+          <!-- Light discovery error -->
+          <div v-else-if="lightDiscovery.hasError" class="status-message status-error">
+            <span class="status-icon">❌</span>
+            {{ lightDiscovery.error }}
+            <button class="btn-link" @click="lightDiscovery.retryFetch">Retry</button>
+          </div>
+          
+          <!-- Light selection -->
+          <div v-else-if="lightDiscovery.isReady && lightDiscovery.hasLights" class="light-selection">
+            <div
+              v-for="light in lightDiscovery.lights"
+              :key="light.value"
+              class="light-checkbox"
+            >
+              <input
+                :id="`light-${light.value}`"
+                :checked="isLightSelected(light.value)"
+                type="checkbox"
+                class="checkbox"
+                @change="toggleLightSelection(light.value)"
+              />
+              <label :for="`light-${light.value}`" class="checkbox-label">
+                {{ light.label }}
+              </label>
+            </div>
+          </div>
+          
+          <!-- No lights found -->
+          <div v-else class="status-message status-error">
+            <span class="status-icon">ℹ️</span>
+            No lights available. Make sure your API key is connected and lights are discoverable.
           </div>
         </div>
-      </div>
 
-      <div class="form-actions">
-        <button
-          type="button"
-          class="btn btn-secondary"
-          @click="cancelGroupForm"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          class="btn btn-primary"
-          :disabled="!groupName || selectedLights.length === 0"
-          @click="saveGroup"
-        >
-          {{ showEditForm ? 'Update Group' : 'Create Group' }}
-        </button>
+        <div class="form-actions">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            :disabled="groupManagement.isLoading"
+            @click="cancelGroupForm"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            :disabled="!groupName || selectedLights.length === 0 || groupManagement.isLoading"
+            @click="saveGroup"
+          >
+            {{ showEditForm ? 'Update Group' : 'Create Group' }}
+          </button>
+        </div>
       </div>
     </section>
 
@@ -191,67 +297,111 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import type { GroupControlSettings, ControlMode } from '@shared/types'
+import { ref, computed, watch, onMounted } from 'vue'
+import type { GroupControlSettings, ControlMode, LightGroup } from '@shared/types'
+import { useApiConnection } from '../composables/useApiConnection'
+import { useLightDiscovery } from '../composables/useLightDiscovery'
+import { useGroupManagement } from '../composables/useGroupManagement'
 
-// Reactive state
-const apiKey = ref<string>('')
+// XState composables
+const apiConnection = useApiConnection()
+const lightDiscovery = useLightDiscovery()
+const groupManagement = useGroupManagement()
+
+// Local reactive state
+const localApiKey = ref<string>('')
 const selectedGroup = ref<string>('')
 const controlMode = ref<ControlMode>('toggle')
 const brightnessValue = ref<number>(100)
 const colorValue = ref<string>('#ffffff')
 const colorTempValue = ref<number>(6500)
 
-// Group management state
-const showCreateForm = ref<boolean>(false)
-const showEditForm = ref<boolean>(false)
+// Group form state
 const groupName = ref<string>('')
-const selectedLights = ref<string[]>([])
 
-// Mock data for now - will be replaced with actual API calls
-const availableGroups = ref([
-  { label: 'Living Room (3 lights)', value: 'group1' },
-  { label: 'Bedroom Setup (2 lights)', value: 'group2' },
-])
+// Computed state helpers
+const showCreateForm = computed(() => groupManagement.isCreatingNew.value)
+const showEditForm = computed(() => groupManagement.isEditingExisting.value)
+const selectedLights = computed(() => groupManagement.selectedLights.value)
 
-const availableLights = ref([
-  { label: 'Living Room Light (H6054)', value: 'device1|H6054' },
-  { label: 'Bedroom Strip (H6072)', value: 'device2|H6072' },
-  { label: 'Kitchen Under Cabinet (H6056)', value: 'device3|H6056' },
-])
+// Actions
+const connectToApi = () => {
+  if (localApiKey.value) {
+    apiConnection.connect(localApiKey.value)
+  }
+}
 
-// Methods
 const editGroup = () => {
-  // TODO: Load group details and populate form
-  showEditForm.value = true
-  groupName.value = 'Living Room' // Mock data
-  selectedLights.value = ['device1|H6054', 'device2|H6072'] // Mock data
+  const group = groupManagement.groups.value.find(g => g.id === selectedGroup.value)
+  if (group) {
+    groupManagement.editGroup(group)
+    groupName.value = group.name
+  }
 }
 
 const deleteGroup = () => {
-  // TODO: Show confirmation dialog and delete group
-  console.log('Delete group:', selectedGroup.value)
+  if (selectedGroup.value) {
+    const confirmDelete = confirm('Are you sure you want to delete this group?')
+    if (confirmDelete) {
+      groupManagement.deleteGroup(selectedGroup.value)
+      selectedGroup.value = ''
+    }
+  }
 }
 
 const saveGroup = () => {
-  // TODO: Save group via WebSocket message
-  console.log('Save group:', {
-    name: groupName.value,
-    lights: selectedLights.value
-  })
-  cancelGroupForm()
+  if (groupName.value && selectedLights.value.length > 0) {
+    groupManagement.saveGroup(groupName.value, selectedLights.value)
+    groupName.value = ''
+  }
 }
 
 const cancelGroupForm = () => {
-  showCreateForm.value = false
-  showEditForm.value = false
+  groupManagement.cancelEdit()
   groupName.value = ''
-  selectedLights.value = []
 }
 
-// Computed settings object
+const createNewGroup = () => {
+  groupManagement.createGroup()
+  groupName.value = ''
+}
+
+// Light selection methods for form
+const toggleLightSelection = (lightId: string) => {
+  groupManagement.toggleLightSelection(lightId)
+}
+
+const isLightSelected = (lightId: string) => {
+  return groupManagement.isLightSelected(lightId).value
+}
+
+// Watch for API connection changes to load groups and lights
+watch(
+  () => apiConnection.isConnected.value,
+  (isConnected) => {
+    if (isConnected) {
+      if (lightDiscovery.isIdle.value) {
+        lightDiscovery.fetchLights()
+      }
+      if (groupManagement.isIdle.value) {
+        groupManagement.loadGroups()
+      }
+    }
+  }
+)
+
+// Initialize on mount
+onMounted(() => {
+  if (apiConnection.isConnected.value) {
+    if (groupManagement.isIdle.value) {
+      groupManagement.loadGroups()
+    }
+  }
+})
+
+// Computed settings object for Stream Deck integration
 const settings = computed<GroupControlSettings>(() => ({
-  apiKey: apiKey.value || undefined,
+  apiKey: apiConnection.apiKey.value || undefined,
   selectedGroupId: selectedGroup.value || undefined,
   controlMode: controlMode.value,
   brightnessValue: controlMode.value === 'brightness' ? brightnessValue.value : undefined,
@@ -260,9 +410,7 @@ const settings = computed<GroupControlSettings>(() => ({
 }))
 
 // TODO: Implement WebSocket communication with Stream Deck plugin
-// TODO: Implement API key validation
-// TODO: Implement group CRUD operations
-// TODO: Implement settings persistence
+// TODO: Implement settings persistence and restoration
 </script>
 
 <style scoped>
@@ -431,5 +579,100 @@ const settings = computed<GroupControlSettings>(() => ({
   font-size: 12px;
   color: var(--sdpi-color-text-secondary, #999);
   line-height: 1.4;
+}
+
+/* Button Styles */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--sdpi-color-accent, #0099ff);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--sdpi-color-accent-hover, #0077cc);
+}
+
+.btn-secondary {
+  background-color: var(--sdpi-color-bg-tertiary, #404040);
+  color: var(--sdpi-color-text, #cccccc);
+  border: 1px solid var(--sdpi-color-border, #333);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--sdpi-color-bg-hover, #505050);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--sdpi-color-accent, #0099ff);
+  cursor: pointer;
+  font-size: 12px;
+  text-decoration: underline;
+  padding: 0;
+  margin-left: 8px;
+}
+
+.btn-link:hover {
+  color: var(--sdpi-color-accent-hover, #0077cc);
+}
+
+/* Input Group */
+.input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.input-group .form-input {
+  flex: 1;
+}
+
+/* Status Messages */
+.status-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin: 8px 0;
+}
+
+.status-loading {
+  background-color: var(--sdpi-color-bg-info, #1a3b5c);
+  color: var(--sdpi-color-text-info, #79c7ff);
+  border: 1px solid var(--sdpi-color-border-info, #0099ff);
+}
+
+.status-success {
+  background-color: var(--sdpi-color-bg-success, #1a3b1a);
+  color: var(--sdpi-color-text-success, #7dd87d);
+  border: 1px solid var(--sdpi-color-border-success, #28a745);
+}
+
+.status-error {
+  background-color: var(--sdpi-color-bg-error, #3b1a1a);
+  color: var(--sdpi-color-text-error, #ff7979);
+  border: 1px solid var(--sdpi-color-border-error, #dc3545);
+}
+
+.status-icon {
+  font-size: 16px;
+  flex-shrink: 0;
 }
 </style>

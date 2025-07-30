@@ -5,14 +5,50 @@
       <h2>API Configuration</h2>
       <div class="form-group">
         <label for="apiKey">API Key</label>
-        <input
-          id="apiKey"
-          v-model="apiKey"
-          type="password"
-          class="form-input"
-          placeholder="Enter your Govee API key"
-          autocomplete="off"
-        />
+        <div class="input-group">
+          <input
+            id="apiKey"
+            v-model="localApiKey"
+            type="password"
+            class="form-input"
+            placeholder="Enter your Govee API key"
+            autocomplete="off"
+            :disabled="apiConnection.isConnecting"
+            @keyup.enter="connectToApi"
+          />
+          <button
+            v-if="apiConnection.isDisconnected || apiConnection.hasError"
+            class="btn btn-primary"
+            :disabled="!localApiKey || apiConnection.isConnecting"
+            @click="connectToApi"
+          >
+            <span v-if="apiConnection.isConnecting">Connecting...</span>
+            <span v-else>Connect</span>
+          </button>
+          <button
+            v-else-if="apiConnection.isConnected"
+            class="btn btn-secondary"
+            @click="apiConnection.disconnect"
+          >
+            Disconnect
+          </button>
+        </div>
+        
+        <!-- Connection Status -->
+        <div v-if="apiConnection.isConnecting" class="status-message status-loading">
+          <span class="status-icon">⏳</span>
+          Validating API key...
+        </div>
+        <div v-else-if="apiConnection.isConnected" class="status-message status-success">
+          <span class="status-icon">✅</span>
+          API key validated successfully
+        </div>
+        <div v-else-if="apiConnection.hasError" class="status-message status-error">
+          <span class="status-icon">❌</span>
+          {{ apiConnection.error }}
+          <button class="btn-link" @click="apiConnection.retry">Retry</button>
+        </div>
+        
         <small class="help-text">
           Get your API key from the Govee Home app → Settings → About Us → Apply for API Key
         </small>
@@ -22,23 +58,85 @@
     <!-- Light Selection Section -->
     <section class="config-section" data-testid="light-selection-section">
       <h2>Light Selection</h2>
-      <div class="form-group">
-        <label for="lightSelect">Light</label>
-        <select
-          id="lightSelect"
-          v-model="selectedLight"
-          class="form-select"
-          :disabled="!apiKey"
+      
+      <!-- Fetch Lights Button -->
+      <div v-if="lightDiscovery.isIdle" class="form-group">
+        <button
+          class="btn btn-primary"
+          :disabled="!apiConnection.isConnected"
+          @click="lightDiscovery.fetchLights"
         >
-          <option value="" disabled>Select a light...</option>
-          <option
-            v-for="light in availableLights"
-            :key="light.value"
-            :value="light.value"
+          Discover Lights
+        </button>
+        <small class="help-text">
+          Connect your API key first, then discover available lights
+        </small>
+      </div>
+      
+      <!-- Loading State -->
+      <div v-else-if="lightDiscovery.isFetchingLights" class="status-message status-loading">
+        <span class="status-icon">⏳</span>
+        Discovering lights...
+      </div>
+      
+      <!-- Error State -->
+      <div v-else-if="lightDiscovery.hasError" class="status-message status-error">
+        <span class="status-icon">❌</span>
+        {{ lightDiscovery.error }}
+        <button class="btn-link" @click="lightDiscovery.retryFetch">Retry</button>
+      </div>
+      
+      <!-- Light Selection -->
+      <div v-else-if="lightDiscovery.isReady" class="form-group">
+        <!-- Search -->
+        <div v-if="lightDiscovery.hasLights" class="search-group">
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="form-input"
+            placeholder="Search lights..."
+            @input="lightDiscovery.searchLights(searchQuery)"
+          />
+          <button
+            v-if="searchQuery"
+            class="btn-clear"
+            @click="clearSearch"
           >
-            {{ light.label }}
-          </option>
-        </select>
+            ✕
+          </button>
+        </div>
+        
+        <!-- Light Dropdown -->
+        <div class="form-group">
+          <label for="lightSelect">Light</label>
+          <select
+            id="lightSelect"
+            v-model="selectedLight"
+            class="form-select"
+            :disabled="!lightDiscovery.hasFilteredLights"
+          >
+            <option value="" disabled>
+              {{ lightDiscovery.hasFilteredLights ? 'Select a light...' : 'No lights found' }}
+            </option>
+            <option
+              v-for="light in lightDiscovery.filteredLights"
+              :key="light.value"
+              :value="light.value"
+            >
+              {{ light.label }}
+            </option>
+          </select>
+        </div>
+        
+        <!-- Refresh Button -->
+        <button
+          class="btn btn-secondary"
+          @click="lightDiscovery.refreshLights"
+          :disabled="lightDiscovery.isFetchingLights"
+        >
+          <span v-if="lightDiscovery.isFetchingLights">Refreshing...</span>
+          <span v-else>Refresh Lights</span>
+        </button>
       </div>
     </section>
 
@@ -105,28 +203,53 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { LightControlSettings, ControlMode } from '@shared/types'
+import { useApiConnection } from '../composables/useApiConnection'
+import { useLightDiscovery } from '../composables/useLightDiscovery'
 
-// Reactive state
-const apiKey = ref<string>('')
+// XState composables
+const apiConnection = useApiConnection()
+const lightDiscovery = useLightDiscovery()
+
+// Local reactive state
+const localApiKey = ref<string>('')
 const selectedLight = ref<string>('')
 const controlMode = ref<ControlMode>('toggle')
 const brightnessValue = ref<number>(100)
 const colorValue = ref<string>('#ffffff')
 const colorTempValue = ref<number>(6500)
+const searchQuery = ref<string>('')
 
-// Mock data for now - will be replaced with actual API calls
-const availableLights = ref([
-  { label: 'Living Room Light (H6054)', value: 'device1|H6054' },
-  { label: 'Bedroom Strip (H6072)', value: 'device2|H6072' },
-])
+// Actions
+const connectToApi = () => {
+  if (localApiKey.value) {
+    apiConnection.connect(localApiKey.value)
+  }
+}
 
-// Computed settings object
+const clearSearch = () => {
+  searchQuery.value = ''
+  lightDiscovery.clearSearch()
+}
+
+// Watch for API connection changes to automatically fetch lights
+watch(
+  () => apiConnection.isConnected.value,
+  (isConnected) => {
+    if (isConnected && lightDiscovery.isIdle.value) {
+      lightDiscovery.fetchLights()
+    }
+  }
+)
+
+// Computed settings object for Stream Deck integration
 const settings = computed<LightControlSettings>(() => ({
-  apiKey: apiKey.value || undefined,
+  apiKey: apiConnection.apiKey.value || undefined,
   selectedDeviceId: selectedLight.value.split('|')[0] || undefined,
   selectedModel: selectedLight.value.split('|')[1] || undefined,
+  selectedLightName: selectedLight.value ? 
+    lightDiscovery.filteredLights.value.find(l => l.value === selectedLight.value)?.label : undefined,
   controlMode: controlMode.value,
   brightnessValue: controlMode.value === 'brightness' ? brightnessValue.value : undefined,
   colorValue: controlMode.value === 'color' ? colorValue.value : undefined,
@@ -134,9 +257,8 @@ const settings = computed<LightControlSettings>(() => ({
 }))
 
 // TODO: Implement WebSocket communication with Stream Deck plugin
-// TODO: Implement API key validation
-// TODO: Implement light discovery
-// TODO: Implement settings persistence
+// TODO: Implement settings persistence and restoration
+// TODO: Emit settings changes to parent component
 </script>
 
 <style scoped>
@@ -216,5 +338,127 @@ const settings = computed<LightControlSettings>(() => ({
   font-size: 12px;
   color: var(--sdpi-color-text-secondary, #999);
   line-height: 1.4;
+}
+
+/* Button Styles */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--sdpi-color-accent, #0099ff);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--sdpi-color-accent-hover, #0077cc);
+}
+
+.btn-secondary {
+  background-color: var(--sdpi-color-bg-tertiary, #404040);
+  color: var(--sdpi-color-text, #cccccc);
+  border: 1px solid var(--sdpi-color-border, #333);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--sdpi-color-bg-hover, #505050);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--sdpi-color-accent, #0099ff);
+  cursor: pointer;
+  font-size: 12px;
+  text-decoration: underline;
+  padding: 0;
+  margin-left: 8px;
+}
+
+.btn-link:hover {
+  color: var(--sdpi-color-accent-hover, #0077cc);
+}
+
+/* Input Group */
+.input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.input-group .form-input {
+  flex: 1;
+}
+
+/* Search Group */
+.search-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.btn-clear {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--sdpi-color-text-secondary, #999);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-clear:hover {
+  color: var(--sdpi-color-text, #cccccc);
+}
+
+/* Status Messages */
+.status-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin: 8px 0;
+}
+
+.status-loading {
+  background-color: var(--sdpi-color-bg-info, #1a3b5c);
+  color: var(--sdpi-color-text-info, #79c7ff);
+  border: 1px solid var(--sdpi-color-border-info, #0099ff);
+}
+
+.status-success {
+  background-color: var(--sdpi-color-bg-success, #1a3b1a);
+  color: var(--sdpi-color-text-success, #7dd87d);
+  border: 1px solid var(--sdpi-color-border-success, #28a745);
+}
+
+.status-error {
+  background-color: var(--sdpi-color-bg-error, #3b1a1a);
+  color: var(--sdpi-color-text-error, #ff7979);
+  border: 1px solid var(--sdpi-color-border-error, #dc3545);
+}
+
+.status-icon {
+  font-size: 16px;
+  flex-shrink: 0;
 }
 </style>
