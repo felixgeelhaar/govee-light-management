@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions
+    url: https://github.com/felixgeelhaar/govee-light-management/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 📖 Documentation
+    url: https://github.com/felixgeelhaar/govee-light-management/wiki
+    about: Check the documentation and guides
+  - name: 🔧 Stream Deck Support
+    url: https://help.elgato.com/hc/en-us/categories/360001061692-Stream-Deck
+    about: General Stream Deck support and troubleshooting
+  - name: 🏠 Govee Support
+    url: https://govee.com/pages/contact-us
+    about: Govee device support and API issues

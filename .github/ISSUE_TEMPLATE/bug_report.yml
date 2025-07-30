@@ -1,0 +1,157 @@
+name: 🐛 Bug Report
+description: Report a bug or issue with the plugin
+title: "[Bug]: "
+labels: ["bug", "triage"]
+assignees:
+  - felixgeelhaar
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the following information to help us resolve the issue quickly.
+
+  - type: checkboxes
+    id: search
+    attributes:
+      label: Search for existing issues
+      description: Please search for existing issues before creating a new one
+      options:
+        - label: I have searched for existing issues and this is not a duplicate
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+      placeholder: Describe the bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen
+      placeholder: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: A clear and concise description of what actually happened
+      placeholder: What actually happened?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you using?
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS Sonoma (14.x)
+        - macOS Ventura (13.x)
+        - macOS Monterey (12.x)
+        - macOS Big Sur (11.x)
+        - Other (please specify in additional context)
+    validations:
+      required: true
+
+  - type: input
+    id: streamdeck-version
+    attributes:
+      label: Stream Deck Software Version
+      description: What version of Stream Deck software are you using?
+      placeholder: e.g., 6.7.1
+    validations:
+      required: true
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin Version
+      description: What version of the Govee Light Management plugin are you using?
+      placeholder: e.g., 1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: lights
+    attributes:
+      label: Govee Light Models
+      description: Which Govee light models are you experiencing issues with?
+      multiple: true
+      options:
+        - H6054 (LED Strip Light)
+        - H6056 (LED Strip Light)
+        - H6072 (LED Strip Light)
+        - H6076 (LED Strip Light)
+        - H6159 (LED Strip Light)
+        - H6160 (LED Strip Light)
+        - H6163 (LED Strip Light)
+        - H6173 (LED Strip Light)
+        - H6182 (LED Strip Light)
+        - H6188 (LED Strip Light)
+        - H6199 (LED Strip Light)
+        - H610A (LED Strip Light)
+        - H610B (LED Strip Light)
+        - H6117 (LED Bulb)
+        - H6008 (LED Bulb)
+        - H6009 (LED Bulb)
+        - H6003 (LED Bulb)
+        - H6006 (LED Bulb)
+        - H6071 (LED Bulb)
+        - H6075 (LED Bulb)
+        - H6087 (LED Bulb)
+        - H619A (Outdoor String Lights)
+        - H619B (Outdoor String Lights)
+        - H619C (Outdoor String Lights)
+        - H619D (Outdoor String Lights)
+        - H619E (Outdoor String Lights)
+        - Other (please specify)
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log Output
+      description: |
+        Please provide relevant log output from Stream Deck Console:
+        1. Open Stream Deck software
+        2. Go to Help → Open Stream Deck Console
+        3. Filter by "govee-light-management"
+        4. Copy the relevant log entries
+      render: shell
+      placeholder: Paste log output here...
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem
+      placeholder: Drag and drop screenshots here...
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here
+      placeholder: Any additional information that might be helpful...

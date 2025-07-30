@@ -1,0 +1,186 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run type checking
+      run: npm run type-check
+    
+    - name: Run linting
+      run: npm run lint
+    
+    - name: Run tests
+      run: npm test
+    
+    - name: Run build
+      run: npm run build
+
+  build:
+    name: Build Plugin
+    runs-on: ${{ matrix.os }}
+    needs: test
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build plugin
+      run: npm run build
+    
+    - name: Create plugin package (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        cd com.felixgeelhaar.govee-light-management.sdPlugin
+        zip -r "../govee-light-management-${{ matrix.os }}.streamDeckPlugin" .
+    
+    - name: Create plugin package (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd com.felixgeelhaar.govee-light-management.sdPlugin
+        Compress-Archive -Path * -DestinationPath "../govee-light-management-${{ matrix.os }}.streamDeckPlugin"
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: plugin-${{ matrix.os }}
+        path: "*.streamDeckPlugin"
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build plugin
+      run: npm run build
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+    
+    - name: Create universal plugin package
+      run: |
+        cd com.felixgeelhaar.govee-light-management.sdPlugin
+        zip -r "../govee-light-management.streamDeckPlugin" .
+    
+    - name: Extract version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+    
+    - name: Generate release notes
+      id: generate_notes
+      run: |
+        # Get the previous tag
+        PREV_TAG=$(git describe --tags --abbrev=0 HEAD^)
+        
+        # Generate changelog
+        echo "## 🚀 What's New in v${{ steps.get_version.outputs.VERSION }}" > release_notes.md
+        echo "" >> release_notes.md
+        
+        # Get commits since last tag
+        git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --grep="feat:" --grep="fix:" --grep="perf:" --grep="refactor:" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "" >> release_notes.md
+        
+        # Add installation instructions
+        echo "## 📦 Installation" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "### Option 1: Download Plugin Package" >> release_notes.md
+        echo "1. Download \`govee-light-management.streamDeckPlugin\` from the assets below" >> release_notes.md
+        echo "2. Double-click the file to install in Stream Deck" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "### Option 2: Platform-Specific Packages" >> release_notes.md
+        echo "- **macOS**: \`govee-light-management-macos-latest.streamDeckPlugin\`" >> release_notes.md
+        echo "- **Windows**: \`govee-light-management-windows-latest.streamDeckPlugin\`" >> release_notes.md
+        echo "- **Linux**: \`govee-light-management-ubuntu-latest.streamDeckPlugin\`" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "## 🔧 Requirements" >> release_notes.md
+        echo "- Stream Deck Software v6.0 or later" >> release_notes.md
+        echo "- Node.js v18.0 or later (for development)" >> release_notes.md
+        echo "- Govee API Key from [developer.govee.com](https://developer.govee.com)" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "## 📚 Documentation" >> release_notes.md
+        echo "- [Installation Guide](https://github.com/felixgeelhaar/govee-light-management#installation)" >> release_notes.md
+        echo "- [Usage Instructions](https://github.com/felixgeelhaar/govee-light-management#usage)" >> release_notes.md
+        echo "- [Contributing Guide](https://github.com/felixgeelhaar/govee-light-management/blob/main/CONTRIBUTING.md)" >> release_notes.md
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: "Release v${{ steps.get_version.outputs.VERSION }}"
+        body_path: release_notes.md
+        files: |
+          govee-light-management.streamDeckPlugin
+          plugin-*/govee-light-management-*.streamDeckPlugin
+        draft: false
+        prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: release
+    if: always()
+    
+    steps:
+    - name: Extract version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+    
+    - name: Notify Discord (if configured)
+      if: ${{ secrets.DISCORD_WEBHOOK }}
+      run: |
+        curl -H "Content-Type: application/json" \
+             -d "{\"content\": \"🚀 **Govee Light Management v${{ steps.get_version.outputs.VERSION }}** has been released!\n\n📦 Download: https://github.com/felixgeelhaar/govee-light-management/releases/tag/v${{ steps.get_version.outputs.VERSION }}\n📚 Docs: https://github.com/felixgeelhaar/govee-light-management#readme\"}" \
+             ${{ secrets.DISCORD_WEBHOOK }}
+      continue-on-error: true

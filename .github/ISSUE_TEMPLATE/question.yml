@@ -1,0 +1,102 @@
+name: ❓ Question
+description: Ask a question about the plugin
+title: "[Question]: "
+labels: ["question", "triage"]
+assignees:
+  - felixgeelhaar
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question about the plugin? We're here to help! Please check the documentation first, then provide details about your question.
+
+  - type: checkboxes
+    id: documentation
+    attributes:
+      label: Documentation Check
+      description: Have you checked the existing documentation?
+      options:
+        - label: I have read the README.md
+        - label: I have checked the Wiki (if available)
+        - label: I have searched existing issues and discussions
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Question Category
+      description: What is your question about?
+      options:
+        - Installation/Setup
+        - Configuration
+        - Light Control
+        - Group Management
+        - Troubleshooting
+        - API Key/Authentication
+        - Compatibility
+        - Performance
+        - Development/Contributing
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know?
+      placeholder: Please be as specific as possible...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide any relevant context about your setup or what you're trying to achieve
+      placeholder: |
+        Example:
+        - I'm trying to set up groups for my bedroom lights
+        - I have 5 different Govee light models
+        - I want to understand how the API rate limiting works
+
+  - type: dropdown
+    id: experience
+    attributes:
+      label: Experience Level
+      description: How would you describe your experience with Stream Deck plugins?
+      options:
+        - Beginner - New to Stream Deck
+        - Intermediate - Some experience with plugins
+        - Advanced - Very familiar with Stream Deck ecosystem
+        - Developer - I develop plugins myself
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin Version
+      description: What version of the plugin are you using?
+      placeholder: e.g., 1.0.0
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you using?
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS Sonoma (14.x)
+        - macOS Ventura (13.x)
+        - macOS Monterey (12.x)
+        - macOS Big Sur (11.x)
+        - Other
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Any other details that might be helpful
+      placeholder: Screenshots, error messages, specific light models, etc.
