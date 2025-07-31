@@ -29,7 +29,8 @@
       "Bash(npm test:*)",
       "Bash(npm config:*)",
       "Bash(npm run lint:*)",
-      "Bash(npm run format:*)"
+      "Bash(npm run format:*)",
+      "Bash(npm audit:*)"
     ],
     "deny": []
   }
