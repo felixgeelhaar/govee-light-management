@@ -30,7 +30,8 @@
       "Bash(npm config:*)",
       "Bash(npm run lint:*)",
       "Bash(npm run format:*)",
-      "Bash(npm audit:*)"
+      "Bash(npm audit:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }
