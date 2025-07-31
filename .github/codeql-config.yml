@@ -1,0 +1,24 @@
+name: "CodeQL Config"
+
+paths-ignore:
+  - node_modules/**
+  - coverage/**
+  - dist/**
+  - build/**
+  - "**/*.min.js"
+  - "**/*.bundle.js" 
+  - com.felixgeelhaar.govee-light-management.sdPlugin/bin/**
+  - com.felixgeelhaar.govee-light-management.sdPlugin/ui/dist/**
+  - com.felixgeelhaar.govee-light-management.sdPlugin/ui/sdpi-components.js
+
+paths:
+  - src/**
+  - scripts/**
+  - "*.js"
+  - "*.ts"
+
+queries:
+  - uses: security-and-quality
+
+# Disable problematic queries that might cause syntax errors
+disable-default-path-filters: true

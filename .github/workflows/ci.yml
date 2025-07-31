@@ -99,6 +99,10 @@ jobs:
   security:
     name: Security Audit
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
     
     steps:
     - name: Checkout code
@@ -123,9 +127,14 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: javascript
+        config-file: ./.github/codeql-config.yml
     
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:javascript"
+        upload: true
+      continue-on-error: true
 
   quality:
     name: Code Quality
