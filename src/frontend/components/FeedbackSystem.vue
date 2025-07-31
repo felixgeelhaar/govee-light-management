@@ -10,7 +10,7 @@
             :class="[
               'toast',
               `toast-${toast.type}`,
-              { 'toast-persistent': toast.persistent }
+              { 'toast-persistent': toast.persistent },
             ]"
             @click="dismissToast(toast.id)"
           >
@@ -19,12 +19,17 @@
             </div>
             <div class="toast-content">
               <div class="toast-title">{{ toast.title }}</div>
-              <div v-if="toast.message" class="toast-message">{{ toast.message }}</div>
+              <div v-if="toast.message" class="toast-message">
+                {{ toast.message }}
+              </div>
               <div v-if="toast.actions" class="toast-actions">
                 <button
                   v-for="action in toast.actions"
                   :key="action.label"
-                  :class="['toast-action', `toast-action-${action.type || 'primary'}`]"
+                  :class="[
+                    'toast-action',
+                    `toast-action-${action.type || 'primary'}`,
+                  ]"
                   @click.stop="handleToastAction(action, toast.id)"
                 >
                   {{ action.label }}
@@ -39,8 +44,8 @@
               ✕
             </button>
             <div v-if="toast.progress !== undefined" class="toast-progress">
-              <div 
-                class="toast-progress-bar" 
+              <div
+                class="toast-progress-bar"
                 :style="{ width: `${toast.progress}%` }"
               ></div>
             </div>
@@ -55,14 +60,19 @@
         <div class="loading-content">
           <LoadingSpinner :size="48" />
           <div class="loading-text">{{ globalLoadingText }}</div>
-          <div v-if="globalLoadingProgress !== undefined" class="loading-progress">
+          <div
+            v-if="globalLoadingProgress !== undefined"
+            class="loading-progress"
+          >
             <div class="loading-progress-bar">
-              <div 
-                class="loading-progress-fill" 
+              <div
+                class="loading-progress-fill"
                 :style="{ width: `${globalLoadingProgress}%` }"
               ></div>
             </div>
-            <div class="loading-progress-text">{{ Math.round(globalLoadingProgress) }}%</div>
+            <div class="loading-progress-text">
+              {{ Math.round(globalLoadingProgress) }}%
+            </div>
           </div>
         </div>
       </div>
@@ -70,12 +80,30 @@
 
     <!-- Success Animations -->
     <Transition name="success-overlay">
-      <div v-if="showSuccessAnimation" class="success-overlay" @click="hideSuccessAnimation">
+      <div
+        v-if="showSuccessAnimation"
+        class="success-overlay"
+        @click="hideSuccessAnimation"
+      >
         <div class="success-content">
           <div class="success-icon">
             <svg viewBox="0 0 50 50" class="success-checkmark">
-              <circle class="success-circle" cx="25" cy="25" r="23" fill="none" stroke="currentColor" stroke-width="2"/>
-              <path class="success-check" fill="none" stroke="currentColor" stroke-width="3" d="M14 27l7 7 16-16"/>
+              <circle
+                class="success-circle"
+                cx="25"
+                cy="25"
+                r="23"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+              <path
+                class="success-check"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                d="M14 27l7 7 16-16"
+              />
             </svg>
           </div>
           <div class="success-text">{{ successMessage }}</div>
@@ -86,139 +114,146 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
-import LoadingSpinner from './LoadingSpinner.vue'
+import { ref, reactive, onMounted, onUnmounted } from "vue";
+import LoadingSpinner from "./LoadingSpinner.vue";
 
 // Toast notification interface
 interface Toast {
-  id: string
-  type: 'success' | 'error' | 'warning' | 'info'
-  title: string
-  message?: string
-  duration?: number
-  persistent?: boolean
-  progress?: number
+  id: string;
+  type: "success" | "error" | "warning" | "info";
+  title: string;
+  message?: string;
+  duration?: number;
+  persistent?: boolean;
+  progress?: number;
   actions?: Array<{
-    label: string
-    type?: 'primary' | 'secondary' | 'danger'
-    action: () => void | Promise<void>
-  }>
+    label: string;
+    type?: "primary" | "secondary" | "danger";
+    action: () => void | Promise<void>;
+  }>;
 }
 
 // Reactive state
-const toasts = ref<Toast[]>([])
-const globalLoading = ref(false)
-const globalLoadingText = ref('Loading...')
-const globalLoadingProgress = ref<number | undefined>(undefined)
-const showSuccessAnimation = ref(false)
-const successMessage = ref('')
+const toasts = ref<Toast[]>([]);
+const globalLoading = ref(false);
+const globalLoadingText = ref("Loading...");
+const globalLoadingProgress = ref<number | undefined>(undefined);
+const showSuccessAnimation = ref(false);
+const successMessage = ref("");
 
 // Toast management
-const showToast = (toast: Omit<Toast, 'id'>) => {
-  const id = `toast-${Date.now()}-${Math.random()}`
+const showToast = (toast: Omit<Toast, "id">) => {
+  const id = `toast-${Date.now()}-${Math.random()}`;
   const newToast: Toast = {
     ...toast,
     id,
-    duration: toast.duration ?? (toast.persistent ? undefined : 5000)
-  }
+    duration: toast.duration ?? (toast.persistent ? undefined : 5000),
+  };
 
-  toasts.value.push(newToast)
+  toasts.value.push(newToast);
 
   // Auto-dismiss non-persistent toasts
   if (!newToast.persistent && newToast.duration) {
     setTimeout(() => {
-      dismissToast(id)
-    }, newToast.duration)
+      dismissToast(id);
+    }, newToast.duration);
   }
 
-  return id
-}
+  return id;
+};
 
 const dismissToast = (id: string) => {
-  const index = toasts.value.findIndex(t => t.id === id)
+  const index = toasts.value.findIndex((t) => t.id === id);
   if (index !== -1) {
-    toasts.value.splice(index, 1)
+    toasts.value.splice(index, 1);
   }
-}
+};
 
 const updateToastProgress = (id: string, progress: number) => {
-  const toast = toasts.value.find(t => t.id === id)
+  const toast = toasts.value.find((t) => t.id === id);
   if (toast) {
-    toast.progress = Math.max(0, Math.min(100, progress))
+    toast.progress = Math.max(0, Math.min(100, progress));
   }
-}
+};
 
-const handleToastAction = async (action: NonNullable<Toast['actions']>[0], toastId: string) => {
+const handleToastAction = async (
+  action: NonNullable<Toast["actions"]>[0],
+  toastId: string,
+) => {
   if (action.action) {
     try {
-      await action.action()
+      await action.action();
     } catch (error) {
-      console.error('Toast action failed:', error)
+      console.error("Toast action failed:", error);
     }
   }
-  dismissToast(toastId)
-}
+  dismissToast(toastId);
+};
 
 // Global loading management
-const showGlobalLoading = (text = 'Loading...', progress?: number) => {
-  globalLoading.value = true
-  globalLoadingText.value = text
-  globalLoadingProgress.value = progress
-}
+const showGlobalLoading = (text = "Loading...", progress?: number) => {
+  globalLoading.value = true;
+  globalLoadingText.value = text;
+  globalLoadingProgress.value = progress;
+};
 
 const hideGlobalLoading = () => {
-  globalLoading.value = false
-  globalLoadingProgress.value = undefined
-}
+  globalLoading.value = false;
+  globalLoadingProgress.value = undefined;
+};
 
 const updateGlobalLoadingProgress = (progress: number, text?: string) => {
-  globalLoadingProgress.value = Math.max(0, Math.min(100, progress))
+  globalLoadingProgress.value = Math.max(0, Math.min(100, progress));
   if (text) {
-    globalLoadingText.value = text
+    globalLoadingText.value = text;
   }
-}
+};
 
 // Success animation
 const displaySuccessAnimation = (message: string, duration = 2000) => {
-  successMessage.value = message
-  showSuccessAnimation.value = true
-  
+  successMessage.value = message;
+  showSuccessAnimation.value = true;
+
   setTimeout(() => {
-    hideSuccessAnimation()
-  }, duration)
-}
+    hideSuccessAnimation();
+  }, duration);
+};
 
 const hideSuccessAnimation = () => {
-  showSuccessAnimation.value = false
-}
+  showSuccessAnimation.value = false;
+};
 
 // Helper functions
-const getToastIcon = (type: Toast['type']) => {
+const getToastIcon = (type: Toast["type"]) => {
   const icons = {
-    success: '✓',
-    error: '✕',
-    warning: '⚠',
-    info: 'ℹ'
-  }
-  return icons[type] || icons.info
-}
+    success: "✓",
+    error: "✕",
+    warning: "⚠",
+    info: "ℹ",
+  };
+  return icons[type] || icons.info;
+};
 
 // Quick helper methods for common toast types
 const showSuccessToast = (title: string, message?: string) => {
-  return showToast({ type: 'success', title, message })
-}
+  return showToast({ type: "success", title, message });
+};
 
-const showError = (title: string, message?: string, actions?: Toast['actions']) => {
-  return showToast({ type: 'error', title, message, actions, duration: 8000 })
-}
+const showError = (
+  title: string,
+  message?: string,
+  actions?: Toast["actions"],
+) => {
+  return showToast({ type: "error", title, message, actions, duration: 8000 });
+};
 
 const showWarning = (title: string, message?: string) => {
-  return showToast({ type: 'warning', title, message, duration: 6000 })
-}
+  return showToast({ type: "warning", title, message, duration: 6000 });
+};
 
 const showInfo = (title: string, message?: string) => {
-  return showToast({ type: 'info', title, message })
-}
+  return showToast({ type: "info", title, message });
+};
 
 // Expose methods to parent components
 defineExpose({
@@ -232,15 +267,15 @@ defineExpose({
   showError,
   showWarning,
   showInfo,
-  showSuccessAnimation: displaySuccessAnimation
-})
+  showSuccessAnimation: displaySuccessAnimation,
+});
 </script>
 
 <script lang="ts">
 // Component registration for icons (simple text-based icons for Stream Deck compatibility)
 export default {
-  name: 'FeedbackSystem'
-}
+  name: "FeedbackSystem",
+};
 </script>
 
 <style scoped>
@@ -300,10 +335,18 @@ export default {
   margin-top: 2px;
 }
 
-.toast-success .toast-icon { color: #28a745; }
-.toast-error .toast-icon { color: #dc3545; }
-.toast-warning .toast-icon { color: #ffc107; }
-.toast-info .toast-icon { color: var(--sdpi-color-accent, #0099ff); }
+.toast-success .toast-icon {
+  color: #28a745;
+}
+.toast-error .toast-icon {
+  color: #dc3545;
+}
+.toast-warning .toast-icon {
+  color: #ffc107;
+}
+.toast-info .toast-icon {
+  color: var(--sdpi-color-accent, #0099ff);
+}
 
 .toast-content {
   flex: 1;
@@ -559,7 +602,7 @@ export default {
     right: 20px;
     max-width: none;
   }
-  
+
   .toast {
     min-width: auto;
   }

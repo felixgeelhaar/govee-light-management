@@ -33,24 +33,34 @@
             Disconnect
           </button>
         </div>
-        
+
         <!-- Connection Status -->
-        <div v-if="apiConnection.isConnecting" class="status-message status-loading">
+        <div
+          v-if="apiConnection.isConnecting"
+          class="status-message status-loading"
+        >
           <span class="status-icon">⏳</span>
           Validating API key...
         </div>
-        <div v-else-if="apiConnection.isConnected" class="status-message status-success">
+        <div
+          v-else-if="apiConnection.isConnected"
+          class="status-message status-success"
+        >
           <span class="status-icon">✅</span>
           API key validated successfully
         </div>
-        <div v-else-if="apiConnection.hasError" class="status-message status-error">
+        <div
+          v-else-if="apiConnection.hasError"
+          class="status-message status-error"
+        >
           <span class="status-icon">❌</span>
           {{ apiConnection.error }}
           <button class="btn-link" @click="apiConnection.retry">Retry</button>
         </div>
-        
+
         <small class="help-text">
-          Get your API key from the Govee Home app → Settings → About Us → Apply for API Key
+          Get your API key from the Govee Home app → Settings → About Us → Apply
+          for API Key
         </small>
       </div>
     </section>
@@ -58,7 +68,7 @@
     <!-- Group Management Section -->
     <section class="config-section" data-testid="group-management-section">
       <h2>Group Management</h2>
-      
+
       <!-- Loading Groups -->
       <div v-if="groupManagement.isIdle" class="form-group">
         <button
@@ -72,20 +82,28 @@
           Connect your API key first, then load your light groups
         </small>
       </div>
-      
+
       <!-- Loading State -->
-      <div v-else-if="groupManagement.isLoadingGroups" class="status-message status-loading">
+      <div
+        v-else-if="groupManagement.isLoadingGroups"
+        class="status-message status-loading"
+      >
         <span class="status-icon">⏳</span>
         Loading groups...
       </div>
-      
+
       <!-- Error State -->
-      <div v-else-if="groupManagement.hasError" class="status-message status-error">
+      <div
+        v-else-if="groupManagement.hasError"
+        class="status-message status-error"
+      >
         <span class="status-icon">❌</span>
         {{ groupManagement.error }}
-        <button class="btn-link" @click="groupManagement.loadGroups">Retry</button>
+        <button class="btn-link" @click="groupManagement.loadGroups">
+          Retry
+        </button>
       </div>
-      
+
       <!-- Ready State - Group Selection -->
       <div v-else-if="groupManagement.isReady" class="form-group">
         <div class="form-group">
@@ -97,7 +115,11 @@
             :disabled="!groupManagement.hasGroups"
           >
             <option value="" disabled>
-              {{ groupManagement.hasGroups ? 'Select a light group...' : 'No groups found' }}
+              {{
+                groupManagement.hasGroups
+                  ? "Select a light group..."
+                  : "No groups found"
+              }}
             </option>
             <option
               v-for="group in groupManagement.groups.value"
@@ -145,14 +167,17 @@
       class="config-section"
       data-testid="group-creation-form"
     >
-      <h2>{{ showEditForm ? 'Edit Group' : 'Create New Group' }}</h2>
-      
+      <h2>{{ showEditForm ? "Edit Group" : "Create New Group" }}</h2>
+
       <!-- Saving State -->
-      <div v-if="groupManagement.isSaving" class="status-message status-loading">
+      <div
+        v-if="groupManagement.isSaving"
+        class="status-message status-loading"
+      >
         <span class="status-icon">⏳</span>
-        {{ showEditForm ? 'Updating group...' : 'Creating group...' }}
+        {{ showEditForm ? "Updating group..." : "Creating group..." }}
       </div>
-      
+
       <div v-else>
         <div class="form-group">
           <label for="groupName">Group Name</label>
@@ -168,28 +193,42 @@
 
         <div class="form-group">
           <label>Select Lights</label>
-          
+
           <!-- Lights not loaded yet -->
-          <div v-if="lightDiscovery.isIdle" class="status-message status-loading">
+          <div
+            v-if="lightDiscovery.isIdle"
+            class="status-message status-loading"
+          >
             <span class="status-icon">⏳</span>
             Loading available lights...
           </div>
-          
+
           <!-- Lights loading -->
-          <div v-else-if="lightDiscovery.isFetchingLights" class="status-message status-loading">
+          <div
+            v-else-if="lightDiscovery.isFetchingLights"
+            class="status-message status-loading"
+          >
             <span class="status-icon">⏳</span>
             Discovering lights...
           </div>
-          
+
           <!-- Light discovery error -->
-          <div v-else-if="lightDiscovery.hasError" class="status-message status-error">
+          <div
+            v-else-if="lightDiscovery.hasError"
+            class="status-message status-error"
+          >
             <span class="status-icon">❌</span>
             {{ lightDiscovery.error }}
-            <button class="btn-link" @click="lightDiscovery.retryFetch">Retry</button>
+            <button class="btn-link" @click="lightDiscovery.retryFetch">
+              Retry
+            </button>
           </div>
-          
+
           <!-- Light selection -->
-          <div v-else-if="lightDiscovery.isReady && lightDiscovery.hasLights" class="light-selection">
+          <div
+            v-else-if="lightDiscovery.isReady && lightDiscovery.hasLights"
+            class="light-selection"
+          >
             <div
               v-for="light in lightDiscovery.lights.value"
               :key="light.value"
@@ -207,11 +246,12 @@
               </label>
             </div>
           </div>
-          
+
           <!-- No lights found -->
           <div v-else class="status-message status-error">
             <span class="status-icon">ℹ️</span>
-            No lights available. Make sure your API key is connected and lights are discoverable.
+            No lights available. Make sure your API key is connected and lights
+            are discoverable.
           </div>
         </div>
 
@@ -227,10 +267,14 @@
           <button
             type="button"
             class="btn btn-primary"
-            :disabled="!groupName || selectedLights.length === 0 || groupManagement.isLoading.value"
+            :disabled="
+              !groupName ||
+              selectedLights.length === 0 ||
+              groupManagement.isLoading.value
+            "
             @click="saveGroup"
           >
-            {{ showEditForm ? 'Update Group' : 'Create Group' }}
+            {{ showEditForm ? "Update Group" : "Create Group" }}
           </button>
         </div>
       </div>
@@ -241,11 +285,7 @@
       <h2>Control Mode</h2>
       <div class="form-group">
         <label for="controlMode">Control Mode</label>
-        <select
-          id="controlMode"
-          v-model="controlMode"
-          class="form-select"
-        >
+        <select id="controlMode" v-model="controlMode" class="form-select">
           <option value="toggle">Toggle On/Off</option>
           <option value="on">Turn On</option>
           <option value="off">Turn Off</option>
@@ -297,122 +337,130 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import type { ControlMode, LightGroup } from '@shared/types'
-import { useApiConnection } from '../composables/useApiConnection'
-import { useLightDiscovery } from '../composables/useLightDiscovery'
-import { useGroupManagement } from '../composables/useGroupManagement'
-import { useGroupControlSettings } from '../composables/useSettings'
+import { ref, computed, watch, onMounted } from "vue";
+import type { ControlMode, LightGroup } from "@shared/types";
+import { useApiConnection } from "../composables/useApiConnection";
+import { useLightDiscovery } from "../composables/useLightDiscovery";
+import { useGroupManagement } from "../composables/useGroupManagement";
+import { useGroupControlSettings } from "../composables/useSettings";
 
 // XState composables
-const apiConnection = useApiConnection()
-const lightDiscovery = useLightDiscovery()
-const groupManagement = useGroupManagement()
+const apiConnection = useApiConnection();
+const lightDiscovery = useLightDiscovery();
+const groupManagement = useGroupManagement();
 
 // Settings composable with persistence
-const settingsManager = useGroupControlSettings()
+const settingsManager = useGroupControlSettings();
 
 // Group form state
-const groupName = ref<string>('')
+const groupName = ref<string>("");
 
 // Computed state helpers
-const showCreateForm = computed(() => groupManagement.isCreatingNew.value)
-const showEditForm = computed(() => groupManagement.isEditingExisting.value)
-const selectedLights = computed(() => groupManagement.selectedLights.value)
+const showCreateForm = computed(() => groupManagement.isCreatingNew.value);
+const showEditForm = computed(() => groupManagement.isEditingExisting.value);
+const selectedLights = computed(() => groupManagement.selectedLights.value);
 
 // Computed values bound to settings
 const localApiKey = computed({
-  get: () => settingsManager.settings.apiKey || '',
-  set: (value: string) => settingsManager.updateSetting('apiKey', value || undefined)
-})
+  get: () => settingsManager.settings.apiKey || "",
+  set: (value: string) =>
+    settingsManager.updateSetting("apiKey", value || undefined),
+});
 
 const selectedGroup = computed({
-  get: () => settingsManager.settings.selectedGroupId || '',
+  get: () => settingsManager.settings.selectedGroupId || "",
   set: (value: string) => {
-    settingsManager.updateSetting('selectedGroupId', value || undefined)
-    
+    settingsManager.updateSetting("selectedGroupId", value || undefined);
+
     // Update group name in settings for display
     if (value) {
-      const group = groupManagement.groups.value.find(g => g.id === value)
+      const group = groupManagement.groups.value.find((g) => g.id === value);
       if (group) {
-        settingsManager.updateSetting('selectedGroupName', group.name)
+        settingsManager.updateSetting("selectedGroupName", group.name);
       }
     } else {
-      settingsManager.updateSetting('selectedGroupName', undefined)
+      settingsManager.updateSetting("selectedGroupName", undefined);
     }
-  }
-})
+  },
+});
 
 const controlMode = computed({
-  get: () => settingsManager.settings.controlMode || 'toggle',
-  set: (value: ControlMode) => settingsManager.updateSetting('controlMode', value)
-})
+  get: () => settingsManager.settings.controlMode || "toggle",
+  set: (value: ControlMode) =>
+    settingsManager.updateSetting("controlMode", value),
+});
 
 const brightnessValue = computed({
   get: () => settingsManager.settings.brightnessValue || 100,
-  set: (value: number) => settingsManager.updateSetting('brightnessValue', value)
-})
+  set: (value: number) =>
+    settingsManager.updateSetting("brightnessValue", value),
+});
 
 const colorValue = computed({
-  get: () => settingsManager.settings.colorValue || '#ffffff',
-  set: (value: string) => settingsManager.updateSetting('colorValue', value)
-})
+  get: () => settingsManager.settings.colorValue || "#ffffff",
+  set: (value: string) => settingsManager.updateSetting("colorValue", value),
+});
 
 const colorTempValue = computed({
   get: () => settingsManager.settings.colorTempValue || 6500,
-  set: (value: number) => settingsManager.updateSetting('colorTempValue', value)
-})
+  set: (value: number) =>
+    settingsManager.updateSetting("colorTempValue", value),
+});
 
 // Actions
 const connectToApi = () => {
   if (localApiKey.value) {
-    apiConnection.connect(localApiKey.value)
+    apiConnection.connect(localApiKey.value);
   }
-}
+};
 
 const editGroup = () => {
-  const group = groupManagement.groups.value.find(g => g.id === selectedGroup.value)
+  const group = groupManagement.groups.value.find(
+    (g) => g.id === selectedGroup.value,
+  );
   if (group) {
-    groupManagement.editGroup(group)
-    groupName.value = group.name
+    groupManagement.editGroup(group);
+    groupName.value = group.name;
   }
-}
+};
 
 const deleteGroup = () => {
   if (selectedGroup.value) {
-    const confirmDelete = confirm('Are you sure you want to delete this group?')
+    const confirmDelete = confirm(
+      "Are you sure you want to delete this group?",
+    );
     if (confirmDelete) {
-      groupManagement.deleteGroup(selectedGroup.value)
-      selectedGroup.value = ''
+      groupManagement.deleteGroup(selectedGroup.value);
+      selectedGroup.value = "";
     }
   }
-}
+};
 
 const saveGroup = () => {
   if (groupName.value && selectedLights.value.length > 0) {
-    groupManagement.saveGroup(groupName.value, selectedLights.value)
-    groupName.value = ''
+    groupManagement.saveGroup(groupName.value, selectedLights.value);
+    groupName.value = "";
   }
-}
+};
 
 const cancelGroupForm = () => {
-  groupManagement.cancelEdit()
-  groupName.value = ''
-}
+  groupManagement.cancelEdit();
+  groupName.value = "";
+};
 
 const createNewGroup = () => {
-  groupManagement.createGroup()
-  groupName.value = ''
-}
+  groupManagement.createGroup();
+  groupName.value = "";
+};
 
 // Light selection methods for form
 const toggleLightSelection = (lightId: string) => {
-  groupManagement.toggleLightSelection(lightId)
-}
+  groupManagement.toggleLightSelection(lightId);
+};
 
 const isLightSelected = (lightId: string) => {
-  return groupManagement.isLightSelected(lightId).value
-}
+  return groupManagement.isLightSelected(lightId).value;
+};
 
 // Watch for API connection changes to load groups and lights
 watch(
@@ -420,45 +468,45 @@ watch(
   (isConnected) => {
     if (isConnected) {
       if (lightDiscovery.isIdle.value) {
-        lightDiscovery.fetchLights()
+        lightDiscovery.fetchLights();
       }
       if (groupManagement.isIdle.value) {
-        groupManagement.loadGroups()
+        groupManagement.loadGroups();
       }
     }
-  }
-)
+  },
+);
 
 // Watch for API key changes in settings to update connection
 watch(
   () => settingsManager.settings.apiKey,
   (newApiKey) => {
     if (newApiKey && !apiConnection.isConnected.value) {
-      apiConnection.connect(newApiKey)
+      apiConnection.connect(newApiKey);
     }
-  }
-)
+  },
+);
 
 // Initialize on mount
 onMounted(() => {
   // Enable auto-save with 500ms delay for responsive UI
-  settingsManager.enableAutoSave(500)
-  
+  settingsManager.enableAutoSave(500);
+
   // Load existing settings
-  settingsManager.loadSettings()
-  
+  settingsManager.loadSettings();
+
   // If we have an API key in settings, connect automatically
   if (settingsManager.settings.apiKey) {
-    apiConnection.connect(settingsManager.settings.apiKey)
+    apiConnection.connect(settingsManager.settings.apiKey);
   }
-  
+
   // Load groups if already connected
   if (apiConnection.isConnected.value) {
     if (groupManagement.isIdle.value) {
-      groupManagement.loadGroups()
+      groupManagement.loadGroups();
     }
   }
-})
+});
 </script>
 
 <style scoped>

@@ -1,7 +1,7 @@
-import { Light } from '../entities/Light';
-import { LightGroup } from '../entities/LightGroup';
-import { ILightGroupRepository } from '../repositories/ILightGroupRepository';
-import { ILightRepository } from '../repositories/ILightRepository';
+import { Light } from "../entities/Light";
+import { LightGroup } from "../entities/LightGroup";
+import { ILightGroupRepository } from "../repositories/ILightGroupRepository";
+import { ILightRepository } from "../repositories/ILightRepository";
 
 export class LightGroupService {
   constructor(
@@ -12,9 +12,13 @@ export class LightGroupService {
   /**
    * Create a new light group
    */
-  async createGroup(name: string, lightIds: Array<{deviceId: string, model: string}>): Promise<LightGroup> {
+  async createGroup(
+    name: string,
+    lightIds: Array<{ deviceId: string; model: string }>,
+  ): Promise<LightGroup> {
     // Validate group name is available
-    const isNameAvailable = await this.groupRepository.isGroupNameAvailable(name);
+    const isNameAvailable =
+      await this.groupRepository.isGroupNameAvailable(name);
     if (!isNameAvailable) {
       throw new Error(`Group name "${name}" is already taken`);
     }
@@ -22,16 +26,21 @@ export class LightGroupService {
     // Fetch lights and validate they exist
     const lights: Light[] = [];
     for (const lightId of lightIds) {
-      const light = await this.lightRepository.findLight(lightId.deviceId, lightId.model);
+      const light = await this.lightRepository.findLight(
+        lightId.deviceId,
+        lightId.model,
+      );
       if (!light) {
-        throw new Error(`Light with device ID ${lightId.deviceId} and model ${lightId.model} not found`);
+        throw new Error(
+          `Light with device ID ${lightId.deviceId} and model ${lightId.model} not found`,
+        );
       }
       lights.push(light);
     }
 
     // Generate unique ID for the group
     const groupId = this.generateGroupId(name);
-    
+
     // Create and save the group
     const group = LightGroup.create(groupId, name, lights);
     await this.groupRepository.saveGroup(group);
@@ -42,7 +51,11 @@ export class LightGroupService {
   /**
    * Add light to an existing group
    */
-  async addLightToGroup(groupId: string, deviceId: string, model: string): Promise<void> {
+  async addLightToGroup(
+    groupId: string,
+    deviceId: string,
+    model: string,
+  ): Promise<void> {
     const group = await this.groupRepository.findGroupById(groupId);
     if (!group) {
       throw new Error(`Group with ID ${groupId} not found`);
@@ -50,7 +63,9 @@ export class LightGroupService {
 
     const light = await this.lightRepository.findLight(deviceId, model);
     if (!light) {
-      throw new Error(`Light with device ID ${deviceId} and model ${model} not found`);
+      throw new Error(
+        `Light with device ID ${deviceId} and model ${model} not found`,
+      );
     }
 
     group.addLight(light);
@@ -60,7 +75,11 @@ export class LightGroupService {
   /**
    * Remove light from a group
    */
-  async removeLightFromGroup(groupId: string, deviceId: string, model: string): Promise<void> {
+  async removeLightFromGroup(
+    groupId: string,
+    deviceId: string,
+    model: string,
+  ): Promise<void> {
     const group = await this.groupRepository.findGroupById(groupId);
     if (!group) {
       throw new Error(`Group with ID ${groupId} not found`);
@@ -68,11 +87,13 @@ export class LightGroupService {
 
     const light = await this.lightRepository.findLight(deviceId, model);
     if (!light) {
-      throw new Error(`Light with device ID ${deviceId} and model ${model} not found`);
+      throw new Error(
+        `Light with device ID ${deviceId} and model ${model} not found`,
+      );
     }
 
     group.removeLight(light);
-    
+
     if (group.isEmpty) {
       await this.groupRepository.deleteGroup(groupId);
     } else {
@@ -90,7 +111,10 @@ export class LightGroupService {
     }
 
     // Check if new name is available (excluding current group)
-    const isNameAvailable = await this.groupRepository.isGroupNameAvailable(newName, groupId);
+    const isNameAvailable = await this.groupRepository.isGroupNameAvailable(
+      newName,
+      groupId,
+    );
     if (!isNameAvailable) {
       throw new Error(`Group name "${newName}" is already taken`);
     }
@@ -103,14 +127,21 @@ export class LightGroupService {
   /**
    * Update group with new name and lights
    */
-  async updateGroup(groupId: string, newName: string, lightIds: Array<{deviceId: string, model: string}>): Promise<LightGroup> {
+  async updateGroup(
+    groupId: string,
+    newName: string,
+    lightIds: Array<{ deviceId: string; model: string }>,
+  ): Promise<LightGroup> {
     const group = await this.groupRepository.findGroupById(groupId);
     if (!group) {
       throw new Error(`Group with ID ${groupId} not found`);
     }
 
     // Check if new name is available (excluding current group)
-    const isNameAvailable = await this.groupRepository.isGroupNameAvailable(newName, groupId);
+    const isNameAvailable = await this.groupRepository.isGroupNameAvailable(
+      newName,
+      groupId,
+    );
     if (!isNameAvailable) {
       throw new Error(`Group name "${newName}" is already taken`);
     }
@@ -118,9 +149,14 @@ export class LightGroupService {
     // Fetch lights and validate they exist
     const lights: Light[] = [];
     for (const lightId of lightIds) {
-      const light = await this.lightRepository.findLight(lightId.deviceId, lightId.model);
+      const light = await this.lightRepository.findLight(
+        lightId.deviceId,
+        lightId.model,
+      );
       if (!light) {
-        throw new Error(`Light with device ID ${lightId.deviceId} and model ${lightId.model} not found`);
+        throw new Error(
+          `Light with device ID ${lightId.deviceId} and model ${lightId.model} not found`,
+        );
       }
       lights.push(light);
     }
@@ -161,15 +197,18 @@ export class LightGroupService {
   /**
    * Find groups containing a specific light
    */
-  async findGroupsContainingLight(deviceId: string, model: string): Promise<LightGroup[]> {
+  async findGroupsContainingLight(
+    deviceId: string,
+    model: string,
+  ): Promise<LightGroup[]> {
     const allGroups = await this.groupRepository.getAllGroups();
     const light = await this.lightRepository.findLight(deviceId, model);
-    
+
     if (!light) {
       return [];
     }
 
-    return allGroups.filter(group => group.hasLight(light));
+    return allGroups.filter((group) => group.hasLight(light));
   }
 
   /**
@@ -177,7 +216,7 @@ export class LightGroupService {
    */
   private generateGroupId(name: string): string {
     const timestamp = Date.now();
-    const sanitizedName = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    const sanitizedName = name.toLowerCase().replace(/[^a-z0-9]/g, "-");
     return `group-${sanitizedName}-${timestamp}`;
   }
 }

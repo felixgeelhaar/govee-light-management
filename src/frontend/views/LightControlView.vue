@@ -33,24 +33,34 @@
             Disconnect
           </button>
         </div>
-        
+
         <!-- Connection Status -->
-        <div v-if="apiConnection.isConnecting" class="status-message status-loading">
+        <div
+          v-if="apiConnection.isConnecting"
+          class="status-message status-loading"
+        >
           <span class="status-icon">⏳</span>
           Validating API key...
         </div>
-        <div v-else-if="apiConnection.isConnected" class="status-message status-success">
+        <div
+          v-else-if="apiConnection.isConnected"
+          class="status-message status-success"
+        >
           <span class="status-icon">✅</span>
           API key validated successfully
         </div>
-        <div v-else-if="apiConnection.hasError" class="status-message status-error">
+        <div
+          v-else-if="apiConnection.hasError"
+          class="status-message status-error"
+        >
           <span class="status-icon">❌</span>
           {{ apiConnection.error }}
           <button class="btn-link" @click="apiConnection.retry">Retry</button>
         </div>
-        
+
         <small class="help-text">
-          Get your API key from the Govee Home app → Settings → About Us → Apply for API Key
+          Get your API key from the Govee Home app → Settings → About Us → Apply
+          for API Key
         </small>
       </div>
     </section>
@@ -58,7 +68,7 @@
     <!-- Light Selection Section -->
     <section class="config-section" data-testid="light-selection-section">
       <h2>Light Selection</h2>
-      
+
       <!-- Fetch Lights Button -->
       <div v-if="lightDiscovery.isIdle" class="form-group">
         <button
@@ -72,20 +82,28 @@
           Connect your API key first, then discover available lights
         </small>
       </div>
-      
+
       <!-- Loading State -->
-      <div v-else-if="lightDiscovery.isFetchingLights" class="status-message status-loading">
+      <div
+        v-else-if="lightDiscovery.isFetchingLights"
+        class="status-message status-loading"
+      >
         <span class="status-icon">⏳</span>
         Discovering lights...
       </div>
-      
+
       <!-- Error State -->
-      <div v-else-if="lightDiscovery.hasError" class="status-message status-error">
+      <div
+        v-else-if="lightDiscovery.hasError"
+        class="status-message status-error"
+      >
         <span class="status-icon">❌</span>
         {{ lightDiscovery.error }}
-        <button class="btn-link" @click="lightDiscovery.retryFetch">Retry</button>
+        <button class="btn-link" @click="lightDiscovery.retryFetch">
+          Retry
+        </button>
       </div>
-      
+
       <!-- Light Selection -->
       <div v-else-if="lightDiscovery.isReady" class="form-group">
         <!-- Search -->
@@ -97,15 +115,11 @@
             placeholder="Search lights..."
             @input="lightDiscovery.searchLights(searchQuery)"
           />
-          <button
-            v-if="searchQuery"
-            class="btn-clear"
-            @click="clearSearch"
-          >
+          <button v-if="searchQuery" class="btn-clear" @click="clearSearch">
             ✕
           </button>
         </div>
-        
+
         <!-- Light Dropdown -->
         <div class="form-group">
           <label for="lightSelect">Light</label>
@@ -116,7 +130,11 @@
             :disabled="!lightDiscovery.hasFilteredLights"
           >
             <option value="" disabled>
-              {{ lightDiscovery.hasFilteredLights ? 'Select a light...' : 'No lights found' }}
+              {{
+                lightDiscovery.hasFilteredLights
+                  ? "Select a light..."
+                  : "No lights found"
+              }}
             </option>
             <option
               v-for="light in lightDiscovery.filteredLights.value"
@@ -127,7 +145,7 @@
             </option>
           </select>
         </div>
-        
+
         <!-- Refresh Button -->
         <button
           class="btn btn-secondary"
@@ -145,11 +163,7 @@
       <h2>Control Mode</h2>
       <div class="form-group">
         <label for="controlMode">Control Mode</label>
-        <select
-          id="controlMode"
-          v-model="controlMode"
-          class="form-select"
-        >
+        <select id="controlMode" v-model="controlMode" class="form-select">
           <option value="toggle">Toggle On/Off</option>
           <option value="on">Turn On</option>
           <option value="off">Turn Off</option>
@@ -203,170 +217,182 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import type { ControlMode } from '@shared/types'
-import { useApiConnection } from '../composables/useApiConnection'
-import { useLightDiscovery } from '../composables/useLightDiscovery'
-import { useLightControlSettings } from '../composables/useSettings'
-import { useFeedbackHelpers } from '../composables/useFeedback'
+import { ref, computed, watch, onMounted } from "vue";
+import type { ControlMode } from "@shared/types";
+import { useApiConnection } from "../composables/useApiConnection";
+import { useLightDiscovery } from "../composables/useLightDiscovery";
+import { useLightControlSettings } from "../composables/useSettings";
+import { useFeedbackHelpers } from "../composables/useFeedback";
 
 // XState composables
-const apiConnection = useApiConnection()
-const lightDiscovery = useLightDiscovery()
+const apiConnection = useApiConnection();
+const lightDiscovery = useLightDiscovery();
 
 // Settings composable with persistence
-const settingsManager = useLightControlSettings()
+const settingsManager = useLightControlSettings();
 
 // Feedback system for user notifications
-const feedback = useFeedbackHelpers()
+const feedback = useFeedbackHelpers();
 
 // Local reactive state for UI
-const searchQuery = ref<string>('')
+const searchQuery = ref<string>("");
 
 // Computed values bound to settings
 const localApiKey = computed({
-  get: () => settingsManager.settings.apiKey || '',
-  set: (value: string) => settingsManager.updateSetting('apiKey', value || undefined)
-})
+  get: () => settingsManager.settings.apiKey || "",
+  set: (value: string) =>
+    settingsManager.updateSetting("apiKey", value || undefined),
+});
 
 const selectedLight = computed({
   get: () => {
-    const deviceId = settingsManager.settings.selectedDeviceId
-    const model = settingsManager.settings.selectedModel
-    return deviceId && model ? `${deviceId}|${model}` : ''
+    const deviceId = settingsManager.settings.selectedDeviceId;
+    const model = settingsManager.settings.selectedModel;
+    return deviceId && model ? `${deviceId}|${model}` : "";
   },
   set: (value: string) => {
     if (value) {
-      const [deviceId, model] = value.split('|')
-      const lightName = lightDiscovery.filteredLights.value.find(l => l.value === value)?.label
+      const [deviceId, model] = value.split("|");
+      const lightName = lightDiscovery.filteredLights.value.find(
+        (l) => l.value === value,
+      )?.label;
       settingsManager.updateSettings({
         selectedDeviceId: deviceId,
         selectedModel: model,
-        selectedLightName: lightName
-      })
+        selectedLightName: lightName,
+      });
     } else {
       settingsManager.updateSettings({
         selectedDeviceId: undefined,
         selectedModel: undefined,
-        selectedLightName: undefined
-      })
+        selectedLightName: undefined,
+      });
     }
-  }
-})
+  },
+});
 
 const controlMode = computed({
-  get: () => settingsManager.settings.controlMode || 'toggle',
-  set: (value: ControlMode) => settingsManager.updateSetting('controlMode', value)
-})
+  get: () => settingsManager.settings.controlMode || "toggle",
+  set: (value: ControlMode) =>
+    settingsManager.updateSetting("controlMode", value),
+});
 
 const brightnessValue = computed({
   get: () => settingsManager.settings.brightnessValue || 100,
-  set: (value: number) => settingsManager.updateSetting('brightnessValue', value)
-})
+  set: (value: number) =>
+    settingsManager.updateSetting("brightnessValue", value),
+});
 
 const colorValue = computed({
-  get: () => settingsManager.settings.colorValue || '#ffffff',
-  set: (value: string) => settingsManager.updateSetting('colorValue', value)
-})
+  get: () => settingsManager.settings.colorValue || "#ffffff",
+  set: (value: string) => settingsManager.updateSetting("colorValue", value),
+});
 
 const colorTempValue = computed({
   get: () => settingsManager.settings.colorTempValue || 6500,
-  set: (value: number) => settingsManager.updateSetting('colorTempValue', value)
-})
+  set: (value: number) =>
+    settingsManager.updateSetting("colorTempValue", value),
+});
 
 // Actions
 const connectToApi = () => {
   if (localApiKey.value) {
-    feedback.showInfo('Connecting to API', 'Validating your API key...')
-    apiConnection.connect(localApiKey.value)
+    feedback.showInfo("Connecting to API", "Validating your API key...");
+    apiConnection.connect(localApiKey.value);
   }
-}
+};
 
 const clearSearch = () => {
-  searchQuery.value = ''
-  lightDiscovery.clearSearch()
-}
+  searchQuery.value = "";
+  lightDiscovery.clearSearch();
+};
 
 // Watch for API connection changes to automatically fetch lights
 watch(
   () => apiConnection.isConnected.value,
   (isConnected, wasConnected) => {
     if (isConnected && !wasConnected) {
-      feedback.showSuccessToast('API Connected', 'Successfully connected to Govee API')
+      feedback.showSuccessToast(
+        "API Connected",
+        "Successfully connected to Govee API",
+      );
       if (lightDiscovery.isIdle.value) {
-        lightDiscovery.fetchLights()
+        lightDiscovery.fetchLights();
       }
     }
-  }
-)
+  },
+);
 
 // Watch for API connection errors
 watch(
   () => apiConnection.error.value,
   (error) => {
     if (error) {
-      feedback.showApiError({ message: error }, 'API Connection Failed')
+      feedback.showApiError({ message: error }, "API Connection Failed");
     }
-  }
-)
+  },
+);
 
 // Watch for light discovery success
 watch(
   () => lightDiscovery.isReady.value,
   (isReady, wasReady) => {
     if (isReady && !wasReady && lightDiscovery.hasLights.value) {
-      const lightCount = lightDiscovery.lights.value.length
+      const lightCount = lightDiscovery.lights.value.length;
       feedback.showSuccessToast(
-        'Lights Discovered', 
-        `Found ${lightCount} light${lightCount !== 1 ? 's' : ''}`
-      )
+        "Lights Discovered",
+        `Found ${lightCount} light${lightCount !== 1 ? "s" : ""}`,
+      );
     }
-  }
-)
+  },
+);
 
 // Watch for light discovery errors
 watch(
   () => lightDiscovery.error.value,
   (error) => {
     if (error) {
-      feedback.showApiError({ message: error }, 'Light Discovery Failed')
+      feedback.showApiError({ message: error }, "Light Discovery Failed");
     }
-  }
-)
+  },
+);
 
 // Watch for API key changes in settings to update connection
 watch(
   () => settingsManager.settings.apiKey,
   (newApiKey) => {
     if (newApiKey && !apiConnection.isConnected.value) {
-      apiConnection.connect(newApiKey)
+      apiConnection.connect(newApiKey);
     }
-  }
-)
+  },
+);
 
 // Watch for settings save events
 watch(
   () => settingsManager.lastSaved,
   (lastSaved) => {
     if (lastSaved) {
-      feedback.showSuccessToast('Settings Saved', 'Your configuration has been saved')
+      feedback.showSuccessToast(
+        "Settings Saved",
+        "Your configuration has been saved",
+      );
     }
-  }
-)
+  },
+);
 
 // Initialize on mount
 onMounted(() => {
   // Enable auto-save with 500ms delay for responsive UI
-  settingsManager.enableAutoSave(500)
-  
+  settingsManager.enableAutoSave(500);
+
   // Load existing settings
-  settingsManager.loadSettings()
-  
+  settingsManager.loadSettings();
+
   // If we have an API key in settings, connect automatically
   if (settingsManager.settings.apiKey) {
-    apiConnection.connect(settingsManager.settings.apiKey)
+    apiConnection.connect(settingsManager.settings.apiKey);
   }
-})
+});
 </script>
 
 <style scoped>

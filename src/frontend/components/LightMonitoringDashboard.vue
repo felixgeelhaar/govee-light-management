@@ -11,11 +11,7 @@
         >
           Start Monitoring
         </button>
-        <button
-          v-else
-          class="btn btn-secondary"
-          @click="stopMonitoring"
-        >
+        <button v-else class="btn btn-secondary" @click="stopMonitoring">
           Stop Monitoring
         </button>
         <button
@@ -77,49 +73,56 @@
         <div
           v-for="state in lightStates"
           :key="state.deviceId"
-          :class="['light-state-card', { 'offline': !state.isOnline }]"
+          :class="['light-state-card', { offline: !state.isOnline }]"
         >
           <div class="light-state-header">
             <span class="light-name">{{ state.name }}</span>
             <div class="light-status">
-              <span 
-                :class="['status-indicator', state.isOnline ? 'online' : 'offline']"
+              <span
+                :class="[
+                  'status-indicator',
+                  state.isOnline ? 'online' : 'offline',
+                ]"
               ></span>
               <span class="status-text">
-                {{ state.isOnline ? 'Online' : 'Offline' }}
+                {{ state.isOnline ? "Online" : "Offline" }}
               </span>
             </div>
           </div>
-          
+
           <div v-if="state.isOnline" class="light-state-details">
             <div class="state-row">
               <span class="state-label">Power:</span>
               <span :class="['power-state', state.powerState ? 'on' : 'off']">
-                {{ state.powerState ? 'On' : 'Off' }}
+                {{ state.powerState ? "On" : "Off" }}
               </span>
             </div>
-            
+
             <div v-if="state.brightness !== undefined" class="state-row">
               <span class="state-label">Brightness:</span>
               <span class="state-value">{{ state.brightness }}%</span>
             </div>
-            
+
             <div v-if="state.color" class="state-row">
               <span class="state-label">Color:</span>
-              <div 
-                class="color-preview" 
-                :style="{ backgroundColor: `rgb(${state.color.r}, ${state.color.g}, ${state.color.b})` }"
+              <div
+                class="color-preview"
+                :style="{
+                  backgroundColor: `rgb(${state.color.r}, ${state.color.g}, ${state.color.b})`,
+                }"
               ></div>
             </div>
-            
+
             <div v-if="state.colorTemperature" class="state-row">
               <span class="state-label">Temperature:</span>
               <span class="state-value">{{ state.colorTemperature }}K</span>
             </div>
-            
+
             <div class="state-row">
               <span class="state-label">Last Updated:</span>
-              <span class="state-value">{{ formatTime(state.lastUpdated) }}</span>
+              <span class="state-value">{{
+                formatTime(state.lastUpdated)
+              }}</span>
             </div>
           </div>
         </div>
@@ -127,7 +130,10 @@
     </div>
 
     <!-- Recent Changes -->
-    <div v-if="monitoring.isMonitoring.value && recentChanges.length > 0" class="monitoring-section">
+    <div
+      v-if="monitoring.isMonitoring.value && recentChanges.length > 0"
+      class="monitoring-section"
+    >
       <h4>Recent Changes</h4>
       <div class="changes-list">
         <div
@@ -137,13 +143,17 @@
         >
           <div class="change-light">{{ getLightName(change.deviceId) }}</div>
           <div class="change-details">
-            <span class="change-property">{{ formatProperty(change.property) }}</span>
-            changed from 
+            <span class="change-property">{{
+              formatProperty(change.property)
+            }}</span>
+            changed from
             <span class="change-old">{{ formatValue(change.oldValue) }}</span>
-            to 
+            to
             <span class="change-new">{{ formatValue(change.newValue) }}</span>
           </div>
-          <div class="change-time">{{ formatRelativeTime(change.timestamp) }}</div>
+          <div class="change-time">
+            {{ formatRelativeTime(change.timestamp) }}
+          </div>
         </div>
       </div>
     </div>
@@ -190,136 +200,151 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import type { LightItem } from '@shared/types'
-import { useLightMonitoring, type LightState, type LightStateChange } from '../services/lightMonitoringService'
-import { useLightDiscovery } from '../composables/useLightDiscovery'
-import { useFeedbackHelpers } from '../composables/useFeedback'
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import type { LightItem } from "@shared/types";
+import {
+  useLightMonitoring,
+  type LightState,
+  type LightStateChange,
+} from "../services/lightMonitoringService";
+import { useLightDiscovery } from "../composables/useLightDiscovery";
+import { useFeedbackHelpers } from "../composables/useFeedback";
 
 // Composables
-const monitoring = useLightMonitoring()
-const lightDiscovery = useLightDiscovery()
-const feedback = useFeedbackHelpers()
+const monitoring = useLightMonitoring();
+const lightDiscovery = useLightDiscovery();
+const feedback = useFeedbackHelpers();
 
 // Local state
-const monitoredLightIds = ref<string[]>([])
-const configPollInterval = ref(30)
-const configChangeDetection = ref(true)
-const configAutoSync = ref(true)
+const monitoredLightIds = ref<string[]>([]);
+const configPollInterval = ref(30);
+const configChangeDetection = ref(true);
+const configAutoSync = ref(true);
 
 // Computed values
-const stats = computed(() => monitoring.monitoringStats.value)
-const lightStates = computed(() => Object.values(monitoring.getAllLightStates()))
-const recentChanges = computed(() => monitoring.getRecentChanges())
-const availableLights = computed(() => lightDiscovery.filteredLights.value)
+const stats = computed(() => monitoring.monitoringStats.value);
+const lightStates = computed(() =>
+  Object.values(monitoring.getAllLightStates()),
+);
+const recentChanges = computed(() => monitoring.getRecentChanges());
+const availableLights = computed(() => lightDiscovery.filteredLights.value);
 
 // Change subscriptions
-const changeUnsubscribers = new Map<string, () => void>()
+const changeUnsubscribers = new Map<string, () => void>();
 
 // Methods
 const startMonitoring = async () => {
   if (monitoredLightIds.value.length === 0) {
-    feedback.showWarning('No Lights Selected', 'Please select lights to monitor')
-    return
+    feedback.showWarning(
+      "No Lights Selected",
+      "Please select lights to monitor",
+    );
+    return;
   }
 
   try {
     await monitoring.startMonitoring(monitoredLightIds.value, {
       pollInterval: configPollInterval.value * 1000,
       enableChangeDetection: configChangeDetection.value,
-      enableAutoSync: configAutoSync.value
-    })
-    
+      enableAutoSync: configAutoSync.value,
+    });
+
     // Subscribe to changes for each monitored light
-    monitoredLightIds.value.forEach(lightId => {
-      const deviceId = lightId.split('|')[0]
-      const unsubscribe = monitoring.onStateChange(deviceId, handleStateChange)
-      changeUnsubscribers.set(deviceId, unsubscribe)
-    })
-    
-    feedback.showSuccessToast('Monitoring Started', `Started monitoring ${monitoredLightIds.value.length} lights`)
+    monitoredLightIds.value.forEach((lightId) => {
+      const deviceId = lightId.split("|")[0];
+      const unsubscribe = monitoring.onStateChange(deviceId, handleStateChange);
+      changeUnsubscribers.set(deviceId, unsubscribe);
+    });
+
+    feedback.showSuccessToast(
+      "Monitoring Started",
+      `Started monitoring ${monitoredLightIds.value.length} lights`,
+    );
   } catch (error) {
-    feedback.showApiError(error, 'Failed to Start Monitoring')
+    feedback.showApiError(error, "Failed to Start Monitoring");
   }
-}
+};
 
 const stopMonitoring = () => {
-  monitoring.stopMonitoring()
-  
+  monitoring.stopMonitoring();
+
   // Unsubscribe from change notifications
-  changeUnsubscribers.forEach(unsubscribe => unsubscribe())
-  changeUnsubscribers.clear()
-  
-  feedback.showInfo('Monitoring Stopped', 'Light monitoring has been stopped')
-}
+  changeUnsubscribers.forEach((unsubscribe) => unsubscribe());
+  changeUnsubscribers.clear();
+
+  feedback.showInfo("Monitoring Stopped", "Light monitoring has been stopped");
+};
 
 const syncStates = async () => {
   try {
-    await monitoring.syncLightStates()
-    feedback.showSuccessToast('States Synced', 'Light states have been synchronized')
+    await monitoring.syncLightStates();
+    feedback.showSuccessToast(
+      "States Synced",
+      "Light states have been synchronized",
+    );
   } catch (error) {
-    feedback.showApiError(error, 'Failed to Sync States')
+    feedback.showApiError(error, "Failed to Sync States");
   }
-}
+};
 
 const updateConfig = () => {
   monitoring.updateConfig({
     pollInterval: configPollInterval.value * 1000,
     enableChangeDetection: configChangeDetection.value,
-    enableAutoSync: configAutoSync.value
-  })
-}
+    enableAutoSync: configAutoSync.value,
+  });
+};
 
 const handleStateChange = (change: LightStateChange) => {
-  const lightName = getLightName(change.deviceId)
-  const property = formatProperty(change.property)
-  const newValue = formatValue(change.newValue)
-  
+  const lightName = getLightName(change.deviceId);
+  const property = formatProperty(change.property);
+  const newValue = formatValue(change.newValue);
+
   feedback.showInfo(
-    'Light State Changed',
-    `${lightName}: ${property} changed to ${newValue}`
-  )
-}
+    "Light State Changed",
+    `${lightName}: ${property} changed to ${newValue}`,
+  );
+};
 
 // Utility methods
 const getLightName = (deviceId: string): string => {
-  const light = availableLights.value.find(l => l.value.startsWith(deviceId))
-  return light ? light.label.split(' (')[0] : deviceId
-}
+  const light = availableLights.value.find((l) => l.value.startsWith(deviceId));
+  return light ? light.label.split(" (")[0] : deviceId;
+};
 
 const formatProperty = (property: string): string => {
   const propertyMap: Record<string, string> = {
-    powerState: 'Power',
-    brightness: 'Brightness',
-    color: 'Color',
-    colorTemperature: 'Color Temperature',
-    isOnline: 'Online Status'
-  }
-  return propertyMap[property] || property
-}
+    powerState: "Power",
+    brightness: "Brightness",
+    color: "Color",
+    colorTemperature: "Color Temperature",
+    isOnline: "Online Status",
+  };
+  return propertyMap[property] || property;
+};
 
 const formatValue = (value: any): string => {
-  if (value === null || value === undefined) return 'None'
-  if (typeof value === 'boolean') return value ? 'On' : 'Off'
-  if (typeof value === 'object' && value.r !== undefined) {
-    return `RGB(${value.r}, ${value.g}, ${value.b})`
+  if (value === null || value === undefined) return "None";
+  if (typeof value === "boolean") return value ? "On" : "Off";
+  if (typeof value === "object" && value.r !== undefined) {
+    return `RGB(${value.r}, ${value.g}, ${value.b})`;
   }
-  return String(value)
-}
+  return String(value);
+};
 
 const formatTime = (timestamp: number): string => {
-  return new Date(timestamp).toLocaleTimeString()
-}
+  return new Date(timestamp).toLocaleTimeString();
+};
 
 const formatRelativeTime = (timestamp: number): string => {
-  const now = Date.now()
-  const diff = now - timestamp
-  
-  if (diff < 60000) return 'Just now'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
-  return `${Math.floor(diff / 86400000)}d ago`
-}
+  const now = Date.now();
+  const diff = now - timestamp;
+
+  if (diff < 60000) return "Just now";
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return `${Math.floor(diff / 86400000)}d ago`;
+};
 
 // Watch for light discovery
 watch(
@@ -328,31 +353,31 @@ watch(
     if (isReady && !lightDiscovery.isFetchingLights.value) {
       // Auto-fetch lights if not already loaded
       if (lightDiscovery.lights.value.length === 0) {
-        lightDiscovery.fetchLights()
+        lightDiscovery.fetchLights();
       }
     }
   },
-  { immediate: true }
-)
+  { immediate: true },
+);
 
 // Lifecycle
 onMounted(() => {
   // Load lights if not already loaded
   if (lightDiscovery.isIdle.value) {
-    lightDiscovery.fetchLights()
+    lightDiscovery.fetchLights();
   }
-})
+});
 
 onUnmounted(() => {
   // Clean up monitoring
   if (monitoring.isMonitoring.value) {
-    monitoring.stopMonitoring()
+    monitoring.stopMonitoring();
   }
-  
+
   // Clean up subscriptions
-  changeUnsubscribers.forEach(unsubscribe => unsubscribe())
-  changeUnsubscribers.clear()
-})
+  changeUnsubscribers.forEach((unsubscribe) => unsubscribe());
+  changeUnsubscribers.clear();
+});
 </script>
 
 <style scoped>
@@ -460,7 +485,7 @@ onUnmounted(() => {
 }
 
 .light-checkbox input[type="checkbox"]:checked + .checkmark:after {
-  content: '✓';
+  content: "✓";
   position: absolute;
   top: -2px;
   left: 2px;

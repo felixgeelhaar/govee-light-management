@@ -1,4 +1,4 @@
-import { LightGroup } from '../entities/LightGroup';
+import { LightGroup } from "../entities/LightGroup";
 
 export interface ILightGroupRepository {
   /**

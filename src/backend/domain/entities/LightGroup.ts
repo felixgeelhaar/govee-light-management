@@ -1,5 +1,9 @@
-import { Light } from './Light';
-import { ColorRgb, ColorTemperature, Brightness } from '@felixgeelhaar/govee-api-client';
+import { Light } from "./Light";
+import {
+  ColorRgb,
+  ColorTemperature,
+  Brightness,
+} from "@felixgeelhaar/govee-api-client";
 
 export class LightGroup {
   private constructor(
@@ -10,10 +14,10 @@ export class LightGroup {
 
   static create(id: string, name: string, lights: Light[] = []): LightGroup {
     if (!id?.trim()) {
-      throw new Error('Group ID is required');
+      throw new Error("Group ID is required");
     }
     if (!name?.trim()) {
-      throw new Error('Group name is required');
+      throw new Error("Group name is required");
     }
 
     // Validate that all lights are unique
@@ -50,11 +54,11 @@ export class LightGroup {
   }
 
   get onlineCount(): number {
-    return Array.from(this._lights).filter(light => light.isOnline).length;
+    return Array.from(this._lights).filter((light) => light.isOnline).length;
   }
 
   get onCount(): number {
-    return Array.from(this._lights).filter(light => light.isOn).length;
+    return Array.from(this._lights).filter((light) => light.isOn).length;
   }
 
   addLight(light: Light): void {
@@ -68,11 +72,11 @@ export class LightGroup {
   }
 
   hasLight(light: Light): boolean {
-    return Array.from(this._lights).some(l => l.equals(light));
+    return Array.from(this._lights).some((l) => l.equals(light));
   }
 
   getControllableLights(): Light[] {
-    return Array.from(this._lights).filter(light => light.canBeControlled());
+    return Array.from(this._lights).filter((light) => light.canBeControlled());
   }
 
   canBeControlled(): boolean {
@@ -93,8 +97,8 @@ export class LightGroup {
     totalCount: number;
   } {
     const controllableLights = this.getControllableLights();
-    const onCount = controllableLights.filter(l => l.isOn).length;
-    const offCount = controllableLights.filter(l => !l.isOn).length;
+    const onCount = controllableLights.filter((l) => l.isOn).length;
+    const offCount = controllableLights.filter((l) => !l.isOn).length;
     const totalControllable = controllableLights.length;
     const totalLights = this._lights.size;
 
@@ -116,9 +120,9 @@ export class LightGroup {
 
   toString(): string {
     const stateSummary = this.getStateSummary();
-    let stateDesc = 'mixed';
-    if (stateSummary.allOn) stateDesc = 'all on';
-    else if (stateSummary.allOff) stateDesc = 'all off';
+    let stateDesc = "mixed";
+    if (stateSummary.allOn) stateDesc = "all on";
+    else if (stateSummary.allOff) stateDesc = "all off";
 
     return `LightGroup(${this._id}, ${this._name}, ${this.size} lights, ${stateDesc})`;
   }

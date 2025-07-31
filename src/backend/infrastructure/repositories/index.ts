@@ -1,2 +1,2 @@
-export { GoveeLightRepository } from './GoveeLightRepository';
-export { StreamDeckLightGroupRepository } from './StreamDeckLightGroupRepository';
+export { GoveeLightRepository } from "./GoveeLightRepository";
+export { StreamDeckLightGroupRepository } from "./StreamDeckLightGroupRepository";

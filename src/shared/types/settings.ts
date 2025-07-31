@@ -6,7 +6,13 @@
 /**
  * Control modes available for both individual lights and groups
  */
-export type ControlMode = 'toggle' | 'on' | 'off' | 'brightness' | 'color' | 'colorTemp';
+export type ControlMode =
+  | "toggle"
+  | "on"
+  | "off"
+  | "brightness"
+  | "color"
+  | "colorTemp";
 
 /**
  * Base settings shared by all action types

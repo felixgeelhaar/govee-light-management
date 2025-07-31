@@ -8,7 +8,9 @@
             <component :is="getStatusIcon(healthStatus.overallStatus)" />
           </div>
           <div class="status-info">
-            <div class="status-label">{{ formatStatus(healthStatus.overallStatus) }}</div>
+            <div class="status-label">
+              {{ formatStatus(healthStatus.overallStatus) }}
+            </div>
             <div class="health-score">{{ healthStatus.healthScore }}/100</div>
           </div>
         </div>
@@ -20,11 +22,7 @@
           >
             Start Monitoring
           </button>
-          <button
-            v-else
-            class="btn btn-secondary"
-            @click="stopMonitoring"
-          >
+          <button v-else class="btn btn-secondary" @click="stopMonitoring">
             Stop Monitoring
           </button>
           <button
@@ -32,7 +30,7 @@
             @click="performHealthCheck"
             :disabled="isCheckingHealth"
           >
-            {{ isCheckingHealth ? 'Checking...' : 'Check Now' }}
+            {{ isCheckingHealth ? "Checking..." : "Check Now" }}
           </button>
         </div>
       </div>
@@ -86,7 +84,9 @@
           </div>
           <div class="metric-value">
             {{ formatMetricValue(metric.value) }}
-            <span v-if="metric.unit" class="metric-unit">{{ metric.unit }}</span>
+            <span v-if="metric.unit" class="metric-unit">{{
+              metric.unit
+            }}</span>
           </div>
           <div v-if="metric.threshold" class="metric-thresholds">
             <div class="threshold-bar">
@@ -96,8 +96,12 @@
               ></div>
             </div>
             <div class="threshold-labels">
-              <span class="threshold-warning">{{ metric.threshold.warning }}{{ metric.unit || '' }}</span>
-              <span class="threshold-critical">{{ metric.threshold.critical }}{{ metric.unit || '' }}</span>
+              <span class="threshold-warning"
+                >{{ metric.threshold.warning }}{{ metric.unit || "" }}</span
+              >
+              <span class="threshold-critical"
+                >{{ metric.threshold.critical }}{{ metric.unit || "" }}</span
+              >
             </div>
           </div>
           <div class="metric-updated">
@@ -121,7 +125,7 @@
             {{ category }}
           </button>
         </div>
-        
+
         <div class="diagnostics-list">
           <div
             v-for="diagnostic in filteredDiagnostics"
@@ -130,7 +134,9 @@
           >
             <div class="diagnostic-header">
               <div class="diagnostic-info">
-                <span class="diagnostic-category">{{ diagnostic.category }}</span>
+                <span class="diagnostic-category">{{
+                  diagnostic.category
+                }}</span>
                 <span class="diagnostic-test">{{ diagnostic.test }}</span>
               </div>
               <div class="diagnostic-result">
@@ -169,17 +175,25 @@
           </div>
           <div class="info-item">
             <span class="info-label">Online:</span>
-            <span class="info-value">{{ systemInfo.onLine ? 'Yes' : 'No' }}</span>
+            <span class="info-value">{{
+              systemInfo.onLine ? "Yes" : "No"
+            }}</span>
           </div>
           <div v-if="systemInfo.memoryInfo" class="info-item">
             <span class="info-label">JS Memory:</span>
             <span class="info-value">
-              {{ Math.round(systemInfo.memoryInfo.usedJSHeapSize / (1024 * 1024)) }}MB
+              {{
+                Math.round(
+                  systemInfo.memoryInfo.usedJSHeapSize / (1024 * 1024),
+                )
+              }}MB
             </span>
           </div>
           <div v-if="systemInfo.connection" class="info-item">
             <span class="info-label">Connection:</span>
-            <span class="info-value">{{ systemInfo.connection.effectiveType }}</span>
+            <span class="info-value">{{
+              systemInfo.connection.effectiveType
+            }}</span>
           </div>
         </div>
       </div>
@@ -203,184 +217,202 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useHealthMonitoring, type HealthReport } from '../services/healthMonitoringService'
-import { useFeedbackHelpers } from '../composables/useFeedback'
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import {
+  useHealthMonitoring,
+  type HealthReport,
+} from "../services/healthMonitoringService";
+import { useFeedbackHelpers } from "../composables/useFeedback";
 
 // Composables
-const health = useHealthMonitoring()
-const feedback = useFeedbackHelpers()
+const health = useHealthMonitoring();
+const feedback = useFeedbackHelpers();
 
 // Local state
-const selectedCategory = ref('All')
-const isCheckingHealth = ref(false)
-const currentReport = ref<HealthReport | null>(null)
+const selectedCategory = ref("All");
+const isCheckingHealth = ref(false);
+const currentReport = ref<HealthReport | null>(null);
 
 // Computed values
-const healthStatus = computed(() => health.healthStatus.value)
-const allMetrics = computed(() => health.getAllMetrics())
-const recentDiagnostics = computed(() => health.getRecentDiagnostics(20))
-const healthHistory = computed(() => health.getHealthHistory())
-const systemInfo = computed(() => health.getSystemInfo())
+const healthStatus = computed(() => health.healthStatus.value);
+const allMetrics = computed(() => health.getAllMetrics());
+const recentDiagnostics = computed(() => health.getRecentDiagnostics(20));
+const healthHistory = computed(() => health.getHealthHistory());
+const systemInfo = computed(() => health.getSystemInfo());
 
 const diagnosticCategories = computed(() => {
-  const categories = new Set(['All'])
-  recentDiagnostics.value.forEach(d => categories.add(d.category))
-  return Array.from(categories)
-})
+  const categories = new Set(["All"]);
+  recentDiagnostics.value.forEach((d) => categories.add(d.category));
+  return Array.from(categories);
+});
 
 const filteredDiagnostics = computed(() => {
-  if (selectedCategory.value === 'All') {
-    return recentDiagnostics.value
+  if (selectedCategory.value === "All") {
+    return recentDiagnostics.value;
   }
-  return recentDiagnostics.value.filter(d => d.category === selectedCategory.value)
-})
+  return recentDiagnostics.value.filter(
+    (d) => d.category === selectedCategory.value,
+  );
+});
 
 // Methods
 const startMonitoring = () => {
-  health.startMonitoring()
-  feedback.showSuccessToast('Health Monitoring Started', 'System health monitoring is now active')
-}
+  health.startMonitoring();
+  feedback.showSuccessToast(
+    "Health Monitoring Started",
+    "System health monitoring is now active",
+  );
+};
 
 const stopMonitoring = () => {
-  health.stopMonitoring()
-  feedback.showInfo('Health Monitoring Stopped', 'System health monitoring has been stopped')
-}
+  health.stopMonitoring();
+  feedback.showInfo(
+    "Health Monitoring Stopped",
+    "System health monitoring has been stopped",
+  );
+};
 
 const performHealthCheck = async () => {
-  isCheckingHealth.value = true
+  isCheckingHealth.value = true;
   try {
-    const report = await health.checkHealthNow()
-    currentReport.value = report
-    
-    const statusMessage = `Health Score: ${report.score}/100`
-    
-    if (report.overall === 'healthy') {
-      feedback.showSuccessToast('Health Check Complete', statusMessage)
-    } else if (report.overall === 'degraded') {
-      feedback.showWarning('Health Check Complete', statusMessage)
+    const report = await health.checkHealthNow();
+    currentReport.value = report;
+
+    const statusMessage = `Health Score: ${report.score}/100`;
+
+    if (report.overall === "healthy") {
+      feedback.showSuccessToast("Health Check Complete", statusMessage);
+    } else if (report.overall === "degraded") {
+      feedback.showWarning("Health Check Complete", statusMessage);
     } else {
-      feedback.showError('Health Check Complete', statusMessage)
+      feedback.showError("Health Check Complete", statusMessage);
     }
   } catch (error) {
-    feedback.showApiError(error, 'Health Check Failed')
+    feedback.showApiError(error, "Health Check Failed");
   } finally {
-    isCheckingHealth.value = false
+    isCheckingHealth.value = false;
   }
-}
+};
 
 // Utility methods
 const getStatusIcon = (status: string) => {
   switch (status) {
-    case 'healthy': return '✅'
-    case 'degraded': return '⚠️'
-    case 'unhealthy': return '❌'
-    default: return '❓'
+    case "healthy":
+      return "✅";
+    case "degraded":
+      return "⚠️";
+    case "unhealthy":
+      return "❌";
+    default:
+      return "❓";
   }
-}
+};
 
 const formatStatus = (status: string): string => {
-  return status.charAt(0).toUpperCase() + status.slice(1)
-}
+  return status.charAt(0).toUpperCase() + status.slice(1);
+};
 
 const formatTrendDirection = (direction: string): string => {
   const icons = {
-    improving: '📈 Improving',
-    stable: '➡️ Stable',
-    declining: '📉 Declining'
-  }
-  return icons[direction as keyof typeof icons] || direction
-}
+    improving: "📈 Improving",
+    stable: "➡️ Stable",
+    declining: "📉 Declining",
+  };
+  return icons[direction as keyof typeof icons] || direction;
+};
 
 const formatResult = (result: string): string => {
   const resultMap = {
-    pass: 'Pass',
-    fail: 'Fail',
-    warning: 'Warning'
-  }
-  return resultMap[result as keyof typeof resultMap] || result
-}
+    pass: "Pass",
+    fail: "Fail",
+    warning: "Warning",
+  };
+  return resultMap[result as keyof typeof resultMap] || result;
+};
 
 const formatMetricValue = (value: number | string | boolean): string => {
-  if (typeof value === 'boolean') {
-    return value ? 'Yes' : 'No'
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
   }
-  if (typeof value === 'number') {
-    return value.toLocaleString()
+  if (typeof value === "number") {
+    return value.toLocaleString();
   }
-  return String(value)
-}
+  return String(value);
+};
 
 const formatTime = (timestamp: number): string => {
-  return new Date(timestamp).toLocaleTimeString()
-}
+  return new Date(timestamp).toLocaleTimeString();
+};
 
 const formatRelativeTime = (timestamp: number): string => {
-  const now = Date.now()
-  const diff = now - timestamp
-  
-  if (diff < 60000) return 'Just now'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
-  return `${Math.floor(diff / 86400000)}d ago`
-}
+  const now = Date.now();
+  const diff = now - timestamp;
+
+  if (diff < 60000) return "Just now";
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return `${Math.floor(diff / 86400000)}d ago`;
+};
 
 const getTrendPoints = (): Array<{ x: number; y: number }> => {
-  const history = healthHistory.value
-  if (history.length < 2) return []
-  
-  const points: Array<{ x: number; y: number }> = []
-  const width = 400
-  const height = 100
-  const step = width / (history.length - 1)
-  
+  const history = healthHistory.value;
+  if (history.length < 2) return [];
+
+  const points: Array<{ x: number; y: number }> = [];
+  const width = 400;
+  const height = 100;
+  const step = width / (history.length - 1);
+
   history.forEach((score, index) => {
-    const x = index * step
-    const y = height - (score / 100 * height)
-    points.push({ x, y })
-  })
-  
-  return points
-}
+    const x = index * step;
+    const y = height - (score / 100) * height;
+    points.push({ x, y });
+  });
+
+  return points;
+};
 
 const generateTrendPoints = (): string => {
-  const points = getTrendPoints()
-  return points.map(p => `${p.x},${p.y}`).join(' ')
-}
+  const points = getTrendPoints();
+  return points.map((p) => `${p.x},${p.y}`).join(" ");
+};
 
 const getTrendColor = (): string => {
   switch (healthStatus.value.trendDirection) {
-    case 'improving': return '#28a745'
-    case 'declining': return '#dc3545'
-    case 'stable': 
-    default: return '#0099ff'
+    case "improving":
+      return "#28a745";
+    case "declining":
+      return "#dc3545";
+    case "stable":
+    default:
+      return "#0099ff";
   }
-}
+};
 
 const getThresholdPercentage = (metric: any): number => {
-  if (!metric.threshold || typeof metric.value !== 'number') return 0
-  
-  const value = metric.value as number
-  const max = metric.threshold.critical * 1.2 // Show some buffer beyond critical
-  
-  return Math.min(100, (value / max) * 100)
-}
+  if (!metric.threshold || typeof metric.value !== "number") return 0;
+
+  const value = metric.value as number;
+  const max = metric.threshold.critical * 1.2; // Show some buffer beyond critical
+
+  return Math.min(100, (value / max) * 100);
+};
 
 // Lifecycle
 onMounted(() => {
   // Start monitoring if not already running
   if (!healthStatus.value.isMonitoring) {
-    health.startMonitoring()
+    health.startMonitoring();
   }
-  
+
   // Perform initial health check
-  performHealthCheck()
-})
+  performHealthCheck();
+});
 
 onUnmounted(() => {
   // Keep monitoring running when component unmounts
   // User can manually stop it if needed
-})
+});
 </script>
 
 <style scoped>
@@ -568,7 +600,7 @@ onUnmounted(() => {
   color: white;
 }
 
-.metric-status.warning {  
+.metric-status.warning {
   background: #ffc107;
   color: #333;
 }

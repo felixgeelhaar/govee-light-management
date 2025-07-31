@@ -4,14 +4,26 @@
 
 declare global {
   interface Window {
-    connectElgatoStreamDeckSocket?: (inPort: number, inPropertyInspectorUUID: string, inRegisterEvent: string, inInfo: string, inActionInfo: string) => void;
+    connectElgatoStreamDeckSocket?: (
+      inPort: number,
+      inPropertyInspectorUUID: string,
+      inRegisterEvent: string,
+      inInfo: string,
+      inActionInfo: string,
+    ) => void;
     dispatchEvent: (event: Event) => boolean;
     location: Location;
     addEventListener: (type: string, listener: EventListener) => void;
     removeEventListener: (type: string, listener: EventListener) => void;
   }
 
-  var connectElgatoStreamDeckSocket: (inPort: number, inPropertyInspectorUUID: string, inRegisterEvent: string, inInfo: string, inActionInfo: string) => void;
+  var connectElgatoStreamDeckSocket: (
+    inPort: number,
+    inPropertyInspectorUUID: string,
+    inRegisterEvent: string,
+    inInfo: string,
+    inActionInfo: string,
+  ) => void;
 
   interface Navigator {
     userAgent: string;

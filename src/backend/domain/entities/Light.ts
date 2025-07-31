@@ -1,5 +1,9 @@
-import { ColorRgb, ColorTemperature, Brightness } from '@felixgeelhaar/govee-api-client';
-import { LightState } from '../value-objects/LightState';
+import {
+  ColorRgb,
+  ColorTemperature,
+  Brightness,
+} from "@felixgeelhaar/govee-api-client";
+import { LightState } from "../value-objects/LightState";
 
 export class Light {
   private constructor(
@@ -16,13 +20,13 @@ export class Light {
     initialState: LightState,
   ): Light {
     if (!deviceId?.trim()) {
-      throw new Error('Device ID is required');
+      throw new Error("Device ID is required");
     }
     if (!model?.trim()) {
-      throw new Error('Model is required');
+      throw new Error("Model is required");
     }
     if (!name?.trim()) {
-      throw new Error('Name is required');
+      throw new Error("Name is required");
     }
 
     return new Light(deviceId, model, name, initialState);

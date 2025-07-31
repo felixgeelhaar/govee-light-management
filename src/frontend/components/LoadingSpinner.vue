@@ -1,14 +1,9 @@
 <template>
-  <div 
+  <div
     :class="['loading-spinner', `loading-spinner-${variant}`]"
     :style="{ width: `${size}px`, height: `${size}px` }"
   >
-    <svg 
-      class="spinner-svg" 
-      viewBox="0 0 50 50"
-      :width="size"
-      :height="size"
-    >
+    <svg class="spinner-svg" viewBox="0 0 50 50" :width="size" :height="size">
       <circle
         class="spinner-circle"
         cx="25"
@@ -23,16 +18,16 @@
 
 <script setup lang="ts">
 interface Props {
-  size?: number
-  variant?: 'primary' | 'secondary' | 'light' | 'dark'
-  strokeWidth?: number
+  size?: number;
+  variant?: "primary" | "secondary" | "light" | "dark";
+  strokeWidth?: number;
 }
 
 withDefaults(defineProps<Props>(), {
   size: 32,
-  variant: 'primary',
-  strokeWidth: 3
-})
+  variant: "primary",
+  strokeWidth: 3,
+});
 </script>
 
 <style scoped>
@@ -96,7 +91,7 @@ withDefaults(defineProps<Props>(), {
   .loading-spinner {
     animation: none;
   }
-  
+
   .spinner-circle {
     animation: none;
     stroke-dasharray: none;

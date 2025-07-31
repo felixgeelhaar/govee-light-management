@@ -3,27 +3,27 @@
     <header class="app-header">
       <h1>Govee Light Management</h1>
     </header>
-    
+
     <main class="app-content">
       <slot>
         <!-- Content will be injected here -->
       </slot>
     </main>
-    
+
     <!-- Global feedback system -->
     <FeedbackSystem ref="feedbackSystem" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, provide } from 'vue'
-import FeedbackSystem from './components/FeedbackSystem.vue'
+import { ref, provide } from "vue";
+import FeedbackSystem from "./components/FeedbackSystem.vue";
 
 // Main application component for Govee Light Management Property Inspector
-const feedbackSystem = ref<InstanceType<typeof FeedbackSystem>>()
+const feedbackSystem = ref<InstanceType<typeof FeedbackSystem>>();
 
 // Provide feedback system to all child components
-provide('feedbackSystem', feedbackSystem)
+provide("feedbackSystem", feedbackSystem);
 </script>
 
 <style scoped>
@@ -31,7 +31,8 @@ provide('feedbackSystem', feedbackSystem)
   display: flex;
   flex-direction: column;
   height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--sdpi-color-bg, #1e1e1e);
   color: var(--sdpi-color-text, #cccccc);
 }

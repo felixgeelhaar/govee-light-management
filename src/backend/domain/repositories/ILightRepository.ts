@@ -1,5 +1,9 @@
-import { Light } from '../entities/Light';
-import { ColorRgb, ColorTemperature, Brightness } from '@felixgeelhaar/govee-api-client';
+import { Light } from "../entities/Light";
+import {
+  ColorRgb,
+  ColorTemperature,
+  Brightness,
+} from "@felixgeelhaar/govee-api-client";
 
 export interface ILightRepository {
   /**
@@ -35,7 +39,10 @@ export interface ILightRepository {
   /**
    * Set color temperature of a light
    */
-  setColorTemperature(light: Light, colorTemperature: ColorTemperature): Promise<void>;
+  setColorTemperature(
+    light: Light,
+    colorTemperature: ColorTemperature,
+  ): Promise<void>;
 
   /**
    * Turn on light with specific brightness
@@ -45,12 +52,20 @@ export interface ILightRepository {
   /**
    * Turn on light with specific color
    */
-  turnOnWithColor(light: Light, color: ColorRgb, brightness?: Brightness): Promise<void>;
+  turnOnWithColor(
+    light: Light,
+    color: ColorRgb,
+    brightness?: Brightness,
+  ): Promise<void>;
 
   /**
    * Turn on light with specific color temperature
    */
-  turnOnWithColorTemperature(light: Light, colorTemperature: ColorTemperature, brightness?: Brightness): Promise<void>;
+  turnOnWithColorTemperature(
+    light: Light,
+    colorTemperature: ColorTemperature,
+    brightness?: Brightness,
+  ): Promise<void>;
 
   /**
    * Get current state of a light

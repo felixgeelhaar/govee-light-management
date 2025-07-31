@@ -13,4 +13,6 @@ streamDeck.actions.registerAction(new GroupControlAction());
 streamDeck.connect();
 
 // Log successful initialization
-streamDeck.logger.info('Govee Light Management plugin initialized successfully');
+streamDeck.logger.info(
+  "Govee Light Management plugin initialized successfully",
+);

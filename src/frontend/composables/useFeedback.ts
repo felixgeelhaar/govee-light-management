@@ -1,29 +1,30 @@
-import { inject, type Ref } from 'vue'
-import type FeedbackSystem from '../components/FeedbackSystem.vue'
+import { inject, type Ref } from "vue";
+import type FeedbackSystem from "../components/FeedbackSystem.vue";
 
 /**
  * Composable for accessing the global feedback system
  * Provides toast notifications, loading overlays, and success animations
  */
 export function useFeedback() {
-  const feedbackSystem = inject<Ref<InstanceType<typeof FeedbackSystem>>>('feedbackSystem')
+  const feedbackSystem =
+    inject<Ref<InstanceType<typeof FeedbackSystem>>>("feedbackSystem");
 
   if (!feedbackSystem?.value) {
-    console.warn('Feedback system not available - ensure App.vue provides it')
+    console.warn("Feedback system not available - ensure App.vue provides it");
     // Return no-op functions to prevent errors
     return {
-      showToast: () => '',
-      showSuccessToast: () => '',
-      showError: () => '',
-      showWarning: () => '',
-      showInfo: () => '',
+      showToast: () => "",
+      showSuccessToast: () => "",
+      showError: () => "",
+      showWarning: () => "",
+      showInfo: () => "",
       dismissToast: () => {},
       updateToastProgress: () => {},
       showGlobalLoading: () => {},
       hideGlobalLoading: () => {},
       updateGlobalLoadingProgress: () => {},
-      showSuccessAnimation: () => {}
-    }
+      showSuccessAnimation: () => {},
+    };
   }
 
   return {
@@ -39,61 +40,65 @@ export function useFeedback() {
     // Global loading methods
     showGlobalLoading: feedbackSystem.value.showGlobalLoading,
     hideGlobalLoading: feedbackSystem.value.hideGlobalLoading,
-    updateGlobalLoadingProgress: feedbackSystem.value.updateGlobalLoadingProgress,
+    updateGlobalLoadingProgress:
+      feedbackSystem.value.updateGlobalLoadingProgress,
 
     // Success animation
-    showSuccessAnimation: feedbackSystem.value.showSuccessAnimation
-  }
+    showSuccessAnimation: feedbackSystem.value.showSuccessAnimation,
+  };
 }
 
 /**
  * Helper functions for common feedback patterns
  */
 export function useFeedbackHelpers() {
-  const feedback = useFeedback()
+  const feedback = useFeedback();
 
   return {
     ...feedback,
 
     // Common patterns
-    showApiError: (error: any, title = 'API Error') => {
-      const message = error?.message || 'An unexpected error occurred'
+    showApiError: (error: any, title = "API Error") => {
+      const message = error?.message || "An unexpected error occurred";
       return feedback.showError(title, message, [
         {
-          label: 'Retry',
-          type: 'primary' as const,
+          label: "Retry",
+          type: "primary" as const,
           action: () => {
-            if (typeof window !== 'undefined') {
-              window.location.reload()
+            if (typeof window !== "undefined") {
+              window.location.reload();
             }
-          }
-        }
-      ])
+          },
+        },
+      ]);
     },
 
     showValidationError: (message: string) => {
-      return feedback.showError('Validation Error', message)
+      return feedback.showError("Validation Error", message);
     },
 
-    showSaveSuccess: (itemName = 'Settings') => {
-      return feedback.showSuccessToast(`${itemName} Saved`, 'Your changes have been saved successfully')
+    showSaveSuccess: (itemName = "Settings") => {
+      return feedback.showSuccessToast(
+        `${itemName} Saved`,
+        "Your changes have been saved successfully",
+      );
     },
 
     showLoadingWithProgress: (text: string) => {
-      feedback.showGlobalLoading(text, 0)
-      
+      feedback.showGlobalLoading(text, 0);
+
       return {
         updateProgress: (progress: number, newText?: string) => {
-          feedback.updateGlobalLoadingProgress(progress, newText)
+          feedback.updateGlobalLoadingProgress(progress, newText);
         },
         complete: () => {
-          feedback.hideGlobalLoading()
-        }
-      }
+          feedback.hideGlobalLoading();
+        },
+      };
     },
 
     showOperationSuccess: (operation: string) => {
-      feedback.showSuccessAnimation(`${operation} completed successfully!`)
-    }
-  }
+      feedback.showSuccessAnimation(`${operation} completed successfully!`);
+    },
+  };
 }

@@ -3,23 +3,26 @@
  * Handles Stream Deck settings synchronization with backend
  */
 
-import { ref, reactive, watch, nextTick } from 'vue'
-import type { LightControlSettings, GroupControlSettings } from '@shared/types/settings'
-import { websocketService } from '../services/websocketService'
-import { createAppError, ErrorCodes, logError } from '../utils/errorHandling'
+import { ref, reactive, watch, nextTick } from "vue";
+import type {
+  LightControlSettings,
+  GroupControlSettings,
+} from "@shared/types/settings";
+import { websocketService } from "../services/websocketService";
+import { createAppError, ErrorCodes, logError } from "../utils/errorHandling";
 
-export type ActionSettings = LightControlSettings | GroupControlSettings
+export type ActionSettings = LightControlSettings | GroupControlSettings;
 
 /**
  * Settings state interface
  */
 interface SettingsState<T extends ActionSettings> {
-  settings: T
-  isLoading: boolean
-  hasError: boolean
-  error: string | null
-  hasChanges: boolean
-  lastSaved: Date | null
+  settings: T;
+  isLoading: boolean;
+  hasError: boolean;
+  error: string | null;
+  hasChanges: boolean;
+  lastSaved: Date | null;
 }
 
 /**
@@ -33,11 +36,11 @@ export function useSettings<T extends ActionSettings>(defaultSettings: T) {
     hasError: false,
     error: null,
     hasChanges: false,
-    lastSaved: null
-  })
+    lastSaved: null,
+  });
 
   // Track original settings for change detection
-  const originalSettings = ref<T>({ ...defaultSettings })
+  const originalSettings = ref<T>({ ...defaultSettings });
 
   /**
    * Load settings from Stream Deck on initialization
@@ -45,51 +48,51 @@ export function useSettings<T extends ActionSettings>(defaultSettings: T) {
   const loadSettings = async (): Promise<void> => {
     if (!websocketService.isConnected) {
       const error = createAppError(
-        'Cannot load settings: WebSocket not connected',
-        ErrorCodes.WEBSOCKET_CONNECTION_FAILED
-      )
-      logError(error)
-      return
+        "Cannot load settings: WebSocket not connected",
+        ErrorCodes.WEBSOCKET_CONNECTION_FAILED,
+      );
+      logError(error);
+      return;
     }
 
-    state.isLoading = true
-    state.hasError = false
-    state.error = null
+    state.isLoading = true;
+    state.hasError = false;
+    state.error = null;
 
     try {
       // Get initial settings from WebSocket service
-      const currentSettings = websocketService.getCurrentSettings()
+      const currentSettings = websocketService.getCurrentSettings();
       if (currentSettings) {
-        const loadedSettings = currentSettings as T
-        
+        const loadedSettings = currentSettings as T;
+
         // Merge with defaults to ensure all properties are present
         Object.assign(state.settings, {
           ...defaultSettings,
-          ...loadedSettings
-        })
+          ...loadedSettings,
+        });
 
         // Update original settings for change tracking
-        originalSettings.value = { ...state.settings }
-        state.hasChanges = false
-        state.lastSaved = new Date()
-        
-        console.log('Settings loaded successfully:', state.settings)
+        originalSettings.value = { ...state.settings };
+        state.hasChanges = false;
+        state.lastSaved = new Date();
+
+        console.log("Settings loaded successfully:", state.settings);
       } else {
-        console.log('No existing settings found, using defaults')
+        console.log("No existing settings found, using defaults");
       }
     } catch (error) {
       const appError = createAppError(
-        'Failed to load settings from Stream Deck',
+        "Failed to load settings from Stream Deck",
         ErrorCodes.SYSTEM_ERROR,
-        { originalError: error }
-      )
-      logError(appError)
-      state.hasError = true
-      state.error = 'Failed to load settings'
+        { originalError: error },
+      );
+      logError(appError);
+      state.hasError = true;
+      state.error = "Failed to load settings";
     } finally {
-      state.isLoading = false
+      state.isLoading = false;
     }
-  }
+  };
 
   /**
    * Save settings to Stream Deck
@@ -97,90 +100,91 @@ export function useSettings<T extends ActionSettings>(defaultSettings: T) {
   const saveSettings = async (): Promise<void> => {
     if (!websocketService.isConnected) {
       const error = createAppError(
-        'Cannot save settings: WebSocket not connected',
-        ErrorCodes.WEBSOCKET_CONNECTION_FAILED
-      )
-      logError(error)
-      state.hasError = true
-      state.error = 'Not connected to Stream Deck'
-      return
+        "Cannot save settings: WebSocket not connected",
+        ErrorCodes.WEBSOCKET_CONNECTION_FAILED,
+      );
+      logError(error);
+      state.hasError = true;
+      state.error = "Not connected to Stream Deck";
+      return;
     }
 
     if (!state.hasChanges) {
-      return // No changes to save
+      return; // No changes to save
     }
 
-    state.isLoading = true
-    state.hasError = false
-    state.error = null
+    state.isLoading = true;
+    state.hasError = false;
+    state.error = null;
 
     try {
       // Send settings to backend via WebSocket
-      websocketService.sendSettings(state.settings)
+      websocketService.sendSettings(state.settings);
 
       // Update original settings and clear change flag
-      originalSettings.value = { ...state.settings }
-      state.hasChanges = false
-      state.lastSaved = new Date()
+      originalSettings.value = { ...state.settings };
+      state.hasChanges = false;
+      state.lastSaved = new Date();
     } catch (error) {
       const appError = createAppError(
-        'Failed to save settings to Stream Deck',
+        "Failed to save settings to Stream Deck",
         ErrorCodes.SYSTEM_ERROR,
-        { originalError: error, settings: state.settings }
-      )
-      logError(appError)
-      state.hasError = true
-      state.error = 'Failed to save settings'
+        { originalError: error, settings: state.settings },
+      );
+      logError(appError);
+      state.hasError = true;
+      state.error = "Failed to save settings";
     } finally {
-      state.isLoading = false
+      state.isLoading = false;
     }
-  }
+  };
 
   /**
    * Update a specific setting value
    */
   const updateSetting = <K extends keyof T>(key: K, value: T[K]): void => {
-    (state.settings as T)[key] = value
-    checkForChanges()
-  }
+    (state.settings as T)[key] = value;
+    checkForChanges();
+  };
 
   /**
    * Update multiple settings at once
    */
   const updateSettings = (updates: Partial<T>): void => {
-    Object.assign(state.settings, updates)
-    checkForChanges()
-  }
+    Object.assign(state.settings, updates);
+    checkForChanges();
+  };
 
   /**
    * Reset settings to original values
    */
   const resetSettings = (): void => {
-    state.settings = { ...originalSettings.value }
-    state.hasChanges = false
-    state.hasError = false
-    state.error = null
-  }
+    state.settings = { ...originalSettings.value };
+    state.hasChanges = false;
+    state.hasError = false;
+    state.error = null;
+  };
 
   /**
    * Reset settings to defaults
    */
   const resetToDefaults = (): void => {
-    Object.assign(state.settings, { ...defaultSettings })
-    checkForChanges()
-  }
+    Object.assign(state.settings, { ...defaultSettings });
+    checkForChanges();
+  };
 
   /**
    * Check if current settings differ from original
    */
   const checkForChanges = (): void => {
-    state.hasChanges = JSON.stringify(state.settings) !== JSON.stringify(originalSettings.value)
-  }
+    state.hasChanges =
+      JSON.stringify(state.settings) !== JSON.stringify(originalSettings.value);
+  };
 
   /**
    * Auto-save settings when changes are detected
    */
-  let saveTimeout: NodeJS.Timeout | null = null
+  let saveTimeout: NodeJS.Timeout | null = null;
   const enableAutoSave = (delayMs: number = 1000): void => {
     watch(
       () => state.hasChanges,
@@ -188,29 +192,29 @@ export function useSettings<T extends ActionSettings>(defaultSettings: T) {
         if (hasChanges) {
           // Clear existing timeout
           if (saveTimeout) {
-            clearTimeout(saveTimeout)
+            clearTimeout(saveTimeout);
           }
 
           // Set new timeout for auto-save
           saveTimeout = setTimeout(() => {
-            saveSettings()
-            saveTimeout = null
-          }, delayMs)
+            saveSettings();
+            saveTimeout = null;
+          }, delayMs);
         }
       },
-      { immediate: false }
-    )
-  }
+      { immediate: false },
+    );
+  };
 
   /**
    * Disable auto-save
    */
   const disableAutoSave = (): void => {
     if (saveTimeout) {
-      clearTimeout(saveTimeout)
-      saveTimeout = null
+      clearTimeout(saveTimeout);
+      saveTimeout = null;
     }
-  }
+  };
 
   /**
    * Validate settings before saving
@@ -218,38 +222,38 @@ export function useSettings<T extends ActionSettings>(defaultSettings: T) {
   const validateSettings = (): boolean => {
     // Basic validation - can be extended for specific setting types
     if (!state.settings) {
-      state.hasError = true
-      state.error = 'Settings object is required'
-      return false
+      state.hasError = true;
+      state.error = "Settings object is required";
+      return false;
     }
 
     // Validate API key if present
-    if ('apiKey' in state.settings && state.settings.apiKey) {
-      const apiKey = state.settings.apiKey as string
+    if ("apiKey" in state.settings && state.settings.apiKey) {
+      const apiKey = state.settings.apiKey as string;
       if (apiKey.length < 10) {
-        state.hasError = true
-        state.error = 'API key appears to be too short'
-        return false
+        state.hasError = true;
+        state.error = "API key appears to be too short";
+        return false;
       }
     }
 
     // Clear any previous validation errors
-    state.hasError = false
-    state.error = null
-    return true
-  }
+    state.hasError = false;
+    state.error = null;
+    return true;
+  };
 
   /**
    * Save settings with validation
    */
   const saveWithValidation = async (): Promise<boolean> => {
     if (!validateSettings()) {
-      return false
+      return false;
     }
 
-    await saveSettings()
-    return !state.hasError
-  }
+    await saveSettings();
+    return !state.hasError;
+  };
 
   /**
    * Handle incoming settings from Stream Deck
@@ -258,68 +262,70 @@ export function useSettings<T extends ActionSettings>(defaultSettings: T) {
     // Merge incoming settings with current settings
     const mergedSettings = {
       ...state.settings,
-      ...newSettings
-    }
+      ...newSettings,
+    };
 
-    state.settings = mergedSettings
-    originalSettings.value = { ...mergedSettings }
-    state.hasChanges = false
-    state.lastSaved = new Date()
-  }
+    state.settings = mergedSettings;
+    originalSettings.value = { ...mergedSettings };
+    state.hasChanges = false;
+    state.lastSaved = new Date();
+  };
 
   /**
    * Export current settings for debugging
    */
   const exportSettings = (): string => {
-    return JSON.stringify(state.settings, null, 2)
-  }
+    return JSON.stringify(state.settings, null, 2);
+  };
 
   /**
    * Import settings from JSON string
    */
   const importSettings = (settingsJson: string): boolean => {
     try {
-      const importedSettings = JSON.parse(settingsJson) as T
-      
+      const importedSettings = JSON.parse(settingsJson) as T;
+
       // Validate the imported settings structure
-      const requiredKeys = Object.keys(defaultSettings)
-      const importedKeys = Object.keys(importedSettings)
-      
-      const hasRequiredStructure = requiredKeys.some(key => importedKeys.includes(key))
-      
+      const requiredKeys = Object.keys(defaultSettings);
+      const importedKeys = Object.keys(importedSettings);
+
+      const hasRequiredStructure = requiredKeys.some((key) =>
+        importedKeys.includes(key),
+      );
+
       if (!hasRequiredStructure) {
-        state.hasError = true
-        state.error = 'Invalid settings format'
-        return false
+        state.hasError = true;
+        state.error = "Invalid settings format";
+        return false;
       }
 
       // Merge with defaults to ensure all properties are present
       Object.assign(state.settings, {
         ...defaultSettings,
-        ...importedSettings
-      })
+        ...importedSettings,
+      });
 
-      checkForChanges()
-      return true
+      checkForChanges();
+      return true;
     } catch (error) {
       const appError = createAppError(
-        'Failed to import settings',
+        "Failed to import settings",
         ErrorCodes.INVALID_INPUT,
-        { originalError: error, settingsJson }
-      )
-      logError(appError)
-      state.hasError = true
-      state.error = 'Invalid JSON format'
-      return false
+        { originalError: error, settingsJson },
+      );
+      logError(appError);
+      state.hasError = true;
+      state.error = "Invalid JSON format";
+      return false;
     }
-  }
+  };
 
   // Listen for settings updates from Stream Deck
   const handleSettingsUpdate = (message: any) => {
-    if (message.event === 'didReceiveSettings' && message.payload?.settings) {
-      handleIncomingSettings(message.payload.settings)
+    if (message.event === "didReceiveSettings" && message.payload?.settings) {
+      handleIncomingSettings(message.payload.settings);
     }
-  }
+  };
 
   // Initialize settings on WebSocket connection
   watch(
@@ -327,22 +333,22 @@ export function useSettings<T extends ActionSettings>(defaultSettings: T) {
     (isConnected) => {
       if (isConnected) {
         // Listen for settings updates
-        websocketService.on('didReceiveSettings', handleSettingsUpdate)
-        
+        websocketService.on("didReceiveSettings", handleSettingsUpdate);
+
         nextTick(() => {
           // Request current settings from Stream Deck
-          websocketService.requestSettings()
-          
+          websocketService.requestSettings();
+
           // Also load from stored action info as fallback
-          loadSettings()
-        })
+          loadSettings();
+        });
       } else {
         // Remove listener when disconnected
-        websocketService.off('didReceiveSettings', handleSettingsUpdate)
+        websocketService.off("didReceiveSettings", handleSettingsUpdate);
       }
     },
-    { immediate: true }
-  )
+    { immediate: true },
+  );
 
   return {
     // State
@@ -371,8 +377,9 @@ export function useSettings<T extends ActionSettings>(defaultSettings: T) {
     // Computed
     isValid: () => !state.hasError && validateSettings(),
     isDirty: () => state.hasChanges,
-    canSave: () => state.hasChanges && !state.isLoading && websocketService.isConnected
-  }
+    canSave: () =>
+      state.hasChanges && !state.isLoading && websocketService.isConnected,
+  };
 }
 
 /**
@@ -384,13 +391,13 @@ export function useLightControlSettings() {
     selectedDeviceId: undefined,
     selectedModel: undefined,
     selectedLightName: undefined,
-    controlMode: 'toggle',
+    controlMode: "toggle",
     brightnessValue: 100,
-    colorValue: '#ffffff',
-    colorTempValue: 6500
-  }
+    colorValue: "#ffffff",
+    colorTempValue: 6500,
+  };
 
-  return useSettings(defaultSettings)
+  return useSettings(defaultSettings);
 }
 
 /**
@@ -401,11 +408,11 @@ export function useGroupControlSettings() {
     apiKey: undefined,
     selectedGroupId: undefined,
     selectedGroupName: undefined,
-    controlMode: 'toggle',
+    controlMode: "toggle",
     brightnessValue: 100,
-    colorValue: '#ffffff',
-    colorTempValue: 6500
-  }
+    colorValue: "#ffffff",
+    colorTempValue: 6500,
+  };
 
-  return useSettings(defaultSettings)
+  return useSettings(defaultSettings);
 }
