@@ -1,10 +1,12 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
+  plugins: [tsconfigPaths()],
   test: {
     globals: true,
-    environment: 'node',
+    environment: 'jsdom', // Use jsdom for browser environment
     include: ['test/**/*.test.ts'], // Only include unit tests
     exclude: ['test/e2e/**'], // Exclude Playwright tests
     coverage: {

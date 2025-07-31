@@ -5,10 +5,10 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { LightControlService } from '@/domain/services/LightControlService';
-import { Light } from '@/domain/entities/Light';
-import { LightGroup } from '@/domain/entities/LightGroup';
-import { LightState } from '@/domain/value-objects/LightState';
+import { LightControlService } from '@/backend/domain/services/LightControlService';
+import { Light } from '@/backend/domain/entities/Light';
+import { LightGroup } from '@/backend/domain/entities/LightGroup';
+import { LightState } from '@/backend/domain/value-objects/LightState';
 import { Brightness, ColorRgb, ColorTemperature } from '@felixgeelhaar/govee-api-client';
 
 // Mock the light repository to match ILightRepository interface

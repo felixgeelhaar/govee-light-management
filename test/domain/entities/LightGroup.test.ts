@@ -5,9 +5,9 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { LightGroup } from '@/domain/entities/LightGroup';
-import { Light } from '@/domain/entities/Light';
-import { LightState } from '@/domain/value-objects/LightState';
+import { LightGroup } from '@/backend/domain/entities/LightGroup';
+import { Light } from '@/backend/domain/entities/Light';
+import { LightState } from '@/backend/domain/value-objects/LightState';
 import { Brightness } from '@felixgeelhaar/govee-api-client';
 
 describe('LightGroup Entity', () => {

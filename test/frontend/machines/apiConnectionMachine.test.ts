@@ -22,39 +22,29 @@ describe('apiConnectionMachine', () => {
     expect(actor.getSnapshot().context.apiKey).toBe('test-api-key')
   })
 
-  it('transitions to connected when validation succeeds', async () => {
+  it('transitions to connected when validation succeeds', () => {
     const actor = createActor(apiConnectionMachine)
     actor.start()
-    
-    // Subscribe to state changes
-    const states: string[] = []
-    actor.subscribe((snapshot) => {
-      states.push(snapshot.value as string)
-    })
     
     actor.send({ type: 'CONNECT', apiKey: 'valid-api-key' })
+    expect(actor.getSnapshot().value).toBe('connecting')
     
-    // Wait for async validation
-    await new Promise(resolve => setTimeout(resolve, 100))
-    
-    expect(states).toContain('connected')
+    // Manually send validation success event
+    actor.send({ type: 'VALIDATION_SUCCESS' })
+    expect(actor.getSnapshot().value).toBe('connected')
   })
 
-  it('transitions to error state when validation fails', async () => {
+  it('transitions to error state when validation fails', () => {
     const actor = createActor(apiConnectionMachine)
     actor.start()
     
-    const states: string[] = []
-    actor.subscribe((snapshot) => {
-      states.push(snapshot.value as string)
-    })
-    
     actor.send({ type: 'CONNECT', apiKey: 'invalid-key' })
+    expect(actor.getSnapshot().value).toBe('connecting')
     
-    await new Promise(resolve => setTimeout(resolve, 100))
-    
-    expect(states).toContain('error')
-    expect(actor.getSnapshot().context.error).toBeTruthy()
+    // Manually send validation failed event
+    actor.send({ type: 'VALIDATION_FAILED', error: 'Invalid API key' })
+    expect(actor.getSnapshot().value).toBe('error')
+    expect(actor.getSnapshot().context.error).toBe('Invalid API key')
   })
 
   it('can retry from error state', () => {

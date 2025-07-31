@@ -7,6 +7,24 @@
 
 import { beforeEach, vi } from 'vitest';
 
+// Mock browser globals for frontend tests
+global.WebSocket = vi.fn().mockImplementation(() => ({
+  readyState: WebSocket.CONNECTING,
+  send: vi.fn(),
+  close: vi.fn(),
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn()
+}));
+
+// Mock Stream Deck socket connection function
+global.connectElgatoStreamDeckSocket = vi.fn();
+
+// Ensure window object has the connectElgatoStreamDeckSocket function
+Object.defineProperty(window, 'connectElgatoStreamDeckSocket', {
+  value: vi.fn(),
+  writable: true
+});
+
 // Mock Stream Deck SDK for testing
 vi.mock('@elgato/streamdeck', () => ({
   streamDeck: {
