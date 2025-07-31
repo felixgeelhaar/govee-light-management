@@ -24,9 +24,16 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
+        cache: 'npm'
     
     - name: Install dependencies
-      run: npm install --legacy-peer-deps
+      run: npm ci --legacy-peer-deps --include=optional
+        
+    - name: Verify Rollup installation
+      run: |
+        echo "Checking Rollup installation..."
+        node -e "console.log('Rollup version:', require('rollup/package.json').version)"
+        echo "Rollup installation verified successfully"
     
     - name: Run type checking
       run: npm run type-check
@@ -67,9 +74,16 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
+        cache: 'npm'
     
     - name: Install dependencies
-      run: npm install --legacy-peer-deps
+      run: npm ci --legacy-peer-deps --include=optional
+        
+    - name: Verify Rollup installation
+      run: |
+        echo "Checking Rollup installation..."
+        node -e "console.log('Rollup version:', require('rollup/package.json').version)"
+        echo "Rollup installation verified successfully"
     
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
@@ -100,9 +114,16 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
+        cache: 'npm'
     
     - name: Install dependencies
-      run: npm install --legacy-peer-deps
+      run: npm ci --legacy-peer-deps --include=optional
+        
+    - name: Verify Rollup installation
+      run: |
+        echo "Checking Rollup installation..."
+        node -e "console.log('Rollup version:', require('rollup/package.json').version)"
+        echo "Rollup installation verified successfully"
     
     - name: Run security audit
       run: npm audit --audit-level high
@@ -129,9 +150,16 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
+        cache: 'npm'
     
     - name: Install dependencies
-      run: npm install --legacy-peer-deps
+      run: npm ci --legacy-peer-deps --include=optional
+        
+    - name: Verify Rollup installation
+      run: |
+        echo "Checking Rollup installation..."
+        node -e "console.log('Rollup version:', require('rollup/package.json').version)"
+        echo "Rollup installation verified successfully"
     
     - name: Run tests with coverage
       run: npm run test:coverage
