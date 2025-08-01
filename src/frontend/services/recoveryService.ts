@@ -6,11 +6,7 @@
 import { websocketService } from "./websocketService";
 import { apiCacheService } from "./cacheService";
 import { performanceService } from "./performanceService";
-import {
-  createAppError,
-  ErrorCodes,
-  isRecoverableError,
-} from "../utils/errorHandling";
+import { isRecoverableError } from "../utils/errorHandling";
 
 export interface RecoveryStrategy {
   name: string;
@@ -57,11 +53,11 @@ export class RecoveryService {
    */
   async attemptRecovery(
     error: Error,
-    context?: Record<string, any>,
+    _context?: Record<string, unknown>,
   ): Promise<boolean> {
     // Don't attempt recovery for non-recoverable errors
     if (!isRecoverableError(error)) {
-      console.log("Error not recoverable, skipping recovery attempts");
+      console.log("Error not recoverable, skipping recovery attempts", error.message);
       return false;
     }
 
@@ -239,7 +235,7 @@ export class RecoveryService {
         if (!websocketService.isConnected) {
           issues.push("WebSocket reconnection failed");
         }
-      } catch (error) {
+      } catch (_error) {
         issues.push("WebSocket recovery failed");
       }
     }
@@ -487,11 +483,7 @@ export function withAutoRecovery(maxRetries: number = 3) {
             const recovered = await recoveryService.attemptRecovery(lastError);
             if (recovered) {
               // If recovery succeeded, try the operation one more time
-              try {
-                return await originalMethod.apply(this, args);
-              } catch (finalError) {
-                throw finalError;
-              }
+              return await originalMethod.apply(this, args);
             }
             throw lastError;
           }

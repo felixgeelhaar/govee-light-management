@@ -1,8 +1,4 @@
-import type {
-  PropertyInspectorMessages,
-  PluginMessages,
-  BaseMessage,
-} from "@shared/types/messages";
+import type { BaseMessage } from "@shared/types/messages";
 import { createAppError, ErrorCodes, logError } from "../utils/errorHandling";
 
 /**

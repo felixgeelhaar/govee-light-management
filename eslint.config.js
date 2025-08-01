@@ -47,6 +47,13 @@ export default [
         ecmaVersion: 2022,
         sourceType: 'module',
         extraFileExtensions: ['.vue']
+      },
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        console: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly'
       }
     },
     plugins: {
