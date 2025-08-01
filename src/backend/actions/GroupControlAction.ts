@@ -727,7 +727,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       return;
     }
 
-    const payload = ev.payload as { group?: LightGroup };
+    const payload = ev.payload as { group?: { name: string; lightIds: string[] } };
     const group = payload.group;
 
     if (!group || !group.name || !group.lightIds) {
