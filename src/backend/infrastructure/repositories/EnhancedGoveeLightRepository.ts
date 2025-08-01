@@ -8,11 +8,7 @@ import {
 import { ILightRepository } from "../../domain/repositories/ILightRepository";
 import { Light, LightState } from "../../domain/entities";
 import streamDeck from "@elgato/streamdeck";
-import {
-  ErrorBoundaries,
-  ErrorCategory,
-  ErrorSeverity,
-} from "../errors/ErrorBoundaries";
+import { ErrorBoundaries } from "../errors/ErrorBoundaries";
 import { ApiResponseValidator } from "../validation/ApiResponseValidator";
 import { GoveeDeviceStateSchema } from "../validation/goveeApiSchemas";
 import {
@@ -380,21 +376,29 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
         CircuitBreakerFactory.createDeviceCircuitBreaker(deviceId);
       this.deviceCircuitBreakers.set(deviceId, circuitBreaker);
     }
-    return this.deviceCircuitBreakers.get(deviceId)!;
+    const circuitBreaker = this.deviceCircuitBreakers.get(deviceId);
+    if (!circuitBreaker) {
+      throw new Error(`Circuit breaker not found for device ${deviceId}`);
+    }
+    return circuitBreaker;
   }
 
   /**
    * Map Govee device to domain Light entity with validation
    */
-  private isValidDevice(device: any): device is GoveeDevice {
+  private isValidDevice(device: unknown): device is GoveeDevice {
     return (
-      device &&
-      typeof device.deviceId === "string" &&
-      device.deviceId.trim() !== "" &&
-      typeof device.model === "string" &&
-      device.model.trim() !== "" &&
-      typeof device.deviceName === "string" &&
-      device.deviceName.trim() !== ""
+      device !== null &&
+      typeof device === "object" &&
+      "deviceId" in device &&
+      "model" in device &&
+      "deviceName" in device &&
+      typeof (device as any).deviceId === "string" &&
+      (device as any).deviceId.trim() !== "" &&
+      typeof (device as any).model === "string" &&
+      (device as any).model.trim() !== "" &&
+      typeof (device as any).deviceName === "string" &&
+      (device as any).deviceName.trim() !== ""
     );
   }
 

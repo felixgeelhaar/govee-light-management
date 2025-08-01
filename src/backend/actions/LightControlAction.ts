@@ -5,7 +5,6 @@ import {
   WillAppearEvent,
   type SendToPluginEvent,
   type JsonValue,
-  type Action,
   streamDeck,
 } from "@elgato/streamdeck";
 import { GoveeLightRepository } from "../infrastructure/repositories/GoveeLightRepository";
@@ -295,7 +294,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
   private async handleValidateApiKey(
     ev: SendToPluginEvent<JsonValue, LightControlSettings>,
   ): Promise<void> {
-    const payload = ev.payload as any;
+    const payload = ev.payload as { apiKey?: string };
     const apiKey = payload.apiKey;
 
     if (!apiKey) {
@@ -349,7 +348,10 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
         this.initializeServices(settings.apiKey);
       }
 
-      const lights = await this.lightRepository!.getAllLights();
+      if (!this.lightRepository) {
+        return;
+      }
+      const lights = await this.lightRepository.getAllLights();
       const lightItems = lights.map((light) => ({
         label: `${light.name} (${light.model})`,
         value: `${light.deviceId}|${light.model}`,
@@ -379,8 +381,8 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     ev: SendToPluginEvent<JsonValue, LightControlSettings>,
     settings: LightControlSettings,
   ): Promise<void> {
-    const payload = ev.payload as any;
-    const deviceIds = payload.deviceIds as string[];
+    const payload = ev.payload as { deviceIds?: string[] };
+    const deviceIds = payload.deviceIds;
 
     if (!settings.apiKey) {
       await streamDeck.ui.current?.sendToPropertyInspector({
@@ -403,7 +405,10 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
         this.initializeServices(settings.apiKey);
       }
 
-      const allLights = await this.lightRepository!.getAllLights();
+      if (!this.lightRepository) {
+        return;
+      }
+      const allLights = await this.lightRepository.getAllLights();
       const requestedLights = allLights.filter((light) =>
         deviceIds.some((deviceId) => {
           const [id, model] = deviceId.includes("|")
@@ -419,7 +424,9 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       const states = await Promise.all(
         requestedLights.map(async (light) => {
           try {
-            await this.lightRepository!.getLightState(light);
+            if (this.lightRepository) {
+              await this.lightRepository.getLightState(light);
+            }
             return {
               deviceId: light.deviceId,
               model: light.model,
@@ -478,8 +485,8 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
   private async handleSetSettings(
     ev: SendToPluginEvent<JsonValue, LightControlSettings>,
   ): Promise<void> {
-    const payload = ev.payload as any;
-    const newSettings = payload.settings as LightControlSettings;
+    const payload = ev.payload as { settings?: LightControlSettings };
+    const newSettings = payload.settings;
 
     if (!newSettings) {
       return;
@@ -588,8 +595,8 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
    * Handle refresh state request from property inspector
    */
   private async handleRefreshState(
-    ev: SendToPluginEvent<JsonValue, LightControlSettings>,
-    settings: LightControlSettings,
+    _ev: SendToPluginEvent<JsonValue, LightControlSettings>,
+    _settings: LightControlSettings,
   ): Promise<void> {
     if (this.currentLight && this.lightRepository) {
       try {

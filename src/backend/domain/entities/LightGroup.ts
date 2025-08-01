@@ -1,9 +1,4 @@
 import { Light } from "./Light";
-import {
-  ColorRgb,
-  ColorTemperature,
-  Brightness,
-} from "@felixgeelhaar/govee-api-client";
 
 export class LightGroup {
   private constructor(

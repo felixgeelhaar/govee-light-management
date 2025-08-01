@@ -16,7 +16,7 @@ interface SerializedLightGroup {
 interface LightGroupStorage {
   groups: SerializedLightGroup[];
   version: string;
-  [key: string]: any; // Allow additional properties for JsonObject compatibility
+  [key: string]: unknown; // Allow additional properties for JsonObject compatibility
 }
 
 export class StreamDeckLightGroupRepository implements ILightGroupRepository {
