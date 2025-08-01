@@ -238,7 +238,7 @@ export class RecoveryService {
         if (!websocketService.isConnected) {
           issues.push("WebSocket reconnection failed");
         }
-      } catch (_error) {
+      } catch {
         issues.push("WebSocket recovery failed");
       }
     }
