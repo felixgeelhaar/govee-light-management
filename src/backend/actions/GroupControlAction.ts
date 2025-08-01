@@ -5,7 +5,6 @@ import {
   WillAppearEvent,
   type SendToPluginEvent,
   type JsonValue,
-  type Action,
   streamDeck,
 } from "@elgato/streamdeck";
 import { GoveeLightRepository } from "../infrastructure/repositories/GoveeLightRepository";
@@ -191,11 +190,12 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     const stateSummary = group.getStateSummary();
 
     switch (mode) {
-      case "toggle":
+      case "toggle": {
         // If all lights are on, turn them off. Otherwise, turn them on.
         const targetState = stateSummary.allOn ? "off" : "on";
         await this.lightControlService.controlGroup(group, targetState);
         break;
+      }
 
       case "on":
         if (
@@ -311,7 +311,9 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 
     const refreshPromises = group.lights.map(async (light) => {
       try {
-        await this.lightRepository!.getLightState(light);
+        if (this.lightRepository) {
+          await this.lightRepository.getLightState(light);
+        }
       } catch (error) {
         streamDeck.logger.warn(
           `Failed to refresh state for light ${light.name}:`,
@@ -343,7 +345,10 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
         this.initializeServices(settings.apiKey);
       }
 
-      const groups = await this.groupService!.getAllGroups();
+      if (!this.groupService) {
+        return;
+      }
+      const groups = await this.groupService.getAllGroups();
       const groupItems = groups.map((group) => ({
         label: `${group.name} (${group.size} lights)`,
         value: group.id,
@@ -386,7 +391,10 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
         this.initializeServices(settings.apiKey);
       }
 
-      const lights = await this.lightRepository!.getAllLights();
+      if (!this.lightRepository) {
+        return;
+      }
+      const lights = await this.lightRepository.getAllLights();
       const lightItems = lights.map((light) => ({
         label: `${light.name} (${light.model})`,
         value: `${light.deviceId}|${light.model}`,
@@ -420,7 +428,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       return;
     }
 
-    const payload = ev.payload as any;
+    const payload = ev.payload as { groupName?: string; selectedLightIds?: string[] };
     if (!payload.groupName || !payload.selectedLightIds) {
       return;
     }
@@ -465,9 +473,9 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
    */
   private async handleGetGroupDetails(
     ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
-    settings: GroupControlSettings,
+    _settings: GroupControlSettings,
   ): Promise<void> {
-    const payload = ev.payload as any;
+    const payload = ev.payload as { groupId?: string };
     if (!payload.groupId || !this.groupService) {
       return;
     }
@@ -514,7 +522,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       return;
     }
 
-    const payload = ev.payload as any;
+    const payload = ev.payload as { groupId?: string; groupName?: string; selectedLightIds?: string[] };
     if (!payload.groupId || !payload.groupName || !payload.selectedLightIds) {
       return;
     }
@@ -567,7 +575,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       return;
     }
 
-    const payload = ev.payload as any;
+    const payload = ev.payload as { groupId?: string };
     if (!payload.groupId) {
       return;
     }
@@ -620,7 +628,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
         const targetState = stateSummary.allOn ? "off" : "on";
         await this.lightControlService.controlGroup(group, targetState);
 
-        setTimeout(async () => {
+        global.setTimeout(async () => {
           if (this.lightControlService && group) {
             const newTargetState = targetState === "on" ? "off" : "on";
             await this.lightControlService.controlGroup(group, newTargetState);
@@ -647,8 +655,8 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
    * Handle refresh state request from property inspector
    */
   private async handleRefreshState(
-    ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
-    settings: GroupControlSettings,
+    _ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
+    _settings: GroupControlSettings,
   ): Promise<void> {
     if (this.currentGroup && this.lightRepository) {
       try {
@@ -669,7 +677,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
   private async handleValidateApiKey(
     ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
   ): Promise<void> {
-    const payload = ev.payload as any;
+    const payload = ev.payload as { apiKey?: string };
     const apiKey = payload.apiKey;
 
     if (!apiKey) {
@@ -719,7 +727,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       return;
     }
 
-    const payload = ev.payload as any;
+    const payload = ev.payload as { group?: LightGroup };
     const group = payload.group;
 
     if (!group || !group.name || !group.lightIds) {
@@ -742,7 +750,10 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
         return { deviceId, model };
       });
 
-      const savedGroup = await this.groupService!.createGroup(
+      if (!this.groupService) {
+        return;
+      }
+      const savedGroup = await this.groupService.createGroup(
         group.name,
         lightIds,
       );
@@ -774,8 +785,8 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
   private async handleSetSettings(
     ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
   ): Promise<void> {
-    const payload = ev.payload as any;
-    const newSettings = payload.settings as GroupControlSettings;
+    const payload = ev.payload as { settings?: GroupControlSettings };
+    const newSettings = payload.settings;
 
     if (!newSettings) {
       return;
