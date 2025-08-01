@@ -5,6 +5,7 @@ import {
   WillAppearEvent,
   type SendToPluginEvent,
   type JsonValue,
+  type Action,
   streamDeck,
 } from "@elgato/streamdeck";
 import { GoveeLightRepository } from "../infrastructure/repositories/GoveeLightRepository";
@@ -53,8 +54,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 
     // Set initial title based on configuration
     const title = this.getActionTitle(settings);
-    // TODO: Fix setTitle method call
-    // await streamDeck.actions.setTitle(ev.action, title);
+    await ev.action.setTitle(title);
 
     // Load current group if configured
     if (settings.selectedGroupId && this.groupService) {
@@ -66,11 +66,9 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
         if (this.currentGroup) {
           // Refresh light states for all lights in group
           await this.refreshGroupLightStates(this.currentGroup);
-          await this.updateActionAppearance(
-            ev.action,
-            this.currentGroup,
-            settings,
-          );
+          // Update action appearance based on group state
+          const title = this.getActionTitle(settings);
+          await ev.action.setTitle(title);
         }
       } catch (error) {
         streamDeck.logger.error("Failed to load group:", error);
@@ -100,7 +98,18 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 
     try {
       await this.executeGroupControl(this.currentGroup, settings);
-      await this.updateActionAppearance(ev.action, this.currentGroup, settings);
+      // Update action appearance after control with state indicators
+      const stateSummary = this.currentGroup.getStateSummary();
+      const baseTitle = this.getActionTitle(settings);
+      let stateIndicator = "";
+      if (stateSummary.allOn) {
+        stateIndicator = " ●"; // All on
+      } else if (stateSummary.allOff) {
+        stateIndicator = " ○"; // All off
+      } else if (stateSummary.mixedState) {
+        stateIndicator = " ◐"; // Mixed state
+      }
+      await ev.action.setTitle(baseTitle + stateIndicator);
     } catch (error) {
       streamDeck.logger.error("Failed to control group:", error);
       await ev.action.showAlert();
@@ -294,30 +303,6 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     }
   }
 
-  /**
-   * Update action appearance based on group state
-   */
-  private async updateActionAppearance(
-    action: any,
-    group: LightGroup,
-    settings: GroupControlSettings,
-  ): Promise<void> {
-    const stateSummary = group.getStateSummary();
-    const baseTitle = this.getActionTitle(settings);
-
-    // Add state indicator to title
-    let stateIndicator = "";
-    if (stateSummary.allOn) {
-      stateIndicator = " ●"; // All on
-    } else if (stateSummary.allOff) {
-      stateIndicator = " ○"; // All off
-    } else if (stateSummary.mixedState) {
-      stateIndicator = " ◐"; // Mixed state
-    }
-
-    // TODO: Fix setTitle method call
-    // await streamDeck.actions.setTitle(action, baseTitle + stateIndicator);
-  }
 
   /**
    * Refresh light states for all lights in the group
@@ -669,11 +654,10 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     if (this.currentGroup && this.lightRepository) {
       try {
         await this.refreshGroupLightStates(this.currentGroup);
-        await this.updateActionAppearance(
-          ev.action,
-          this.currentGroup,
-          settings,
-        );
+        // Update action appearance
+        // Note: setTitle may not be available in SendToPluginEvent context
+        // const title = this.getActionTitle(settings);
+        // await ev.action.setTitle(title);
       } catch (error) {
         streamDeck.logger.error("Failed to refresh group state:", error);
       }
@@ -819,11 +803,10 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
           this.currentGroup = foundGroup || undefined;
           if (this.currentGroup) {
             await this.refreshGroupLightStates(this.currentGroup);
-            await this.updateActionAppearance(
-              ev.action,
-              this.currentGroup,
-              newSettings,
-            );
+            // Update action appearance
+            // Note: setTitle may not be available in SendToPluginEvent context
+            // const title = this.getActionTitle(newSettings);
+            // await ev.action.setTitle(title);
           }
         } catch (error) {
           streamDeck.logger.error("Failed to load selected group:", error);
@@ -831,9 +814,9 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       }
 
       // Update action title
-      const title = this.getActionTitle(newSettings);
-      // TODO: Fix setTitle method call
-      // await streamDeck.actions.setTitle(ev.action, title);
+      // Note: setTitle may not be available in SendToPluginEvent context
+      // const title = this.getActionTitle(newSettings);
+      // await ev.action.setTitle(title);
 
       streamDeck.logger.info("Settings updated successfully");
     } catch (error) {

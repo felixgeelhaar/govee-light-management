@@ -5,6 +5,7 @@ import {
   WillAppearEvent,
   type SendToPluginEvent,
   type JsonValue,
+  type Action,
   streamDeck,
 } from "@elgato/streamdeck";
 import { GoveeLightRepository } from "../infrastructure/repositories/GoveeLightRepository";
@@ -50,8 +51,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
 
     // Set initial title based on configuration
     const title = this.getActionTitle(settings);
-    // TODO: Fix setTitle method call
-    // await streamDeck.actions.setTitle(ev.action, title);
+    await ev.action.setTitle(title);
 
     // Load current light if configured
     if (
@@ -68,11 +68,9 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
         if (this.currentLight) {
           // Refresh light state
           await this.lightRepository.getLightState(this.currentLight);
-          await this.updateActionAppearance(
-            ev.action,
-            this.currentLight,
-            settings,
-          );
+          // Update action appearance based on light state
+          const title = this.getActionTitle(settings);
+          await ev.action.setTitle(title);
         }
       } catch (error) {
         streamDeck.logger.error("Failed to load light state:", error);
@@ -102,7 +100,9 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
 
     try {
       await this.executeControl(this.currentLight, settings);
-      await this.updateActionAppearance(ev.action, this.currentLight, settings);
+      // Update action appearance after control
+      const title = this.getActionTitle(settings);
+      await ev.action.setTitle(title);
     } catch (error) {
       streamDeck.logger.error("Failed to control light:", error);
       await ev.action.showAlert();
@@ -289,21 +289,6 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     }
   }
 
-  /**
-   * Update action appearance based on light state
-   */
-  private async updateActionAppearance(
-    action: any,
-    light: Light,
-    settings: LightControlSettings,
-  ): Promise<void> {
-    const title = this.getActionTitle(settings);
-    // TODO: Fix setTitle method call
-    // await streamDeck.actions.setTitle(action, title);
-
-    // Could add state indicator (e.g., different background) based on light.isOn
-    // This would require custom images in the manifest
-  }
 
   /**
    * Handle API key validation from property inspector
@@ -527,11 +512,10 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
           this.currentLight = foundLight || undefined;
           if (this.currentLight) {
             await this.lightRepository.getLightState(this.currentLight);
-            await this.updateActionAppearance(
-              ev.action,
-              this.currentLight,
-              newSettings,
-            );
+            // Update action appearance
+            // Note: setTitle may not be available in SendToPluginEvent context
+            // const title = this.getActionTitle(newSettings);
+            // await ev.action.setTitle(title);
           }
         } catch (error) {
           streamDeck.logger.error("Failed to load selected light:", error);
@@ -539,9 +523,9 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       }
 
       // Update action title
-      const title = this.getActionTitle(newSettings);
-      // TODO: Fix setTitle method call
-      // await streamDeck.actions.setTitle(ev.action, title);
+      // Note: setTitle may not be available in SendToPluginEvent context
+      // const title = this.getActionTitle(newSettings);
+      // await ev.action.setTitle(title);
 
       streamDeck.logger.info("Settings updated successfully");
     } catch (error) {
@@ -611,11 +595,10 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     if (this.currentLight && this.lightRepository) {
       try {
         await this.lightRepository.getLightState(this.currentLight);
-        await this.updateActionAppearance(
-          ev.action,
-          this.currentLight,
-          settings,
-        );
+        // Update action appearance
+        // Note: setTitle may not be available in SendToPluginEvent context
+        // const title = this.getActionTitle(settings);
+        // await ev.action.setTitle(title);
       } catch (error) {
         streamDeck.logger.error("Failed to refresh light state:", error);
       }
