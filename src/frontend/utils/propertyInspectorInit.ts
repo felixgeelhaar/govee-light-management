@@ -1,5 +1,9 @@
 import { websocketService } from "../services/websocketService";
 
+interface WindowWithTimeout extends Window {
+  settingsSaveTimeout?: NodeJS.Timeout;
+}
+
 /**
  * Initialize Property Inspector with settings persistence
  */
@@ -114,14 +118,14 @@ function setupSettingsPersistence() {
 /**
  * Auto-save settings when they change
  */
-export function autoSaveSettings(settings: Record<string, any>) {
+export function autoSaveSettings(settings: Record<string, unknown>) {
   // Debounce settings saves to avoid overwhelming the plugin
   if (typeof window !== "undefined") {
-    if ((window as any).settingsSaveTimeout) {
-      clearTimeout((window as any).settingsSaveTimeout);
+    if ((window as WindowWithTimeout).settingsSaveTimeout) {
+      clearTimeout((window as WindowWithTimeout).settingsSaveTimeout);
     }
 
-    (window as any).settingsSaveTimeout = setTimeout(() => {
+    (window as WindowWithTimeout).settingsSaveTimeout = setTimeout(() => {
       websocketService.sendSettings(settings);
       console.log("Auto-saved settings:", settings);
     }, 500);
@@ -131,7 +135,7 @@ export function autoSaveSettings(settings: Record<string, any>) {
 /**
  * Listen to Stream Deck custom events
  */
-export function addStreamDeckEventListener<T = any>(
+export function addStreamDeckEventListener<T = unknown>(
   eventType: string,
   handler: (detail: T) => void,
 ) {
@@ -154,11 +158,11 @@ export function addStreamDeckEventListener<T = any>(
 // Global types are defined in frontend/types/global.d.ts
 declare global {
   interface Window {
-    settingsSaveTimeout?: number;
+    settingsSaveTimeout?: NodeJS.Timeout;
   }
 
   interface WindowEventMap {
-    streamDeckSettingsReceived: CustomEvent<Record<string, any>>;
+    streamDeckSettingsReceived: CustomEvent<Record<string, unknown>>;
     streamDeckLightsReceived: CustomEvent<
       Array<{ label: string; value: string }>
     >;

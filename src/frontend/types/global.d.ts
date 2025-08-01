@@ -63,20 +63,20 @@ declare global {
   }
 
   class MessageEvent extends Event {
-    readonly data: any;
+    readonly data: unknown;
     constructor(type: string, eventInitDict?: MessageEventInit);
   }
 
   interface MessageEventInit extends EventInit {
-    data?: any;
+    data?: unknown;
   }
 
-  class CustomEvent<T = any> extends Event {
+  class CustomEvent<T = unknown> extends Event {
     readonly detail: T;
     constructor(type: string, eventInitDict?: CustomEventInit<T>);
   }
 
-  interface CustomEventInit<T = any> extends EventInit {
+  interface CustomEventInit<T = unknown> extends EventInit {
     detail?: T;
   }
 

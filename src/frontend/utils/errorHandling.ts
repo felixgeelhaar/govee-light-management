@@ -4,7 +4,7 @@
 
 export interface AppError extends Error {
   code?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   timestamp?: number;
   recoverable?: boolean;
 }
@@ -15,7 +15,7 @@ export interface AppError extends Error {
 export function createAppError(
   message: string,
   code?: string,
-  context?: Record<string, any>,
+  context?: Record<string, unknown>,
   recoverable: boolean = true,
 ): AppError {
   const error = new Error(message) as AppError;
@@ -151,7 +151,7 @@ export function getUserFriendlyErrorMessage(error: Error | AppError): string {
  */
 export function logError(
   error: Error | AppError,
-  context?: Record<string, any>,
+  context?: Record<string, unknown>,
 ): void {
   const errorInfo = {
     message: error.message,
@@ -179,7 +179,7 @@ export async function withRetry<T>(
   delayMs: number = 1000,
   backoffFactor: number = 2,
 ): Promise<T> {
-  let lastError: Error;
+  let lastError: Error | undefined;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -200,7 +200,10 @@ export async function withRetry<T>(
     }
   }
 
-  throw lastError!;
+  if (lastError) {
+    throw lastError;
+  }
+  throw new Error("Retry operation failed with unknown error");
 }
 
 /**

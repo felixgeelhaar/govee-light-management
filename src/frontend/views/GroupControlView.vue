@@ -338,7 +338,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
-import type { ControlMode, LightGroup } from "@shared/types";
+import type { ControlMode } from "@shared/types";
 import { useApiConnection } from "../composables/useApiConnection";
 import { useLightDiscovery } from "../composables/useLightDiscovery";
 import { useGroupManagement } from "../composables/useGroupManagement";
@@ -426,7 +426,7 @@ const editGroup = () => {
 
 const deleteGroup = () => {
   if (selectedGroup.value) {
-    const confirmDelete = confirm(
+    const confirmDelete = window.confirm(
       "Are you sure you want to delete this group?",
     );
     if (confirmDelete) {

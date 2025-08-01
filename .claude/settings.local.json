@@ -40,8 +40,10 @@
       "mcp__github__list_workflow_runs",
       "mcp__github__list_workflow_jobs",
       "mcp__github__get_job_logs",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "mcp__github__get_me"
     ],
     "deny": []
-  }
+  },
+  "$schema": "https://json.schemastore.org/claude-code-settings.json"
 }
