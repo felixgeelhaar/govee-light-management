@@ -389,7 +389,10 @@ const getTrendColor = (): string => {
   }
 };
 
-const getThresholdPercentage = (metric: { threshold?: { critical: number }; value: unknown }): number => {
+const getThresholdPercentage = (metric: {
+  threshold?: { critical: number };
+  value: unknown;
+}): number => {
   if (!metric.threshold || typeof metric.value !== "number") return 0;
 
   const value = metric.value as number;
