@@ -303,7 +303,6 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     }
   }
 
-
   /**
    * Refresh light states for all lights in the group
    */

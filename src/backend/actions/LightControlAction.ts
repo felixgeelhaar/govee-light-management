@@ -289,7 +289,6 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     }
   }
 
-
   /**
    * Handle API key validation from property inspector
    */
