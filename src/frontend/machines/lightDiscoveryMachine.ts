@@ -114,7 +114,7 @@ export const lightDiscoveryMachine = setup({
 
   actors: {
     fetchLights: fromPromise(
-      async ({ input }: { input: LightDiscoveryInput }) => {
+      async ({ input: _input }: { input: LightDiscoveryInput }) => {
         const operationId = `lights-discovery-${Date.now()}`;
 
         return performanceService.timeAsync(
@@ -186,7 +186,7 @@ export const lightDiscoveryMachine = setup({
 }).createMachine({
   id: "lightDiscovery",
   initial: "idle",
-  context: ({ input }) => ({
+  context: ({ input: _input }) => ({
     lights: [],
     filteredLights: [],
     searchQuery: "",

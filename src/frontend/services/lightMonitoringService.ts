@@ -4,7 +4,6 @@
  */
 
 import { ref, computed } from "vue";
-import type { LightItem } from "@shared/types";
 import { websocketService } from "./websocketService";
 import { apiCacheService } from "./cacheService";
 import { performanceService } from "./performanceService";

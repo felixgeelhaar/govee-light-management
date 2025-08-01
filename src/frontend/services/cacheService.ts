@@ -187,14 +187,9 @@ export class CacheService {
     }
 
     // Execute fallback function
-    try {
-      const value = await fallbackFn();
-      this.set(key, value, customTtl);
-      return value;
-    } catch (error) {
-      // Don't cache errors, just throw
-      throw error;
-    }
+    const value = await fallbackFn();
+    this.set(key, value, customTtl);
+    return value;
   }
 
   /**

@@ -155,7 +155,7 @@ export const groupManagementMachine = setup({
 
   actors: {
     loadGroups: fromPromise(
-      async ({ input }: { input: GroupManagementInput }) => {
+      async ({ input: _input }: { input: GroupManagementInput }) => {
         // Production-ready WebSocket-based group loading
         if (!websocketService.isConnected) {
           throw new Error("WebSocket not connected to Stream Deck");
@@ -277,7 +277,7 @@ export const groupManagementMachine = setup({
 }).createMachine({
   id: "groupManagement",
   initial: "idle",
-  context: ({ input }) => ({
+  context: ({ input: _input }) => ({
     groups: [],
     currentGroup: null,
     availableLights: [],
@@ -378,7 +378,7 @@ export const groupManagementMachine = setup({
 
       invoke: {
         src: "saveGroup",
-        input: ({ context, event, self }) => {
+        input: ({ context, event, self: _self }) => {
           if (event.type === "SAVE_GROUP") {
             return {
               name: event.name,
@@ -441,7 +441,7 @@ export const groupManagementMachine = setup({
 
       invoke: {
         src: "deleteGroup",
-        input: ({ event, self }) => {
+        input: ({ event, self: _self }) => {
           if (event.type === "DELETE_GROUP") {
             return {
               groupId: event.groupId,
