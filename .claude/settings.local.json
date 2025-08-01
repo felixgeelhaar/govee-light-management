@@ -31,7 +31,12 @@
       "Bash(npm run lint:*)",
       "Bash(npm run format:*)",
       "Bash(npm audit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npm outdated)",
+      "Bash(gh run view:*)",
+      "Bash(gh run list:*)",
+      "Bash(npm run test:*)",
+      "Bash(npm run type-check:*)"
     ],
     "deny": []
   }
