@@ -6,19 +6,19 @@ import { ApiValidationError } from "../validation/ApiResponseValidator";
  */
 
 export enum ErrorSeverity {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical'
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
+  CRITICAL = "critical",
 }
 
 export enum ErrorCategory {
-  API_ERROR = 'api_error',
-  VALIDATION_ERROR = 'validation_error',
-  NETWORK_ERROR = 'network_error',
-  DEVICE_ERROR = 'device_error',
-  CONFIGURATION_ERROR = 'configuration_error',
-  INTERNAL_ERROR = 'internal_error'
+  API_ERROR = "api_error",
+  VALIDATION_ERROR = "validation_error",
+  NETWORK_ERROR = "network_error",
+  DEVICE_ERROR = "device_error",
+  CONFIGURATION_ERROR = "configuration_error",
+  INTERNAL_ERROR = "internal_error",
 }
 
 export interface ErrorContext {
@@ -35,10 +35,10 @@ export class PluginError extends Error {
     public readonly category: ErrorCategory,
     public readonly severity: ErrorSeverity,
     public readonly context: ErrorContext,
-    public readonly originalError?: Error
+    public readonly originalError?: Error,
   ) {
     super(message);
-    this.name = 'PluginError';
+    this.name = "PluginError";
   }
 
   /**
@@ -47,19 +47,19 @@ export class PluginError extends Error {
   getUserMessage(): string {
     switch (this.category) {
       case ErrorCategory.API_ERROR:
-        return 'Unable to communicate with Govee service. Please check your API key and internet connection.';
+        return "Unable to communicate with Govee service. Please check your API key and internet connection.";
       case ErrorCategory.VALIDATION_ERROR:
-        return 'Invalid data received. Please try refreshing or contact support.';
+        return "Invalid data received. Please try refreshing or contact support.";
       case ErrorCategory.NETWORK_ERROR:
-        return 'Network connection issue. Please check your internet connection and try again.';
+        return "Network connection issue. Please check your internet connection and try again.";
       case ErrorCategory.DEVICE_ERROR:
-        return 'Device is not responding. Please check if the device is online and try again.';
+        return "Device is not responding. Please check if the device is online and try again.";
       case ErrorCategory.CONFIGURATION_ERROR:
-        return 'Configuration error. Please check your settings and try again.';
+        return "Configuration error. Please check your settings and try again.";
       case ErrorCategory.INTERNAL_ERROR:
-        return 'An unexpected error occurred. Please try again or restart the plugin.';
+        return "An unexpected error occurred. Please try again or restart the plugin.";
       default:
-        return 'An error occurred. Please try again.';
+        return "An error occurred. Please try again.";
     }
   }
 
@@ -70,33 +70,33 @@ export class PluginError extends Error {
     switch (this.category) {
       case ErrorCategory.API_ERROR:
         return [
-          'Verify your Govee API key is correct',
-          'Check your internet connection',
-          'Try again in a few moments'
+          "Verify your Govee API key is correct",
+          "Check your internet connection",
+          "Try again in a few moments",
         ];
       case ErrorCategory.NETWORK_ERROR:
         return [
-          'Check your internet connection',
-          'Ensure firewall is not blocking the connection',
-          'Try again later'
+          "Check your internet connection",
+          "Ensure firewall is not blocking the connection",
+          "Try again later",
         ];
       case ErrorCategory.DEVICE_ERROR:
         return [
-          'Check if the device is powered on',
-          'Ensure the device is connected to WiFi',
-          'Try controlling the device through the Govee app first'
+          "Check if the device is powered on",
+          "Ensure the device is connected to WiFi",
+          "Try controlling the device through the Govee app first",
         ];
       case ErrorCategory.CONFIGURATION_ERROR:
         return [
-          'Review your plugin settings',
-          'Re-enter your API key',
-          'Reconfigure the affected lights or groups'
+          "Review your plugin settings",
+          "Re-enter your API key",
+          "Reconfigure the affected lights or groups",
         ];
       default:
         return [
-          'Try the action again',
-          'Restart the Stream Deck software',
-          'Contact support if the issue persists'
+          "Try the action again",
+          "Restart the Stream Deck software",
+          "Contact support if the issue persists",
         ];
     }
   }
@@ -112,18 +112,20 @@ export class ErrorBoundaries {
   static async wrapApiCall<T>(
     operation: () => Promise<T>,
     context: Partial<ErrorContext>,
-    operationName: string
+    operationName: string,
   ): Promise<T> {
     const fullContext: ErrorContext = {
       ...context,
       timestamp: new Date(),
-      action: operationName
+      action: operationName,
     };
 
     try {
       streamDeck.logger.debug(`Starting API operation: ${operationName}`);
       const result = await operation();
-      streamDeck.logger.debug(`API operation completed successfully: ${operationName}`);
+      streamDeck.logger.debug(
+        `API operation completed successfully: ${operationName}`,
+      );
       return result;
     } catch (error) {
       return this.handleApiError(error, fullContext, operationName);
@@ -136,7 +138,7 @@ export class ErrorBoundaries {
   private static handleApiError(
     error: unknown,
     context: ErrorContext,
-    operationName: string
+    operationName: string,
   ): never {
     streamDeck.logger.error(`API operation failed: ${operationName}`, error);
 
@@ -146,51 +148,64 @@ export class ErrorBoundaries {
         ErrorCategory.VALIDATION_ERROR,
         ErrorSeverity.MEDIUM,
         context,
-        error
+        error,
       );
     }
 
     if (error instanceof Error) {
       // Check for common API error patterns
       const errorMessage = error.message.toLowerCase();
-      
-      if (errorMessage.includes('unauthorized') || errorMessage.includes('invalid api key')) {
+
+      if (
+        errorMessage.includes("unauthorized") ||
+        errorMessage.includes("invalid api key")
+      ) {
         throw new PluginError(
-          'Invalid API key or unauthorized access',
+          "Invalid API key or unauthorized access",
           ErrorCategory.CONFIGURATION_ERROR,
           ErrorSeverity.HIGH,
           context,
-          error
+          error,
         );
       }
 
-      if (errorMessage.includes('network') || errorMessage.includes('timeout') || errorMessage.includes('enotfound')) {
+      if (
+        errorMessage.includes("network") ||
+        errorMessage.includes("timeout") ||
+        errorMessage.includes("enotfound")
+      ) {
         throw new PluginError(
-          'Network connection error',
+          "Network connection error",
           ErrorCategory.NETWORK_ERROR,
           ErrorSeverity.MEDIUM,
           context,
-          error
+          error,
         );
       }
 
-      if (errorMessage.includes('device') || errorMessage.includes('not found')) {
+      if (
+        errorMessage.includes("device") ||
+        errorMessage.includes("not found")
+      ) {
         throw new PluginError(
-          'Device not found or unavailable',
+          "Device not found or unavailable",
           ErrorCategory.DEVICE_ERROR,
           ErrorSeverity.MEDIUM,
           context,
-          error
+          error,
         );
       }
 
-      if (errorMessage.includes('rate limit') || errorMessage.includes('too many requests')) {
+      if (
+        errorMessage.includes("rate limit") ||
+        errorMessage.includes("too many requests")
+      ) {
         throw new PluginError(
-          'Rate limit exceeded. Please wait before trying again.',
+          "Rate limit exceeded. Please wait before trying again.",
           ErrorCategory.API_ERROR,
           ErrorSeverity.LOW,
           context,
-          error
+          error,
         );
       }
     }
@@ -201,7 +216,7 @@ export class ErrorBoundaries {
       ErrorCategory.API_ERROR,
       ErrorSeverity.MEDIUM,
       context,
-      error instanceof Error ? error : new Error(String(error))
+      error instanceof Error ? error : new Error(String(error)),
     );
   }
 
@@ -212,12 +227,12 @@ export class ErrorBoundaries {
     operation: () => Promise<T>,
     deviceId: string,
     deviceName: string,
-    controlType: string
+    controlType: string,
   ): Promise<T> {
     return this.wrapApiCall(
       operation,
       { deviceId, metadata: { deviceName, controlType } },
-      `Device Control: ${controlType} on ${deviceName}`
+      `Device Control: ${controlType} on ${deviceName}`,
     );
   }
 
@@ -227,25 +242,28 @@ export class ErrorBoundaries {
   static validateAndHandle<T>(
     validationFn: () => T,
     context: Partial<ErrorContext>,
-    operationName: string
+    operationName: string,
   ): T {
     const fullContext: ErrorContext = {
       ...context,
       timestamp: new Date(),
-      action: operationName
+      action: operationName,
     };
 
     try {
       return validationFn();
     } catch (error) {
       if (error instanceof ApiValidationError) {
-        streamDeck.logger.error(`Validation failed for ${operationName}:`, error);
+        streamDeck.logger.error(
+          `Validation failed for ${operationName}:`,
+          error,
+        );
         throw new PluginError(
           error.getUserFriendlyMessage(),
           ErrorCategory.VALIDATION_ERROR,
           ErrorSeverity.MEDIUM,
           fullContext,
-          error
+          error,
         );
       }
       throw error;
@@ -261,21 +279,21 @@ export class ErrorBoundaries {
       severity: error.severity,
       context: error.context,
       message: error.message,
-      originalError: error.originalError?.message
+      originalError: error.originalError?.message,
     };
 
     switch (error.severity) {
       case ErrorSeverity.CRITICAL:
-        streamDeck.logger.error('CRITICAL ERROR:', logData);
+        streamDeck.logger.error("CRITICAL ERROR:", logData);
         break;
       case ErrorSeverity.HIGH:
-        streamDeck.logger.error('HIGH SEVERITY ERROR:', logData);
+        streamDeck.logger.error("HIGH SEVERITY ERROR:", logData);
         break;
       case ErrorSeverity.MEDIUM:
-        streamDeck.logger.warn('MEDIUM SEVERITY ERROR:', logData);
+        streamDeck.logger.warn("MEDIUM SEVERITY ERROR:", logData);
         break;
       case ErrorSeverity.LOW:
-        streamDeck.logger.info('LOW SEVERITY ERROR:', logData);
+        streamDeck.logger.info("LOW SEVERITY ERROR:", logData);
         break;
     }
   }

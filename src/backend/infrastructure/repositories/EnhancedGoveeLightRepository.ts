@@ -8,10 +8,17 @@ import {
 import { ILightRepository } from "../../domain/repositories/ILightRepository";
 import { Light, LightState } from "../../domain/entities";
 import streamDeck from "@elgato/streamdeck";
-import { ErrorBoundaries, ErrorCategory, ErrorSeverity } from "../errors/ErrorBoundaries";
+import {
+  ErrorBoundaries,
+  ErrorCategory,
+  ErrorSeverity,
+} from "../errors/ErrorBoundaries";
 import { ApiResponseValidator } from "../validation/ApiResponseValidator";
 import { GoveeDeviceStateSchema } from "../validation/goveeApiSchemas";
-import { CircuitBreaker, CircuitBreakerFactory } from "../resilience/CircuitBreaker";
+import {
+  CircuitBreaker,
+  CircuitBreakerFactory,
+} from "../resilience/CircuitBreaker";
 
 /**
  * Enhanced Govee Light Repository with comprehensive error handling,
@@ -32,7 +39,8 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
     });
 
     // Initialize circuit breaker for API calls
-    this.apiCircuitBreaker = CircuitBreakerFactory.createApiCircuitBreaker('govee-api');
+    this.apiCircuitBreaker =
+      CircuitBreakerFactory.createApiCircuitBreaker("govee-api");
   }
 
   async getAllLights(): Promise<Light[]> {
@@ -40,10 +48,10 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
       async () => {
         return this.apiCircuitBreaker.execute(async () => {
           const devices = await this.client.getControllableDevices();
-          
+
           // Basic validation - ensure devices is an array
           if (!Array.isArray(devices)) {
-            throw new Error('Govee API returned invalid device list format');
+            throw new Error("Govee API returned invalid device list format");
           }
 
           return devices
@@ -51,8 +59,8 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
             .map((device) => this.mapDeviceToLight(device));
         });
       },
-      { action: 'getAllLights' },
-      'Get All Lights'
+      { action: "getAllLights" },
+      "Get All Lights",
     );
   }
 
@@ -61,16 +69,17 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
       async () => {
         return this.apiCircuitBreaker.execute(async () => {
           const devices = await this.client.getControllableDevices();
-          
+
           // Basic validation - ensure devices is an array
           if (!Array.isArray(devices)) {
-            throw new Error('Govee API returned invalid device list format');
+            throw new Error("Govee API returned invalid device list format");
           }
 
           const device = devices.find(
-            (d) => this.isValidDevice(d) && 
-                   d.deviceId === deviceId && 
-                   d.model === model,
+            (d) =>
+              this.isValidDevice(d) &&
+              d.deviceId === deviceId &&
+              d.model === model,
           );
 
           if (!device) {
@@ -81,7 +90,7 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
         });
       },
       { deviceId, metadata: { model } },
-      'Find Light'
+      "Find Light",
     );
   }
 
@@ -90,30 +99,33 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
       async () => {
         return this.apiCircuitBreaker.execute(async () => {
           const devices = await this.client.getControllableDevices();
-          
+
           // Basic validation - ensure devices is an array
           if (!Array.isArray(devices)) {
-            throw new Error('Govee API returned invalid device list format');
+            throw new Error("Govee API returned invalid device list format");
           }
 
-          const matchingDevices = devices.filter((device) =>
-            this.isValidDevice(device) && 
-            device.deviceName.toLowerCase().includes(name.toLowerCase()),
+          const matchingDevices = devices.filter(
+            (device) =>
+              this.isValidDevice(device) &&
+              device.deviceName.toLowerCase().includes(name.toLowerCase()),
           );
 
           return matchingDevices.map((device) => this.mapDeviceToLight(device));
         });
       },
       { metadata: { searchName: name } },
-      'Find Lights by Name'
+      "Find Lights by Name",
     );
   }
 
   async setPower(light: Light, isOn: boolean): Promise<void> {
     return ErrorBoundaries.wrapDeviceControl(
       async () => {
-        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(light.deviceId);
-        
+        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(
+          light.deviceId,
+        );
+
         return deviceCircuitBreaker.execute(async () => {
           if (isOn) {
             await this.client.turnOn(light.deviceId, light.model);
@@ -122,46 +134,60 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
           }
 
           light.updateState({ isOn });
-          streamDeck.logger.info(`Light ${light.name} power set to ${isOn ? 'ON' : 'OFF'}`);
+          streamDeck.logger.info(
+            `Light ${light.name} power set to ${isOn ? "ON" : "OFF"}`,
+          );
         });
       },
       light.deviceId,
       light.name,
-      `Set Power ${isOn ? 'ON' : 'OFF'}`
+      `Set Power ${isOn ? "ON" : "OFF"}`,
     );
   }
 
   async setBrightness(light: Light, brightness: Brightness): Promise<void> {
     return ErrorBoundaries.wrapDeviceControl(
       async () => {
-        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(light.deviceId);
-        
+        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(
+          light.deviceId,
+        );
+
         return deviceCircuitBreaker.execute(async () => {
-          await this.client.setBrightness(light.deviceId, light.model, brightness);
+          await this.client.setBrightness(
+            light.deviceId,
+            light.model,
+            brightness,
+          );
           light.updateState({ brightness });
-          streamDeck.logger.info(`Light ${light.name} brightness set to ${brightness.level}%`);
+          streamDeck.logger.info(
+            `Light ${light.name} brightness set to ${brightness.level}%`,
+          );
         });
       },
       light.deviceId,
       light.name,
-      'Set Brightness'
+      "Set Brightness",
     );
   }
 
   async setColor(light: Light, color: ColorRgb): Promise<void> {
     return ErrorBoundaries.wrapDeviceControl(
       async () => {
-        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(light.deviceId);
-        
+        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(
+          light.deviceId,
+        );
+
         return deviceCircuitBreaker.execute(async () => {
           await this.client.setColor(light.deviceId, light.model, color);
           light.updateState({ color, colorTemperature: undefined });
-          streamDeck.logger.info(`Light ${light.name} color set to ${color.toString()}`);
+          streamDeck.logger.info(
+            `Light ${light.name} color set to ${color.toString()}`,
+          );
         });
       },
       light.deviceId,
       light.name,
-      'Set Color'
+      "Set Color",
     );
   }
 
@@ -171,8 +197,10 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
   ): Promise<void> {
     return ErrorBoundaries.wrapDeviceControl(
       async () => {
-        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(light.deviceId);
-        
+        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(
+          light.deviceId,
+        );
+
         return deviceCircuitBreaker.execute(async () => {
           await this.client.setColorTemperature(
             light.deviceId,
@@ -181,13 +209,13 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
           );
           light.updateState({ colorTemperature, color: undefined });
           streamDeck.logger.info(
-            `Light ${light.name} color temperature set to ${colorTemperature.kelvin}K`
+            `Light ${light.name} color temperature set to ${colorTemperature.kelvin}K`,
           );
         });
       },
       light.deviceId,
       light.name,
-      'Set Color Temperature'
+      "Set Color Temperature",
     );
   }
 
@@ -197,8 +225,10 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
   ): Promise<void> {
     return ErrorBoundaries.wrapDeviceControl(
       async () => {
-        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(light.deviceId);
-        
+        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(
+          light.deviceId,
+        );
+
         return deviceCircuitBreaker.execute(async () => {
           await this.client.turnOnWithBrightness(
             light.deviceId,
@@ -207,13 +237,13 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
           );
           light.updateState({ isOn: true, brightness });
           streamDeck.logger.info(
-            `Light ${light.name} turned on with brightness ${brightness.level}%`
+            `Light ${light.name} turned on with brightness ${brightness.level}%`,
           );
         });
       },
       light.deviceId,
       light.name,
-      'Turn On with Brightness'
+      "Turn On with Brightness",
     );
   }
 
@@ -224,8 +254,10 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
   ): Promise<void> {
     return ErrorBoundaries.wrapDeviceControl(
       async () => {
-        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(light.deviceId);
-        
+        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(
+          light.deviceId,
+        );
+
         return deviceCircuitBreaker.execute(async () => {
           await this.client.turnOnWithColor(
             light.deviceId,
@@ -239,12 +271,14 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
             brightness: brightness || light.state.brightness,
             colorTemperature: undefined,
           });
-          streamDeck.logger.info(`Light ${light.name} turned on with color ${color.toString()}`);
+          streamDeck.logger.info(
+            `Light ${light.name} turned on with color ${color.toString()}`,
+          );
         });
       },
       light.deviceId,
       light.name,
-      'Turn On with Color'
+      "Turn On with Color",
     );
   }
 
@@ -255,8 +289,10 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
   ): Promise<void> {
     return ErrorBoundaries.wrapDeviceControl(
       async () => {
-        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(light.deviceId);
-        
+        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(
+          light.deviceId,
+        );
+
         return deviceCircuitBreaker.execute(async () => {
           await this.client.turnOnWithColorTemperature(
             light.deviceId,
@@ -271,21 +307,23 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
             color: undefined,
           });
           streamDeck.logger.info(
-            `Light ${light.name} turned on with color temperature ${colorTemperature.kelvin}K`
+            `Light ${light.name} turned on with color temperature ${colorTemperature.kelvin}K`,
           );
         });
       },
       light.deviceId,
       light.name,
-      'Turn On with Color Temperature'
+      "Turn On with Color Temperature",
     );
   }
 
   async getLightState(light: Light): Promise<void> {
     return ErrorBoundaries.wrapDeviceControl(
       async () => {
-        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(light.deviceId);
-        
+        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(
+          light.deviceId,
+        );
+
         return deviceCircuitBreaker.execute(async () => {
           const deviceState = await this.client.getDeviceState(
             light.deviceId,
@@ -296,7 +334,7 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
           const validatedState = ApiResponseValidator.validate(
             GoveeDeviceStateSchema,
             deviceState,
-            'Device state response'
+            "Device state response",
           );
 
           const newState: Partial<LightState> = {
@@ -329,7 +367,7 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
       },
       light.deviceId,
       light.name,
-      'Get Light State'
+      "Get Light State",
     );
   }
 
@@ -338,7 +376,8 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
    */
   private getDeviceCircuitBreaker(deviceId: string): CircuitBreaker {
     if (!this.deviceCircuitBreakers.has(deviceId)) {
-      const circuitBreaker = CircuitBreakerFactory.createDeviceCircuitBreaker(deviceId);
+      const circuitBreaker =
+        CircuitBreakerFactory.createDeviceCircuitBreaker(deviceId);
       this.deviceCircuitBreakers.set(deviceId, circuitBreaker);
     }
     return this.deviceCircuitBreakers.get(deviceId)!;
@@ -349,20 +388,21 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
    */
   private isValidDevice(device: any): device is GoveeDevice {
     return (
-      device && 
-      typeof device.deviceId === 'string' && 
-      device.deviceId.trim() !== '' &&
-      typeof device.model === 'string' && 
-      device.model.trim() !== '' &&
-      typeof device.deviceName === 'string' && 
-      device.deviceName.trim() !== ''
+      device &&
+      typeof device.deviceId === "string" &&
+      device.deviceId.trim() !== "" &&
+      typeof device.model === "string" &&
+      device.model.trim() !== "" &&
+      typeof device.deviceName === "string" &&
+      device.deviceName.trim() !== ""
     );
   }
 
   private mapDeviceToLight(device: GoveeDevice): Light {
     const initialState: LightState = {
       isOn: false,
-      isOnline: typeof device.canControl === 'function' ? device.canControl() : true,
+      isOnline:
+        typeof device.canControl === "function" ? device.canControl() : true,
       brightness: undefined,
       color: undefined,
       colorTemperature: undefined,
@@ -382,13 +422,13 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
   getServiceStats() {
     const clientStats = this.client.getServiceStats();
     const apiCircuitBreakerStats = this.apiCircuitBreaker.getStats();
-    
-    const deviceCircuitBreakerStats = Array.from(this.deviceCircuitBreakers.entries()).map(
-      ([deviceId, breaker]) => ({
-        deviceId,
-        ...breaker.getStats(),
-      })
-    );
+
+    const deviceCircuitBreakerStats = Array.from(
+      this.deviceCircuitBreakers.entries(),
+    ).map(([deviceId, breaker]) => ({
+      deviceId,
+      ...breaker.getStats(),
+    }));
 
     return {
       client: clientStats,
@@ -405,6 +445,6 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
   resetCircuitBreakers(): void {
     this.apiCircuitBreaker.reset();
     this.deviceCircuitBreakers.forEach((breaker) => breaker.reset());
-    streamDeck.logger.info('All circuit breakers reset');
+    streamDeck.logger.info("All circuit breakers reset");
   }
 }

@@ -6,16 +6,16 @@ import streamDeck from "@elgato/streamdeck";
  */
 
 export enum CircuitState {
-  CLOSED = 'closed',     // Normal operation
-  OPEN = 'open',         // Failing, blocking all requests
-  HALF_OPEN = 'half_open' // Testing if service has recovered
+  CLOSED = "closed", // Normal operation
+  OPEN = "open", // Failing, blocking all requests
+  HALF_OPEN = "half_open", // Testing if service has recovered
 }
 
 export interface CircuitBreakerConfig {
-  failureThreshold: number;    // Number of failures before opening
-  recoveryTimeout: number;     // Time to wait before trying again (ms)
-  successThreshold: number;    // Successes needed to close from half-open
-  timeout: number;            // Request timeout (ms)
+  failureThreshold: number; // Number of failures before opening
+  recoveryTimeout: number; // Time to wait before trying again (ms)
+  successThreshold: number; // Successes needed to close from half-open
+  timeout: number; // Request timeout (ms)
 }
 
 export interface CircuitBreakerStats {
@@ -41,7 +41,7 @@ export class CircuitBreaker {
 
   constructor(
     private readonly name: string,
-    private readonly config: CircuitBreakerConfig
+    private readonly config: CircuitBreakerConfig,
   ) {
     streamDeck.logger.info(`Circuit breaker initialized: ${name}`, config);
   }
@@ -56,21 +56,26 @@ export class CircuitBreaker {
       if (this.shouldAttemptReset()) {
         this.state = CircuitState.HALF_OPEN;
         this.successCount = 0;
-        streamDeck.logger.info(`Circuit breaker ${this.name} transitioning to HALF_OPEN`);
+        streamDeck.logger.info(
+          `Circuit breaker ${this.name} transitioning to HALF_OPEN`,
+        );
       } else {
         throw new CircuitBreakerOpenError(
-          `Circuit breaker ${this.name} is OPEN. Next attempt at ${this.nextAttemptTime?.toISOString()}`
+          `Circuit breaker ${this.name} is OPEN. Next attempt at ${this.nextAttemptTime?.toISOString()}`,
         );
       }
     }
 
     try {
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Operation timeout')), this.config.timeout);
+        setTimeout(
+          () => reject(new Error("Operation timeout")),
+          this.config.timeout,
+        );
       });
 
       const result = await Promise.race([operation(), timeoutPromise]);
-      
+
       this.onSuccess();
       return result;
     } catch (error) {
@@ -91,7 +96,9 @@ export class CircuitBreaker {
       if (this.successCount >= this.config.successThreshold) {
         this.state = CircuitState.CLOSED;
         this.successCount = 0;
-        streamDeck.logger.info(`Circuit breaker ${this.name} CLOSED - service recovered`);
+        streamDeck.logger.info(
+          `Circuit breaker ${this.name} CLOSED - service recovered`,
+        );
       }
     }
   }
@@ -107,12 +114,14 @@ export class CircuitBreaker {
     if (this.state === CircuitState.HALF_OPEN) {
       this.state = CircuitState.OPEN;
       this.setNextAttemptTime();
-      streamDeck.logger.warn(`Circuit breaker ${this.name} OPEN - service still failing`);
+      streamDeck.logger.warn(
+        `Circuit breaker ${this.name} OPEN - service still failing`,
+      );
     } else if (this.failureCount >= this.config.failureThreshold) {
       this.state = CircuitState.OPEN;
       this.setNextAttemptTime();
       streamDeck.logger.warn(
-        `Circuit breaker ${this.name} OPEN - failure threshold reached (${this.failureCount}/${this.config.failureThreshold})`
+        `Circuit breaker ${this.name} OPEN - failure threshold reached (${this.failureCount}/${this.config.failureThreshold})`,
       );
     }
   }
@@ -176,7 +185,7 @@ export class CircuitBreaker {
 export class CircuitBreakerOpenError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'CircuitBreakerOpenError';
+    this.name = "CircuitBreakerOpenError";
   }
 }
 
@@ -189,10 +198,10 @@ export class CircuitBreakerFactory {
    */
   static createApiCircuitBreaker(name: string): CircuitBreaker {
     return new CircuitBreaker(name, {
-      failureThreshold: 5,        // 5 failures before opening
-      recoveryTimeout: 30000,     // Wait 30 seconds before retry
-      successThreshold: 2,        // 2 successes to close
-      timeout: 10000,             // 10 second timeout per request
+      failureThreshold: 5, // 5 failures before opening
+      recoveryTimeout: 30000, // Wait 30 seconds before retry
+      successThreshold: 2, // 2 successes to close
+      timeout: 10000, // 10 second timeout per request
     });
   }
 
@@ -201,10 +210,10 @@ export class CircuitBreakerFactory {
    */
   static createDeviceCircuitBreaker(deviceId: string): CircuitBreaker {
     return new CircuitBreaker(`device-${deviceId}`, {
-      failureThreshold: 3,        // 3 failures before opening (devices fail faster)
-      recoveryTimeout: 60000,     // Wait 1 minute before retry (devices need more time)
-      successThreshold: 1,        // 1 success to close (be optimistic about recovery)
-      timeout: 15000,             // 15 second timeout (device operations can be slower)
+      failureThreshold: 3, // 3 failures before opening (devices fail faster)
+      recoveryTimeout: 60000, // Wait 1 minute before retry (devices need more time)
+      successThreshold: 1, // 1 success to close (be optimistic about recovery)
+      timeout: 15000, // 15 second timeout (device operations can be slower)
     });
   }
 }

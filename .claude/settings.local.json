@@ -36,7 +36,10 @@
       "Bash(gh run view:*)",
       "Bash(gh run list:*)",
       "Bash(npm run test:*)",
-      "Bash(npm run type-check:*)"
+      "Bash(npm run type-check:*)",
+      "mcp__github__list_workflow_runs",
+      "mcp__github__list_workflow_jobs",
+      "mcp__github__get_job_logs"
     ],
     "deny": []
   }

@@ -49,9 +49,14 @@ export const LightControlSettingsSchema = z.object({
   selectedDeviceId: z.string().optional(),
   selectedModel: z.string().optional(),
   selectedLightName: z.string().optional(),
-  controlMode: z.enum(["toggle", "on", "off", "brightness", "color", "colorTemp"]).optional(),
+  controlMode: z
+    .enum(["toggle", "on", "off", "brightness", "color", "colorTemp"])
+    .optional(),
   brightnessValue: z.number().min(0).max(100).optional(),
-  colorValue: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  colorValue: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
   colorTempValue: z.number().min(2000).max(9000).optional(),
 });
 
@@ -59,9 +64,14 @@ export const GroupControlSettingsSchema = z.object({
   apiKey: z.string().optional(),
   selectedGroupId: z.string().optional(),
   selectedGroupName: z.string().optional(),
-  controlMode: z.enum(["toggle", "on", "off", "brightness", "color", "colorTemp"]).optional(),
+  controlMode: z
+    .enum(["toggle", "on", "off", "brightness", "color", "colorTemp"])
+    .optional(),
   brightnessValue: z.number().min(0).max(100).optional(),
-  colorValue: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  colorValue: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
   colorTempValue: z.number().min(2000).max(9000).optional(),
 });
 
