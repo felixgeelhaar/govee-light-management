@@ -33,7 +33,7 @@
     "type": "module",
     "devDependencies": {
         "@elgato/cli": "^1.4.0",
-        "@playwright/test": "^1.49.0",
+        "@playwright/test": "^1.54.2",
         "@tsconfig/node20": "^20.1.2",
         "@types/node": "20.19.0",
         "@typescript-eslint/eslint-plugin": "^8.0.0",
