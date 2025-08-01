@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+  "id": "group-dial",
+  "items": [
+    {
+      "key": "title",
+      "type": "text",
+      "rect": [16, 5, 168, 20],
+      "font": {
+        "size": 16,
+        "weight": 600
+      },
+      "alignment": "center"
+    },
+    {
+      "key": "status",
+      "type": "text",
+      "rect": [16, 25, 168, 16],
+      "font": {
+        "size": 12,
+        "weight": 400
+      },
+      "alignment": "center",
+      "opacity": 0.8
+    },
+    {
+      "key": "icon",
+      "type": "pixmap",
+      "rect": [20, 45, 32, 32]
+    },
+    {
+      "key": "value",
+      "type": "text",
+      "rect": [130, 48, 60, 28],
+      "font": {
+        "size": 20,
+        "weight": 700
+      },
+      "alignment": "right"
+    },
+    {
+      "key": "indicator",
+      "type": "bar",
+      "rect": [16, 85, 168, 8],
+      "bar_bg_c": "0:#333333",
+      "bar_border_c": "0:#555555",
+      "bar_fill_c": "0:#00BFFF"
+    }
+  ]
+}

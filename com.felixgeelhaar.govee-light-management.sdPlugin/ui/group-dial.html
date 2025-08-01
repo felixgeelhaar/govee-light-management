@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Group Master Dial Settings</title>
+    <link rel="stylesheet" href="css/sdpi.css">
+    <script src="js/property-inspector.js"></script>
+</head>
+<body>
+    <div class="sdpi-wrapper">
+        <div class="sdpi-heading">Configuration</div>
+        
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">API Key</div>
+            <input class="sdpi-item-value" type="password" id="apiKey" placeholder="Enter your Govee API key">
+        </div>
+
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">Group Name</div>
+            <input class="sdpi-item-value" type="text" id="groupName" placeholder="My Light Group">
+        </div>
+
+        <div class="sdpi-heading">Select Lights for Group</div>
+
+        <div class="sdpi-item" id="lightList">
+            <div class="sdpi-item-value">
+                <div style="max-height: 200px; overflow-y: auto;">
+                    <div id="deviceCheckboxes">Loading devices...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sdpi-heading">Sync Settings</div>
+
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">Step Size</div>
+            <div class="sdpi-item-value">
+                <input type="range" min="1" max="20" value="5" id="stepSize">
+                <span class="clickable" id="stepSizeValue">5</span>
+            </div>
+        </div>
+
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">Sync Delay (ms)</div>
+            <div class="sdpi-item-value">
+                <input type="range" min="0" max="500" value="50" step="10" id="syncDelay">
+                <span class="clickable" id="syncDelayValue">50ms</span>
+            </div>
+        </div>
+
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">Instructions</div>
+            <div class="sdpi-item-value">
+                <details class="message">
+                    <summary>How to use the Group Dial</summary>
+                    <ul>
+                        <li><strong>Rotate:</strong> Adjust all lights</li>
+                        <li><strong>Press:</strong> Toggle entire group</li>
+                        <li><strong>Touch:</strong> Quick presets menu</li>
+                        <li><strong>Long Touch:</strong> Reset to defaults</li>
+                    </ul>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/group-dial.js"></script>
+</body>
+</html>

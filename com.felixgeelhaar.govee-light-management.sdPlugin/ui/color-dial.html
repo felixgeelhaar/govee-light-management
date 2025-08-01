@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>RGB Color Dial Settings</title>
+    <link rel="stylesheet" href="css/sdpi.css">
+    <script src="js/property-inspector.js"></script>
+</head>
+<body>
+    <div class="sdpi-wrapper">
+        <div class="sdpi-heading">Configuration</div>
+        
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">API Key</div>
+            <input class="sdpi-item-value" type="password" id="apiKey" placeholder="Enter your Govee API key">
+        </div>
+
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">Select Light</div>
+            <select class="sdpi-item-value select" id="selectedDeviceId">
+                <option value="">Loading devices...</option>
+            </select>
+        </div>
+
+        <div class="sdpi-heading">Color Settings</div>
+
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">Step Size</div>
+            <div class="sdpi-item-value">
+                <input type="range" min="1" max="20" value="5" id="stepSize">
+                <span class="clickable" id="stepSizeValue">5</span>
+            </div>
+        </div>
+
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">Quick Color</div>
+            <input class="sdpi-item-value" type="color" id="colorPicker">
+        </div>
+
+        <div class="sdpi-item">
+            <div class="sdpi-item-label">Instructions</div>
+            <div class="sdpi-item-value">
+                <details class="message">
+                    <summary>How to use the RGB Color Dial</summary>
+                    <ul>
+                        <li><strong>Rotate:</strong> Adjust hue/saturation/brightness</li>
+                        <li><strong>Press:</strong> Switch between H/S/B modes</li>
+                        <li><strong>Long Touch:</strong> Reset to white</li>
+                        <li>Use color picker for quick selection</li>
+                    </ul>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/color-dial.js"></script>
+</body>
+</html>

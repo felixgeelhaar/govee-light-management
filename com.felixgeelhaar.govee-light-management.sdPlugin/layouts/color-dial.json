@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+  "id": "color-dial",
+  "items": [
+    {
+      "key": "title",
+      "type": "text",
+      "rect": [16, 5, 168, 20],
+      "font": {
+        "size": 14,
+        "weight": 600
+      },
+      "alignment": "center"
+    },
+    {
+      "key": "mode",
+      "type": "text",
+      "rect": [16, 25, 168, 18],
+      "font": {
+        "size": 12,
+        "weight": 400
+      },
+      "alignment": "center",
+      "opacity": 0.7
+    },
+    {
+      "key": "color_preview",
+      "type": "pixmap",
+      "rect": [60, 48, 80, 30],
+      "enabled": true
+    },
+    {
+      "key": "value",
+      "type": "text",
+      "rect": [140, 52, 50, 24],
+      "font": {
+        "size": 16,
+        "weight": 700
+      },
+      "alignment": "right"
+    },
+    {
+      "key": "indicator",
+      "type": "bar",
+      "rect": [16, 85, 168, 8],
+      "bar_bg_c": "0:#333333",
+      "bar_border_c": "0:#555555"
+    }
+  ]
+}

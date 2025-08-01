@@ -28,11 +28,30 @@
 - **Delete** groups with confirmation prompts
 - **Visual indicators** for group states (●/○/◐)
 
+### 🎯 **Stream Deck Plus Support** *(New!)*
+- **Brightness Dial**: Smooth brightness control with physical dial
+  - Rotate to adjust brightness (0-100%)
+  - Press to toggle light on/off
+  - Long touch to reset to 50%
+- **Color Temperature Dial**: Intuitive temperature adjustment
+  - Rotate to adjust from warm (2000K) to cool (9000K)
+  - Press to cycle through presets
+  - Visual gradient feedback on touchscreen
+- **RGB Color Dial**: Full color control
+  - Three modes: Hue, Saturation, Brightness
+  - Press to switch modes
+  - Long touch to reset to white
+- **Group Master Dial**: Control multiple lights simultaneously
+  - Adjust all lights in sync
+  - Press to toggle entire group
+  - Touch for quick preset access
+
 ### 🎨 **Professional UI**
 - Custom Stream Deck dark theme with SDPI framework
 - Responsive form controls and accessibility compliance
 - Intuitive Property Inspector interface
 - Real-time status updates and error handling
+- Custom touchscreen layouts for Stream Deck Plus
 
 ### 🏗️ **Enterprise Architecture**
 - Domain-driven design (DDD) with clean architecture
@@ -137,12 +156,63 @@
    - Press button to control all lights in group simultaneously
    - Visual feedback shows combined group state
 
+### Stream Deck Plus Dial Controls
+
+#### Brightness Dial
+1. **Setup**
+   - Add "Brightness Dial" action to an encoder slot
+   - Configure min/max brightness and step size
+   - Select target light
+
+2. **Usage**
+   - **Rotate**: Smoothly adjust brightness
+   - **Press**: Toggle light on/off
+   - **Long Touch**: Reset to 50% brightness
+   - **Press + Rotate**: 2x speed adjustment
+
+#### Color Temperature Dial
+1. **Setup**
+   - Add "Color Temperature Dial" action
+   - Set temperature range (2000K-9000K)
+   - Configure presets if desired
+
+2. **Usage**
+   - **Rotate**: Adjust color temperature
+   - **Press**: Cycle through presets
+   - **Touch**: Open preset menu
+   - Visual gradient shows warm to cool
+
+#### RGB Color Dial
+1. **Setup**
+   - Add "RGB Color Dial" action
+   - Configure step size for precision
+   - Use color picker for quick selection
+
+2. **Usage**
+   - **Rotate**: Adjust current mode (H/S/B)
+   - **Press**: Switch between Hue/Saturation/Brightness
+   - **Long Touch**: Reset to white
+   - Touchscreen shows current color
+
+#### Group Master Dial
+1. **Setup**
+   - Add "Group Master Dial" action
+   - Select lights for the group
+   - Configure sync delay for effects
+
+2. **Usage**
+   - **Rotate**: Adjust all lights simultaneously
+   - **Press**: Toggle entire group
+   - **Touch**: Access quick presets
+   - **Long Touch**: Reset to defaults
+
 ### Advanced Features
 
 #### Real-time State Monitoring
 - Buttons automatically update to reflect current light states
 - Group indicators show combined state of all lights
 - Error states are clearly communicated
+- Dial displays show live feedback
 
 #### API Key Management
 - API keys are securely stored in Stream Deck settings

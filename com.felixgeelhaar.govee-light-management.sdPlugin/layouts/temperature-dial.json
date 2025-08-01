@@ -1,0 +1,38 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+  "id": "temperature-dial",
+  "items": [
+    {
+      "key": "title",
+      "type": "text",
+      "rect": [16, 10, 168, 24],
+      "font": {
+        "size": 16,
+        "weight": 600
+      },
+      "alignment": "center"
+    },
+    {
+      "key": "icon",
+      "type": "pixmap",
+      "rect": [20, 40, 32, 32]
+    },
+    {
+      "key": "value",
+      "type": "text",
+      "rect": [120, 40, 70, 32],
+      "font": {
+        "size": 18,
+        "weight": 700
+      },
+      "alignment": "right"
+    },
+    {
+      "key": "indicator",
+      "type": "gbar",
+      "rect": [16, 80, 168, 10],
+      "bar_bg_c": "0:#333333",
+      "bar_border_c": "0:#555555"
+    }
+  ]
+}

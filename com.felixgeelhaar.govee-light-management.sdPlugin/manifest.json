@@ -34,6 +34,98 @@
 					"TitleAlignment": "middle"
 				}
 			]
+		},
+		{
+			"Name": "Brightness Dial",
+			"UUID": "com.felixgeelhaar.govee-light-management.brightness-dial",
+			"Icon": "imgs/actions/brightness-dial/icon",
+			"Tooltip": "Control light brightness with the dial",
+			"PropertyInspectorPath": "ui/brightness-dial.html",
+			"Controllers": [
+				"Encoder"
+			],
+			"Encoder": {
+				"layout": "layouts/brightness-dial.json",
+				"TriggerDescription": {
+					"Rotate": "Adjust brightness",
+					"Push": "Toggle light on/off",
+					"LongTouch": "Reset to 50%"
+				}
+			},
+			"States": [
+				{
+					"Image": "imgs/actions/brightness-dial/key"
+				}
+			]
+		},
+		{
+			"Name": "Color Temperature Dial",
+			"UUID": "com.felixgeelhaar.govee-light-management.temperature-dial",
+			"Icon": "imgs/actions/temperature-dial/icon",
+			"Tooltip": "Adjust color temperature with the dial",
+			"PropertyInspectorPath": "ui/temperature-dial.html",
+			"Controllers": [
+				"Encoder"
+			],
+			"Encoder": {
+				"layout": "layouts/temperature-dial.json",
+				"TriggerDescription": {
+					"Rotate": "Adjust temperature",
+					"Push": "Cycle presets",
+					"Touch": "Open presets"
+				}
+			},
+			"States": [
+				{
+					"Image": "imgs/actions/temperature-dial/key"
+				}
+			]
+		},
+		{
+			"Name": "RGB Color Dial",
+			"UUID": "com.felixgeelhaar.govee-light-management.color-dial",
+			"Icon": "imgs/actions/color-dial/icon",
+			"Tooltip": "Control RGB color with the dial",
+			"PropertyInspectorPath": "ui/color-dial.html",
+			"Controllers": [
+				"Encoder"
+			],
+			"Encoder": {
+				"layout": "layouts/color-dial.json",
+				"TriggerDescription": {
+					"Rotate": "Adjust hue/saturation/brightness",
+					"Push": "Switch mode",
+					"LongTouch": "Reset to white"
+				}
+			},
+			"States": [
+				{
+					"Image": "imgs/actions/color-dial/key"
+				}
+			]
+		},
+		{
+			"Name": "Group Master Dial",
+			"UUID": "com.felixgeelhaar.govee-light-management.group-dial",
+			"Icon": "imgs/actions/group-dial/icon",
+			"Tooltip": "Control all lights in a group",
+			"PropertyInspectorPath": "ui/group-dial.html",
+			"Controllers": [
+				"Encoder"
+			],
+			"Encoder": {
+				"layout": "layouts/group-dial.json",
+				"TriggerDescription": {
+					"Rotate": "Adjust all lights",
+					"Push": "Toggle group",
+					"Touch": "Quick presets"
+				}
+			},
+			"States": [
+				{
+					"Image": "imgs/actions/group-dial/key"
+				}
+			]
 		}
 	],
 	"Category": "Govee Light Management",

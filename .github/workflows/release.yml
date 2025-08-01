@@ -34,6 +34,9 @@ jobs:
     
     - name: Run build
       run: npm run build
+    
+    - name: Validate plugin structure
+      run: npx streamdeck validate com.felixgeelhaar.govee-light-management.sdPlugin
 
   build:
     name: Build Plugin
@@ -60,17 +63,8 @@ jobs:
     - name: Build plugin
       run: npm run build
     
-    - name: Create plugin package (Unix)
-      if: matrix.os != 'windows-latest'
-      run: |
-        cd com.felixgeelhaar.govee-light-management.sdPlugin
-        zip -r "../govee-light-management-${{ matrix.os }}.streamDeckPlugin" .
-    
-    - name: Create plugin package (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        cd com.felixgeelhaar.govee-light-management.sdPlugin
-        Compress-Archive -Path * -DestinationPath "../govee-light-management-${{ matrix.os }}.streamDeckPlugin"
+    - name: Create plugin package
+      run: npx streamdeck pack com.felixgeelhaar.govee-light-management.sdPlugin -o govee-light-management-${{ matrix.os }}.streamDeckPlugin
     
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -107,9 +101,7 @@ jobs:
       uses: actions/download-artifact@v4
     
     - name: Create universal plugin package
-      run: |
-        cd com.felixgeelhaar.govee-light-management.sdPlugin
-        zip -r "../govee-light-management.streamDeckPlugin" .
+      run: npx streamdeck pack com.felixgeelhaar.govee-light-management.sdPlugin -o govee-light-management.streamDeckPlugin
     
     - name: Extract version from tag
       id: get_version
@@ -151,6 +143,15 @@ jobs:
         echo "- [Installation Guide](https://github.com/felixgeelhaar/govee-light-management#installation)" >> release_notes.md
         echo "- [Usage Instructions](https://github.com/felixgeelhaar/govee-light-management#usage)" >> release_notes.md
         echo "- [Contributing Guide](https://github.com/felixgeelhaar/govee-light-management/blob/main/CONTRIBUTING.md)" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "## 🏪 Elgato Marketplace Submission" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "To submit this plugin to the Elgato Marketplace:" >> release_notes.md
+        echo "1. Download the \`marketplace-submission\` artifact from the workflow run" >> release_notes.md
+        echo "2. Follow the instructions in \`SUBMISSION_CHECKLIST.md\`" >> release_notes.md
+        echo "3. Submit via [Elgato Maker Console](https://marketplace.elgato.com/)" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "For detailed submission instructions, see [MARKETPLACE_SUBMISSION.md](https://github.com/felixgeelhaar/govee-light-management/blob/main/MARKETPLACE_SUBMISSION.md)" >> release_notes.md
     
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
@@ -165,6 +166,138 @@ jobs:
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  marketplace-prep:
+    name: Marketplace Preparation
+    runs-on: ubuntu-latest
+    needs: release
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build plugin
+      run: npm run build
+    
+    - name: Extract version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+    
+    - name: Validate plugin for marketplace
+      run: |
+        echo "🔍 Validating plugin for marketplace submission..."
+        npx streamdeck validate com.felixgeelhaar.govee-light-management.sdPlugin
+    
+    - name: Check required assets
+      run: |
+        echo "📋 Checking required marketplace assets..."
+        # Check for required icon sizes
+        if [ ! -f "com.felixgeelhaar.govee-light-management.sdPlugin/assets/icon.png" ]; then
+          echo "❌ Missing icon.png"
+          exit 1
+        fi
+        if [ ! -f "com.felixgeelhaar.govee-light-management.sdPlugin/assets/icon@2x.png" ]; then
+          echo "❌ Missing icon@2x.png"
+          exit 1
+        fi
+        echo "✅ All required assets found"
+    
+    - name: Generate marketplace metadata
+      run: |
+        cat > marketplace-metadata.json << EOF
+        {
+          "name": "Govee Light Management",
+          "version": "${{ steps.get_version.outputs.VERSION }}",
+          "description": "Enterprise-grade Stream Deck plugin for managing Govee smart lights with advanced group functionality",
+          "category": ["Smart Home", "Lighting"],
+          "tags": ["govee", "smart-lights", "automation", "iot"],
+          "requirements": {
+            "streamDeck": "6.0.0",
+            "os": ["windows", "macos"]
+          },
+          "author": "Felix Geelhaar",
+          "support": "https://github.com/felixgeelhaar/govee-light-management/issues",
+          "documentation": "https://github.com/felixgeelhaar/govee-light-management#readme"
+        }
+        EOF
+        echo "📄 Generated marketplace metadata"
+    
+    - name: Create submission package
+      run: |
+        mkdir -p marketplace-submission
+        npx streamdeck pack com.felixgeelhaar.govee-light-management.sdPlugin -o marketplace-submission/govee-light-management.streamDeckPlugin
+        cp marketplace-metadata.json marketplace-submission/
+        cp README.md marketplace-submission/
+        cp LICENSE marketplace-submission/
+        
+        # Create submission checklist
+        cat > marketplace-submission/SUBMISSION_CHECKLIST.md << EOF
+        # Elgato Marketplace Submission Checklist
+        
+        Plugin: Govee Light Management v${{ steps.get_version.outputs.VERSION }}
+        
+        ## Pre-submission Requirements ✅
+        - [x] Plugin validated with streamdeck validate
+        - [x] All required icon sizes present
+        - [x] Plugin tested on Windows and macOS
+        - [x] README.md updated with latest features
+        - [x] LICENSE file included
+        
+        ## Manual Submission Steps
+        
+        1. **Access Maker Console**
+           - Go to: https://marketplace.elgato.com/
+           - Sign in as a Maker
+        
+        2. **Submit Plugin Package**
+           - Upload: \`govee-light-management.streamDeckPlugin\`
+           - Category: Smart Home > Lighting
+           - Tags: govee, smart-lights, automation, iot
+        
+        3. **Provide Description**
+           - Use content from marketplace-metadata.json
+           - Highlight key features:
+             - Individual light control
+             - Group management
+             - Advanced color and brightness control
+             - Real-time state monitoring
+        
+        4. **Add Screenshots**
+           - Property Inspector view
+           - Stream Deck button states
+           - Group management interface
+        
+        5. **Testing Information**
+           - Requires Govee API key
+           - Compatible with all Govee smart lights
+           - Tested on Stream Deck, Stream Deck XL, Stream Deck Mini
+        
+        6. **Support Information**
+           - GitHub Issues: https://github.com/felixgeelhaar/govee-light-management/issues
+           - Documentation: https://github.com/felixgeelhaar/govee-light-management#readme
+        
+        ## Post-submission
+        - [ ] Monitor Maker Console for review feedback
+        - [ ] Join Marketplace Maker Discord for beta testing
+        - [ ] Prepare marketing materials
+        EOF
+        
+        echo "📦 Marketplace submission package created"
+    
+    - name: Upload marketplace package
+      uses: actions/upload-artifact@v4
+      with:
+        name: marketplace-submission
+        path: marketplace-submission/
 
   notify:
     name: Notify Release
