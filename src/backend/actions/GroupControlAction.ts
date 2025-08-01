@@ -428,7 +428,10 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       return;
     }
 
-    const payload = ev.payload as { groupName?: string; selectedLightIds?: string[] };
+    const payload = ev.payload as {
+      groupName?: string;
+      selectedLightIds?: string[];
+    };
     if (!payload.groupName || !payload.selectedLightIds) {
       return;
     }
@@ -522,7 +525,11 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       return;
     }
 
-    const payload = ev.payload as { groupId?: string; groupName?: string; selectedLightIds?: string[] };
+    const payload = ev.payload as {
+      groupId?: string;
+      groupName?: string;
+      selectedLightIds?: string[];
+    };
     if (!payload.groupId || !payload.groupName || !payload.selectedLightIds) {
       return;
     }
@@ -727,7 +734,9 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       return;
     }
 
-    const payload = ev.payload as { group?: { name: string; lightIds: string[] } };
+    const payload = ev.payload as {
+      group?: { name: string; lightIds: string[] };
+    };
     const group = payload.group;
 
     if (!group || !group.name || !group.lightIds) {
