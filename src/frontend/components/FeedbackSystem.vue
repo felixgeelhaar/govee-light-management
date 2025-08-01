@@ -114,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref } from "vue";
 import LoadingSpinner from "./LoadingSpinner.vue";
 
 // Toast notification interface
@@ -154,7 +154,7 @@ const showToast = (toast: Omit<Toast, "id">) => {
 
   // Auto-dismiss non-persistent toasts
   if (!newToast.persistent && newToast.duration) {
-    setTimeout(() => {
+    window.setTimeout(() => {
       dismissToast(id);
     }, newToast.duration);
   }
@@ -184,6 +184,7 @@ const handleToastAction = async (
     try {
       await action.action();
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Toast action failed:", error);
     }
   }
@@ -214,7 +215,7 @@ const displaySuccessAnimation = (message: string, duration = 2000) => {
   successMessage.value = message;
   showSuccessAnimation.value = true;
 
-  setTimeout(() => {
+  window.setTimeout(() => {
     hideSuccessAnimation();
   }, duration);
 };

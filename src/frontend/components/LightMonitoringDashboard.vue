@@ -201,10 +201,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import type { LightItem } from "@shared/types";
 import {
   useLightMonitoring,
-  type LightState,
   type LightStateChange,
 } from "../services/lightMonitoringService";
 import { useLightDiscovery } from "../composables/useLightDiscovery";
@@ -323,7 +321,7 @@ const formatProperty = (property: string): string => {
   return propertyMap[property] || property;
 };
 
-const formatValue = (value: any): string => {
+const formatValue = (value: unknown): string => {
   if (value === null || value === undefined) return "None";
   if (typeof value === "boolean") return value ? "On" : "Off";
   if (typeof value === "object" && value.r !== undefined) {

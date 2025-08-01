@@ -58,7 +58,7 @@ export function useFeedbackHelpers() {
     ...feedback,
 
     // Common patterns
-    showApiError: (error: any, title = "API Error") => {
+    showApiError: (error: unknown, title = "API Error") => {
       const message = error?.message || "An unexpected error occurred";
       return feedback.showError(title, message, [
         {
