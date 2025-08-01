@@ -57,7 +57,10 @@ export class RecoveryService {
   ): Promise<boolean> {
     // Don't attempt recovery for non-recoverable errors
     if (!isRecoverableError(error)) {
-      console.log("Error not recoverable, skipping recovery attempts", error.message);
+      console.log(
+        "Error not recoverable, skipping recovery attempts",
+        error.message,
+      );
       return false;
     }
 

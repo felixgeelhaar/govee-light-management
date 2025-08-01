@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
       "mcp__Ref__ref_search_documentation",
@@ -41,9 +42,9 @@
       "mcp__github__list_workflow_jobs",
       "mcp__github__get_job_logs",
       "Bash(npx eslint:*)",
-      "mcp__github__get_me"
+      "mcp__github__get_me",
+      "mcp__github__get_workflow_run"
     ],
     "deny": []
-  },
-  "$schema": "https://json.schemastore.org/claude-code-settings.json"
+  }
 }
