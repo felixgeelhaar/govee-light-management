@@ -7,18 +7,40 @@
 
 import { beforeEach, vi } from 'vitest';
 
-// Mock fs module for plugin.ts debug logging
+// Mock fs module for plugin.ts debug logging and Stream Deck logger
 vi.mock('fs', () => ({
   default: {
     appendFileSync: vi.fn(),
-    existsSync: vi.fn().mockReturnValue(false),
-    readFileSync: vi.fn(),
-    writeFileSync: vi.fn()
+    existsSync: vi.fn().mockReturnValue(true), // Return true to prevent file operations
+    readFileSync: vi.fn().mockReturnValue(''),
+    writeFileSync: vi.fn(),
+    mkdirSync: vi.fn(),
+    renameSync: vi.fn(), // For Stream Deck log rotation
+    unlinkSync: vi.fn(), // For Stream Deck log cleanup
+    statSync: vi.fn().mockReturnValue({ size: 0 }) // For Stream Deck log size checks
   },
   appendFileSync: vi.fn(),
-  existsSync: vi.fn().mockReturnValue(false),
-  readFileSync: vi.fn(),
-  writeFileSync: vi.fn()
+  existsSync: vi.fn().mockReturnValue(true),
+  readFileSync: vi.fn().mockReturnValue(''),
+  writeFileSync: vi.fn(),
+  mkdirSync: vi.fn(),
+  renameSync: vi.fn(),
+  unlinkSync: vi.fn(),
+  statSync: vi.fn().mockReturnValue({ size: 0 }),
+  promises: {
+    rename: vi.fn().mockResolvedValue(undefined),
+    unlink: vi.fn().mockResolvedValue(undefined),
+    mkdir: vi.fn().mockResolvedValue(undefined),
+    stat: vi.fn().mockResolvedValue({ size: 0 })
+  }
+}));
+
+// Mock fs/promises separately for Stream Deck logger
+vi.mock('fs/promises', () => ({
+  rename: vi.fn().mockResolvedValue(undefined),
+  unlink: vi.fn().mockResolvedValue(undefined),
+  mkdir: vi.fn().mockResolvedValue(undefined),
+  stat: vi.fn().mockResolvedValue({ size: 0 })
 }));
 
 // Mock browser globals for frontend tests
