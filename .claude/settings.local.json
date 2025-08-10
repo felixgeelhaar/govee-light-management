@@ -49,7 +49,9 @@
       "mcp__playwright__browser_select_option",
       "mcp__playwright__browser_click",
       "mcp__exa__web_search_exa",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(gh pr close:*)",
+      "Bash(npx playwright test:*)"
     ],
     "deny": []
   }

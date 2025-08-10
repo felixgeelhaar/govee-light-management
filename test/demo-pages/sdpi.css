@@ -1,0 +1,87 @@
+/* Minimal SDPI CSS for testing */
+.sdpi-wrapper {
+    padding: 16px;
+    background-color: #2d2d30;
+    color: #cccccc;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.form-control {
+    width: 100%;
+    padding: 8px 12px;
+    margin: 4px 0;
+    background-color: #3c3c3c;
+    border: 1px solid #565656;
+    border-radius: 4px;
+    color: #ffffff;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+button {
+    padding: 8px 16px;
+    background-color: #007acc;
+    border: none;
+    border-radius: 4px;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #106eb8;
+}
+
+button:disabled {
+    background-color: #565656;
+    cursor: not-allowed;
+}
+
+.error-message, .field-error {
+    color: #f14c4c;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.success-message {
+    color: #14a085;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+select {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: #3c3c3c;
+    border: 1px solid #565656;
+    border-radius: 4px;
+    color: #ffffff;
+}
+
+input[type="range"] {
+    width: 100%;
+}
+
+input[type="color"] {
+    width: 60px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid #565656;
+    border-radius: 4px;
+}
+
+input[type="password"] {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: #3c3c3c;
+    border: 1px solid #565656;
+    border-radius: 4px;
+    color: #ffffff;
+}

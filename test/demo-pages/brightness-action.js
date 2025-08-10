@@ -1,0 +1,1 @@
+../../com.felixgeelhaar.govee-light-management.sdPlugin/ui/brightness-action.js
