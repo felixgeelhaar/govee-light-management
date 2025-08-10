@@ -32,3 +32,7 @@ Thumbs.db
 *.tmp
 *.temp
 .cache/
+
+# Playwright test artifacts
+playwright-report/
+test-results/
