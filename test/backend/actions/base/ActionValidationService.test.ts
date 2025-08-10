@@ -4,7 +4,7 @@ import type { BaseActionSettings } from "../../../../src/backend/actions/base/Ba
 
 // Mock the Govee API client
 vi.mock("@felixgeelhaar/govee-api-client", () => ({
-  GoveeApiClient: vi.fn().mockImplementation(() => ({
+  GoveeClient: vi.fn().mockImplementation(() => ({
     getDevices: vi.fn().mockResolvedValue([
       { deviceId: "test-device", model: "H6159", name: "Test Light" }
     ])
@@ -296,10 +296,8 @@ describe("ActionValidationService", () => {
     });
     
     it("should warn when no devices found", async () => {
-      vi.mocked(vi.fn()).mockResolvedValueOnce([]);
-      
-      const { GoveeApiClient } = await import("@felixgeelhaar/govee-api-client");
-      vi.mocked(GoveeApiClient).mockImplementationOnce(() => ({
+      const { GoveeClient } = await import("@felixgeelhaar/govee-api-client");
+      vi.mocked(GoveeClient).mockImplementationOnce(() => ({
         getDevices: vi.fn().mockResolvedValueOnce([])
       } as any));
       
