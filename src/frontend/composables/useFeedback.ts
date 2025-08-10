@@ -32,11 +32,14 @@ export function useFeedback() {
     // Toast methods
     showToast: (toast: any) => feedbackSystem.value?.showToast(toast) ?? "",
     showSuccessToast: (title: string, message?: string) => feedbackSystem.value?.showSuccessToast(title, message) ?? "",
-    showError: (title: string, message?: string, actions?: any[]) => feedbackSystem.value?.showError(title, message, actions) ?? "",
+    showError: (title: string, message?: string, actions?: any[]) => feedbackSystem.value?.showError(title, message) ?? "",
     showWarning: (title: string, message?: string) => feedbackSystem.value?.showWarning(title, message) ?? "",
     showInfo: (title: string, message?: string) => feedbackSystem.value?.showInfo(title, message) ?? "",
     dismissToast: (id: string) => feedbackSystem.value?.dismissToast(id),
-    updateToastProgress: (id: string, progress: number) => feedbackSystem.value?.updateToastProgress(id, progress),
+    // updateToastProgress method is not available in current FeedbackSystem implementation
+    updateToastProgress: (id: string, progress: number) => {
+      console.warn("updateToastProgress is not implemented in current FeedbackSystem");
+    },
     updateToast: (id: string, updates: any) => feedbackSystem.value?.updateToast(id, updates),
 
     // Global loading methods
@@ -46,7 +49,7 @@ export function useFeedback() {
       feedbackSystem.value?.updateGlobalLoadingProgress(progress, text),
 
     // Success animation
-    showSuccessAnimation: (message: string) => feedbackSystem.value?.showSuccessAnimation(message),
+    showSuccessAnimation: (message: string) => feedbackSystem.value?.displaySuccessAnimation(message),
   };
 }
 

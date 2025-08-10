@@ -55,7 +55,7 @@ const successMessage = ref("");
 
 // Sync with toast machine state
 const syncMachineState = () => {
-  const machineToasts = toastMachine.getToasts();
+  const machineToasts = toastMachine.activeToasts.value;
   
   toasts.value = machineToasts.map((t: any) => ({
     id: t.id,
@@ -101,7 +101,7 @@ const showToast = (toast: Omit<Toast, "id">): string => {
   const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const newToast = { ...toast, id };
   
-  toastMachine.addToast(newToast);
+  toastMachine.showToast(toast);
   syncMachineState();
   
   return id;
@@ -121,7 +121,7 @@ const dismissToast = (id: string): void => {
   }
   
   pausedToasts.delete(id);
-  toastMachine.removeToast(id);
+  toastMachine.dismissToast(id);
   syncMachineState();
 };
 
@@ -339,11 +339,8 @@ let unsubscribe: (() => void) | undefined;
 onMounted(() => {
   syncMachineState();
   
-  if (typeof toastMachine.subscribe === 'function') {
-    unsubscribe = toastMachine.subscribe(() => {
-      syncMachineState();
-    });
-  }
+  // The composable handles subscriptions internally, just sync initial state
+  syncMachineState();
 });
 
 onUnmounted(() => {

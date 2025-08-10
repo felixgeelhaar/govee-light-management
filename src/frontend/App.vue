@@ -19,7 +19,7 @@ import { ref, provide, defineAsyncComponent } from "vue";
 // Lazy load the FeedbackSystem for better initial load performance
 const FeedbackSystem = defineAsyncComponent({
   loader: () => import("./components/FeedbackSystem.vue"),
-  loadingComponent: null, // No loading component needed as it's not visible initially
+  loadingComponent: undefined, // No loading component needed as it's not visible initially
   delay: 200, // Delay before showing loading component
   timeout: 30000, // Timeout after 30 seconds
   onError(error, retry, fail) {

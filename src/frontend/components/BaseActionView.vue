@@ -5,7 +5,12 @@
     
     <!-- API Key Configuration -->
     <ApiKeyConfiguration 
-      :connection="apiConnection"
+      :connection="{
+        isConnected: apiConnection.isConnected.value,
+        isConnecting: apiConnection.isConnecting.value,
+        hasError: apiConnection.hasError.value,
+        connect: apiConnection.connect
+      }"
       @api-key-changed="handleApiKeyChanged"
       @api-key-saved="handleApiKeySaved"
       @testing-connection="handleTestingConnection"

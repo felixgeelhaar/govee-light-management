@@ -154,7 +154,7 @@ jobs:
         echo "For detailed submission instructions, see [MARKETPLACE_SUBMISSION.md](https://github.com/felixgeelhaar/govee-light-management/blob/main/MARKETPLACE_SUBMISSION.md)" >> release_notes.md
     
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         name: "Release v${{ steps.get_version.outputs.VERSION }}"
         body_path: release_notes.md
