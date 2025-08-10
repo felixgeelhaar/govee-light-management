@@ -27,7 +27,10 @@ export class GoveeLightRepository implements ILightRepository {
       const devices = await this.client.getControllableDevices();
       return devices.map((device) => this.mapDeviceToLight(device));
     } catch (error) {
-      streamDeck.logger.error("Failed to fetch lights from Govee API:", error);
+      streamDeck?.logger?.error(
+        "Failed to fetch lights from Govee API:",
+        error,
+      );
       throw new Error(
         `Failed to fetch lights: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
@@ -47,7 +50,7 @@ export class GoveeLightRepository implements ILightRepository {
 
       return this.mapDeviceToLight(device);
     } catch (error) {
-      streamDeck.logger.error(`Failed to find light ${deviceId}:`, error);
+      streamDeck?.logger?.error(`Failed to find light ${deviceId}:`, error);
       throw new Error(
         `Failed to find light: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
@@ -63,7 +66,10 @@ export class GoveeLightRepository implements ILightRepository {
 
       return matchingDevices.map((device) => this.mapDeviceToLight(device));
     } catch (error) {
-      streamDeck.logger.error(`Failed to find lights by name ${name}:`, error);
+      streamDeck?.logger?.error(
+        `Failed to find lights by name ${name}:`,
+        error,
+      );
       throw new Error(
         `Failed to find lights by name: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
@@ -80,7 +86,7 @@ export class GoveeLightRepository implements ILightRepository {
 
       light.updateState({ isOn });
     } catch (error) {
-      streamDeck.logger.error(
+      streamDeck?.logger?.error(
         `Failed to set power for light ${light.name}:`,
         error,
       );
@@ -94,11 +100,11 @@ export class GoveeLightRepository implements ILightRepository {
     try {
       await this.client.setBrightness(light.deviceId, light.model, brightness);
       light.updateState({ brightness });
-      streamDeck.logger.info(
+      streamDeck?.logger?.info(
         `Light ${light.name} brightness set to ${brightness.level}%`,
       );
     } catch (error) {
-      streamDeck.logger.error(
+      streamDeck?.logger?.error(
         `Failed to set brightness for light ${light.name}:`,
         error,
       );
@@ -112,11 +118,11 @@ export class GoveeLightRepository implements ILightRepository {
     try {
       await this.client.setColor(light.deviceId, light.model, color);
       light.updateState({ color, colorTemperature: undefined });
-      streamDeck.logger.info(
+      streamDeck?.logger?.info(
         `Light ${light.name} color set to ${color.toString()}`,
       );
     } catch (error) {
-      streamDeck.logger.error(
+      streamDeck?.logger?.error(
         `Failed to set color for light ${light.name}:`,
         error,
       );
@@ -137,11 +143,11 @@ export class GoveeLightRepository implements ILightRepository {
         colorTemperature,
       );
       light.updateState({ colorTemperature, color: undefined });
-      streamDeck.logger.info(
+      streamDeck?.logger?.info(
         `Light ${light.name} color temperature set to ${colorTemperature.kelvin}K`,
       );
     } catch (error) {
-      streamDeck.logger.error(
+      streamDeck?.logger?.error(
         `Failed to set color temperature for light ${light.name}:`,
         error,
       );
@@ -162,11 +168,11 @@ export class GoveeLightRepository implements ILightRepository {
         brightness,
       );
       light.updateState({ isOn: true, brightness });
-      streamDeck.logger.info(
+      streamDeck?.logger?.info(
         `Light ${light.name} turned on with brightness ${brightness.level}%`,
       );
     } catch (error) {
-      streamDeck.logger.error(
+      streamDeck?.logger?.error(
         `Failed to turn on light ${light.name} with brightness:`,
         error,
       );
@@ -194,11 +200,11 @@ export class GoveeLightRepository implements ILightRepository {
         brightness: brightness || light.state.brightness,
         colorTemperature: undefined,
       });
-      streamDeck.logger.info(
+      streamDeck?.logger?.info(
         `Light ${light.name} turned on with color ${color.toString()}`,
       );
     } catch (error) {
-      streamDeck.logger.error(
+      streamDeck?.logger?.error(
         `Failed to turn on light ${light.name} with color:`,
         error,
       );
@@ -226,11 +232,11 @@ export class GoveeLightRepository implements ILightRepository {
         brightness: brightness || light.state.brightness,
         color: undefined,
       });
-      streamDeck.logger.info(
+      streamDeck?.logger?.info(
         `Light ${light.name} turned on with color temperature ${colorTemperature.kelvin}K`,
       );
     } catch (error) {
-      streamDeck.logger.error(
+      streamDeck?.logger?.error(
         `Failed to turn on light ${light.name} with color temperature:`,
         error,
       );
@@ -274,7 +280,7 @@ export class GoveeLightRepository implements ILightRepository {
 
       light.updateState(newState);
     } catch (error) {
-      streamDeck.logger.error(
+      streamDeck?.logger?.error(
         `Failed to get state for light ${light.name}:`,
         error,
       );

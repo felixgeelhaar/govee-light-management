@@ -22,7 +22,7 @@ export class ApiResponseValidator {
           .map((err) => `${err.path.join(".")} - ${err.message}`)
           .join("; ");
 
-        streamDeck.logger.error(`Validation failed in ${context}:`, {
+        streamDeck?.logger?.error(`Validation failed in ${context}:`, {
           errors: error.issues,
           data: JSON.stringify(data, null, 2),
         });
@@ -34,7 +34,7 @@ export class ApiResponseValidator {
         );
       }
 
-      streamDeck.logger.error(
+      streamDeck?.logger?.error(
         `Unexpected validation error in ${context}:`,
         error,
       );
@@ -57,7 +57,7 @@ export class ApiResponseValidator {
     try {
       return this.validate(schema, data, context);
     } catch (error) {
-      streamDeck.logger.warn(
+      streamDeck?.logger?.warn(
         `Safe validation failed in ${context}, returning null:`,
         error,
       );
@@ -92,7 +92,7 @@ export class ApiResponseValidator {
     });
 
     if (errors.length > 0) {
-      streamDeck.logger.warn(
+      streamDeck?.logger?.warn(
         `Some items failed validation in ${context}:`,
         errors,
       );

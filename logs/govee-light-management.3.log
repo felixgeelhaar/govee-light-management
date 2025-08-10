@@ -1,0 +1,14 @@
+2025-08-06T19:52:47.916Z INFO  ToggleAction: Constructor called
+2025-08-06T19:52:47.920Z INFO  ToggleAction: Constructor called
+2025-08-06T19:52:47.922Z ERROR CRITICAL: Failed to register actions: 
+Error: The action's manifestId cannot be undefined.
+    at ActionService.registerAction (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/@elgato/streamdeck/dist/index.js:2708:19)
+    at /Users/felixgeelhaar/Developer/projects/govee-light-management/src/backend/plugin.ts:68:26
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at VitestExecutor.runModule (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:397:4)
+    at VitestExecutor.directRequest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:375:3)
+    at VitestExecutor.cachedRequest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:189:11)
+    at VitestExecutor.dependencyRequest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:239:10)
+    at /Users/felixgeelhaar/Developer/projects/govee-light-management/src/backend/actions/dials/ColorTemperatureDialAction.ts:15:1
+    at VitestExecutor.runModule (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:397:4)
+    at VitestExecutor.directRequest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:375:3)

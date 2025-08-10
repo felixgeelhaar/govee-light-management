@@ -7,7 +7,7 @@ import {
   type JsonValue,
   streamDeck,
 } from "@elgato/streamdeck";
-import { GoveeLightRepository } from "../infrastructure/repositories/GoveeLightRepository";
+import { EnhancedGoveeLightRepository } from "../infrastructure/repositories/EnhancedGoveeLightRepository";
 import { LightControlService } from "../domain/services/LightControlService";
 import { Light } from "../domain/entities/Light";
 import {
@@ -32,9 +32,14 @@ type LightControlSettings = {
  */
 @action({ UUID: "com.felixgeelhaar.govee-light-management.lights" })
 export class LightControlAction extends SingletonAction<LightControlSettings> {
-  private lightRepository?: GoveeLightRepository;
+  private lightRepository?: EnhancedGoveeLightRepository;
   private lightControlService?: LightControlService;
   private currentLight?: Light;
+
+  constructor() {
+    super();
+    streamDeck?.logger?.info("LightControlAction constructor called");
+  }
 
   /**
    * Initialize services when action appears
@@ -42,6 +47,10 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
   override async onWillAppear(
     ev: WillAppearEvent<LightControlSettings>,
   ): Promise<void> {
+    streamDeck?.logger?.info(
+      "LightControlAction onWillAppear called with settings:",
+      ev.payload.settings,
+    );
     const { settings } = ev.payload;
 
     if (settings.apiKey) {
@@ -72,7 +81,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
           await ev.action.setTitle(title);
         }
       } catch (error) {
-        streamDeck.logger.error("Failed to load light state:", error);
+        streamDeck?.logger?.error("Failed to load light state:", error);
       }
     }
   }
@@ -87,13 +96,15 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
 
     if (!this.isConfigured(settings)) {
       await ev.action.showAlert();
-      streamDeck.logger.warn("Light control action not properly configured");
+      streamDeck?.logger?.warn("Light control action not properly configured");
       return;
     }
 
     if (!this.currentLight || !this.lightControlService) {
       await ev.action.showAlert();
-      streamDeck.logger.error("Light not available or service not initialized");
+      streamDeck?.logger?.error(
+        "Light not available or service not initialized",
+      );
       return;
     }
 
@@ -103,7 +114,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       const title = this.getActionTitle(settings);
       await ev.action.setTitle(title);
     } catch (error) {
-      streamDeck.logger.error("Failed to control light:", error);
+      streamDeck?.logger?.error("Failed to control light:", error);
       await ev.action.showAlert();
     }
   }
@@ -114,17 +125,51 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
   override async onSendToPlugin(
     ev: SendToPluginEvent<JsonValue, LightControlSettings>,
   ): Promise<void> {
+    // Write to a debug file we can check
+
+    streamDeck?.logger?.info(
+      `Received message from property inspector:`,
+      ev.payload,
+    );
+
     if (!(ev.payload instanceof Object) || !("event" in ev.payload)) {
+      streamDeck?.logger?.warn(`Invalid payload received:`, ev.payload);
       return;
     }
 
-    const settings = await ev.action.getSettings();
+    // Log the event explicitly
+    const payloadWithEvent = ev.payload as { event: string };
+
+    let settings: LightControlSettings = {};
+    try {
+      settings = await ev.action.getSettings();
+      streamDeck?.logger?.info(`Current action settings:`, settings);
+    } catch (error) {
+      streamDeck?.logger?.error(`Error getting settings:`, error);
+    }
+
+    // Check explicitly for getLights event
+    if (payloadWithEvent.event === "getLights") {
+      // Will be handled in switch statement below
+    }
 
     switch (ev.payload.event) {
+      case "test":
+        streamDeck?.logger?.info(
+          "Received test message from property inspector:",
+          ev.payload,
+        );
+        await streamDeck.ui.current?.sendToPropertyInspector({
+          event: "testResponse",
+          message: "Hello back from plugin!",
+        });
+        break;
       case "validateApiKey":
+        streamDeck?.logger?.info("validateApiKey case reached");
         await this.handleValidateApiKey(ev);
         break;
       case "getLights":
+        streamDeck?.logger?.info("Processing getLights request");
         await this.handleGetLights(ev, settings);
         break;
       case "getLightStates":
@@ -146,8 +191,13 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
    * Initialize repositories and services
    */
   private initializeServices(apiKey: string): void {
-    this.lightRepository = new GoveeLightRepository(apiKey, true);
-    this.lightControlService = new LightControlService(this.lightRepository);
+    try {
+      this.lightRepository = new EnhancedGoveeLightRepository(apiKey, true);
+
+      this.lightControlService = new LightControlService(this.lightRepository);
+    } catch (error: any) {
+      throw error;
+    }
   }
 
   /**
@@ -289,53 +339,23 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
   }
 
   /**
-   * Handle API key validation from property inspector
+   * Handle request for available lights from property inspector (OLD - TO BE REMOVED)
    */
-  private async handleValidateApiKey(
-    ev: SendToPluginEvent<JsonValue, LightControlSettings>,
-  ): Promise<void> {
-    const payload = ev.payload as { apiKey?: string };
-    const apiKey = payload.apiKey;
-
-    if (!apiKey) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
-        event: "apiKeyValidated",
-        isValid: false,
-        error: "API key is required",
-      });
-      return;
-    }
-
-    try {
-      // Test API key by attempting to create repository and fetch lights
-      const testRepository = new GoveeLightRepository(apiKey, true);
-      await testRepository.getAllLights();
-
-      // If successful, API key is valid
-      await streamDeck.ui.current?.sendToPropertyInspector({
-        event: "apiKeyValidated",
-        isValid: true,
-      });
-
-      streamDeck.logger.info("API key validated successfully");
-    } catch (error) {
-      streamDeck.logger.error("API key validation failed:", error);
-      await streamDeck.ui.current?.sendToPropertyInspector({
-        event: "apiKeyValidated",
-        isValid: false,
-        error: "Invalid API key or network error",
-      });
-    }
-  }
-
-  /**
-   * Handle request for available lights from property inspector
-   */
-  private async handleGetLights(
+  private async handleGetLightsOld(
     ev: SendToPluginEvent<JsonValue, LightControlSettings>,
     settings: LightControlSettings,
   ): Promise<void> {
+    if (streamDeck?.logger) {
+      streamDeck?.logger?.info(
+        `handleGetLights called with settings:`,
+        settings,
+      );
+    }
+
     if (!settings.apiKey) {
+      if (streamDeck?.logger) {
+        streamDeck?.logger?.warn(`No API key found in settings`);
+      }
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "lightsReceived",
         error: "API key required to fetch lights",
@@ -344,32 +364,78 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     }
 
     try {
-      if (!this.lightRepository) {
-        this.initializeServices(settings.apiKey);
+      if (streamDeck?.logger) {
+        streamDeck?.logger?.info("Starting light fetch process");
       }
 
       if (!this.lightRepository) {
+        if (streamDeck?.logger) {
+          streamDeck?.logger?.info("Initializing light repository");
+        }
+
+        try {
+          this.initializeServices(settings.apiKey);
+        } catch (initError: any) {
+          throw initError;
+        }
+      }
+
+      if (!this.lightRepository) {
+        if (streamDeck?.logger) {
+          streamDeck?.logger?.error("Failed to initialize light repository");
+        }
+        await streamDeck.ui.current?.sendToPropertyInspector({
+          event: "lightsReceived",
+          error: "Failed to initialize light repository",
+        });
         return;
       }
-      const lights = await this.lightRepository.getAllLights();
+
+      if (streamDeck?.logger) {
+        streamDeck?.logger?.info("Fetching lights from repository");
+      }
+
+      let lights: any[] = [];
+      try {
+        lights = await this.lightRepository.getAllLights();
+      } catch (repoError: any) {
+        throw repoError;
+      }
+      if (streamDeck?.logger) {
+        streamDeck?.logger?.info(`Retrieved ${lights.length} lights from API`);
+      }
+
       const lightItems = lights.map((light) => ({
         label: `${light.name} (${light.model})`,
         value: `${light.deviceId}|${light.model}`,
       }));
 
+      if (streamDeck?.logger) {
+        streamDeck?.logger?.info(
+          `Sending ${lightItems.length} light items to property inspector`,
+        );
+      }
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "lightsReceived",
         lights: lightItems,
       });
 
-      streamDeck.logger.info(
-        `Sent ${lightItems.length} lights to property inspector`,
-      );
+      if (streamDeck?.logger) {
+        streamDeck?.logger?.info(
+          `Successfully sent ${lightItems.length} lights to property inspector`,
+        );
+      }
     } catch (error) {
-      streamDeck.logger.error("Failed to fetch lights:", error);
+      streamDeck?.logger?.error("Failed to fetch lights:", error);
+
+      // Send a more detailed error message
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      streamDeck?.logger?.error("Error details:", errorMessage);
+
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "lightsReceived",
-        error: "Failed to fetch lights. Check your API key and connection.",
+        error: `Failed to fetch lights: ${errorMessage}`,
       });
     }
   }
@@ -446,7 +512,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
                 : undefined,
             };
           } catch (error) {
-            streamDeck.logger.warn(
+            streamDeck?.logger?.warn(
               `Failed to get state for light ${light.deviceId}:`,
               error,
             );
@@ -466,11 +532,11 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
         states,
       });
 
-      streamDeck.logger.info(
+      streamDeck?.logger?.info(
         `Sent states for ${states.length} lights to property inspector`,
       );
     } catch (error) {
-      streamDeck.logger.error("Failed to fetch light states:", error);
+      streamDeck?.logger?.error("Failed to fetch light states:", error);
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "lightStatesReceived",
         error:
@@ -493,14 +559,20 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     }
 
     try {
+      // Get current settings before updating
+      const currentSettings = await ev.action.getSettings();
+
       // Update action settings
       await ev.action.setSettings(newSettings);
+      streamDeck?.logger?.info("Settings saved:", {
+        selectedDeviceId: newSettings.selectedDeviceId,
+        selectedModel: newSettings.selectedModel,
+        selectedLightName: newSettings.selectedLightName,
+        controlMode: newSettings.controlMode,
+      });
 
       // Re-initialize services if API key changed
-      if (
-        newSettings.apiKey &&
-        newSettings.apiKey !== (await ev.action.getSettings()).apiKey
-      ) {
+      if (newSettings.apiKey && newSettings.apiKey !== currentSettings.apiKey) {
         this.initializeServices(newSettings.apiKey);
       }
 
@@ -524,7 +596,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
             // await ev.action.setTitle(title);
           }
         } catch (error) {
-          streamDeck.logger.error("Failed to load selected light:", error);
+          streamDeck?.logger?.error("Failed to load selected light:", error);
         }
       }
 
@@ -533,9 +605,9 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       // const title = this.getActionTitle(newSettings);
       // await ev.action.setTitle(title);
 
-      streamDeck.logger.info("Settings updated successfully");
+      streamDeck?.logger?.info("Settings updated successfully");
     } catch (error) {
-      streamDeck.logger.error("Failed to update settings:", error);
+      streamDeck?.logger?.error("Failed to update settings:", error);
     }
   }
 
@@ -551,6 +623,11 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       !settings.selectedModel ||
       !this.lightRepository
     ) {
+      await streamDeck.ui.current?.sendToPropertyInspector({
+        event: "testResult",
+        success: false,
+        message: "Please select a light first",
+      });
       return;
     }
 
@@ -566,6 +643,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
           light,
           light.isOn ? "off" : "on",
         );
+
         setTimeout(async () => {
           if (this.lightControlService && light) {
             await this.lightControlService.controlLight(
@@ -580,9 +658,16 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
           success: true,
           message: "Light test successful!",
         });
+      } else {
+        await streamDeck.ui.current?.sendToPropertyInspector({
+          event: "testResult",
+          success: false,
+          message: "Light not found or service unavailable",
+        });
       }
     } catch (error) {
-      streamDeck.logger.error("Light test failed:", error);
+      const errorMsg = (error as Error)?.message || "Unknown error";
+      streamDeck?.logger?.error("Light test failed:", error);
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "testResult",
         success: false,
@@ -606,8 +691,105 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
         // const title = this.getActionTitle(settings);
         // await ev.action.setTitle(title);
       } catch (error) {
-        streamDeck.logger.error("Failed to refresh light state:", error);
+        streamDeck?.logger?.error("Failed to refresh light state:", error);
       }
+    }
+  }
+
+  /**
+   * Handle API key validation request from property inspector
+   */
+  private async handleValidateApiKey(
+    ev: SendToPluginEvent<JsonValue, LightControlSettings>,
+  ): Promise<void> {
+    streamDeck?.logger?.info("LightControlAction: handleValidateApiKey called");
+
+    const apiKey = (ev.payload as any)?.apiKey as string;
+
+    if (!apiKey) {
+      await streamDeck.ui.current?.sendToPropertyInspector({
+        event: "apiKeyValidated",
+        isValid: false,
+        error: "API key is required",
+      });
+      return;
+    }
+
+    try {
+      // Initialize services with the API key to test it
+      this.initializeServices(apiKey);
+
+      // Try to fetch lights as a validation test
+      if (this.lightRepository) {
+        const lights = await this.lightRepository.getAllLights();
+        streamDeck?.logger?.info(
+          `API key validated, found ${lights.length} lights`,
+        );
+
+        await streamDeck.ui.current?.sendToPropertyInspector({
+          event: "apiKeyValidated",
+          isValid: true,
+        });
+      } else {
+        throw new Error("Failed to initialize repository");
+      }
+    } catch (error) {
+      streamDeck?.logger?.error("API key validation failed:", error);
+      await streamDeck.ui.current?.sendToPropertyInspector({
+        event: "apiKeyValidated",
+        isValid: false,
+        error: error instanceof Error ? error.message : "Invalid API key",
+      });
+    }
+  }
+
+  /**
+   * Handle request for available lights from property inspector
+   */
+  private async handleGetLights(
+    ev: SendToPluginEvent<JsonValue, LightControlSettings>,
+    settings: LightControlSettings,
+  ): Promise<void> {
+    streamDeck?.logger?.info("LightControlAction: handleGetLights called");
+
+    if (!settings.apiKey) {
+      await streamDeck.ui.current?.sendToPropertyInspector({
+        event: "lightsReceived",
+        error: "API key required to fetch lights",
+      });
+      return;
+    }
+
+    try {
+      if (!this.lightRepository) {
+        this.initializeServices(settings.apiKey);
+      }
+
+      if (!this.lightRepository) {
+        throw new Error("Failed to initialize repository");
+      }
+
+      const lights = await this.lightRepository.getAllLights();
+
+      const lightItems = lights.map((light) => ({
+        label: light.name,
+        value: `${light.deviceId}|${light.model}`,
+      }));
+
+      await streamDeck.ui.current?.sendToPropertyInspector({
+        event: "lightsReceived",
+        lights: lightItems,
+      });
+
+      streamDeck?.logger?.info(
+        `Sent ${lightItems.length} lights to property inspector`,
+      );
+    } catch (error) {
+      streamDeck?.logger?.error("Failed to fetch lights:", error);
+      await streamDeck.ui.current?.sendToPropertyInspector({
+        event: "lightsReceived",
+        error: "Failed to fetch lights. Check your API key and connection.",
+      });
     }
   }
 }

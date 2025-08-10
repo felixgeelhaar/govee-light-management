@@ -1,7 +1,7 @@
 import { ILightGroupRepository } from "../../domain/repositories/ILightGroupRepository";
 import { LightGroup } from "../../domain/entities/LightGroup";
 import { Light } from "../../domain/entities/Light";
-import streamDeck from "@elgato/streamdeck";
+// StreamDeck type will be inferred from the parameter
 
 interface SerializedLightGroup {
   id: string;
@@ -23,6 +23,12 @@ export class StreamDeckLightGroupRepository implements ILightGroupRepository {
   private static readonly STORAGE_KEY = "lightGroups";
   private static readonly STORAGE_VERSION = "1.0";
 
+  private streamDeck: any;
+
+  constructor(streamDeckInstance: any) {
+    this.streamDeck = streamDeckInstance;
+  }
+
   /**
    * Get all saved light groups from Stream Deck settings
    */
@@ -36,7 +42,7 @@ export class StreamDeckLightGroupRepository implements ILightGroupRepository {
           const group = await this.deserializeGroup(serializedGroup);
           groups.push(group);
         } catch (error) {
-          streamDeck.logger.warn(
+          this.streamDeck?.logger?.warn(
             `Failed to deserialize group ${serializedGroup.id}:`,
             error,
           );
@@ -46,7 +52,7 @@ export class StreamDeckLightGroupRepository implements ILightGroupRepository {
 
       return groups;
     } catch (error) {
-      streamDeck.logger.error("Failed to get all groups:", error);
+      this.streamDeck?.logger?.error("Failed to get all groups:", error);
       return [];
     }
   }
@@ -65,7 +71,10 @@ export class StreamDeckLightGroupRepository implements ILightGroupRepository {
 
       return await this.deserializeGroup(serializedGroup);
     } catch (error) {
-      streamDeck.logger.error(`Failed to find group by ID ${id}:`, error);
+      this.streamDeck?.logger?.error(
+        `Failed to find group by ID ${id}:`,
+        error,
+      );
       return null;
     }
   }
@@ -80,7 +89,10 @@ export class StreamDeckLightGroupRepository implements ILightGroupRepository {
         group.name.toLowerCase().includes(name.toLowerCase()),
       );
     } catch (error) {
-      streamDeck.logger.error(`Failed to find groups by name ${name}:`, error);
+      this.streamDeck?.logger?.error(
+        `Failed to find groups by name ${name}:`,
+        error,
+      );
       return [];
     }
   }
@@ -102,11 +114,14 @@ export class StreamDeckLightGroupRepository implements ILightGroupRepository {
       }
 
       await this.saveStorage(storage);
-      streamDeck.logger.info(
+      this.streamDeck?.logger?.info(
         `Saved group ${group.name} with ${group.size} lights`,
       );
     } catch (error) {
-      streamDeck.logger.error(`Failed to save group ${group.name}:`, error);
+      this.streamDeck?.logger?.error(
+        `Failed to save group ${group.name}:`,
+        error,
+      );
       throw new Error(
         `Failed to save group: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
@@ -124,14 +139,19 @@ export class StreamDeckLightGroupRepository implements ILightGroupRepository {
       storage.groups = storage.groups.filter((g) => g.id !== groupId);
 
       if (storage.groups.length === initialCount) {
-        streamDeck.logger.warn(`Group ${groupId} not found for deletion`);
+        this.streamDeck?.logger?.warn(
+          `Group ${groupId} not found for deletion`,
+        );
         return;
       }
 
       await this.saveStorage(storage);
-      streamDeck.logger.info(`Deleted group ${groupId}`);
+      this.streamDeck?.logger?.info(`Deleted group ${groupId}`);
     } catch (error) {
-      streamDeck.logger.error(`Failed to delete group ${groupId}:`, error);
+      this.streamDeck?.logger?.error(
+        `Failed to delete group ${groupId}:`,
+        error,
+      );
       throw new Error(
         `Failed to delete group: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
@@ -152,7 +172,7 @@ export class StreamDeckLightGroupRepository implements ILightGroupRepository {
           g.name.toLowerCase() === name.toLowerCase() && g.id !== excludeId,
       );
     } catch (error) {
-      streamDeck.logger.error(
+      this.streamDeck?.logger?.error(
         `Failed to check name availability for ${name}:`,
         error,
       );
@@ -161,47 +181,168 @@ export class StreamDeckLightGroupRepository implements ILightGroupRepository {
   }
 
   /**
-   * Get storage from Stream Deck global settings
+   * Get storage from file system or Stream Deck settings
    */
   private async getStorage(): Promise<LightGroupStorage> {
+    // Try file system first
     try {
-      const settings = await streamDeck.settings.getGlobalSettings();
-      const storageData = settings[StreamDeckLightGroupRepository.STORAGE_KEY];
-      const storage = storageData as unknown as LightGroupStorage;
-
+      const storage = await this.getFromFileSystem();
       if (
-        !storage ||
-        storage.version !== StreamDeckLightGroupRepository.STORAGE_VERSION
+        storage &&
+        storage.version === StreamDeckLightGroupRepository.STORAGE_VERSION
       ) {
-        // Return default storage if not found or version mismatch
-        return {
-          groups: [],
-          version: StreamDeckLightGroupRepository.STORAGE_VERSION,
-        };
+        return storage;
       }
+    } catch (error) {
+      this.streamDeck?.logger?.warn(
+        "Failed to get storage from file system:",
+        error,
+      );
+    }
 
+    // Try Stream Deck settings as fallback
+    if (this.streamDeck?.settings?.getGlobalSettings) {
+      try {
+        const settings = await this.streamDeck.settings.getGlobalSettings();
+        const storageData =
+          settings[StreamDeckLightGroupRepository.STORAGE_KEY];
+        const storage = storageData as unknown as LightGroupStorage;
+
+        if (
+          storage &&
+          storage.version === StreamDeckLightGroupRepository.STORAGE_VERSION
+        ) {
+          return storage;
+        }
+      } catch (error) {
+        this.streamDeck?.logger?.warn(
+          "Failed to get storage from Stream Deck settings:",
+          error,
+        );
+      }
+    }
+
+    // Return default storage if both methods fail
+    return {
+      groups: [],
+      version: StreamDeckLightGroupRepository.STORAGE_VERSION,
+    };
+  }
+
+  /**
+   * Get storage from file system
+   */
+  private async getFromFileSystem(): Promise<LightGroupStorage | null> {
+    const fs = require("fs").promises;
+    const path = require("path");
+
+    const pluginDir = process.cwd();
+    const storageFile = path.join(pluginDir, "light-groups.json");
+
+    try {
+      const data = await fs.readFile(storageFile, "utf8");
+      const storage = JSON.parse(data) as LightGroupStorage;
+      this.streamDeck?.logger?.info(
+        `Loaded group storage from file: ${storageFile}`,
+      );
       return storage;
     } catch (error) {
-      streamDeck.logger.error("Failed to get storage:", error);
-      return {
-        groups: [],
-        version: StreamDeckLightGroupRepository.STORAGE_VERSION,
-      };
+      // File doesn't exist or is invalid - this is normal for first run
+      return null;
     }
   }
 
   /**
-   * Save storage to Stream Deck global settings
+   * Save storage with fallback methods
    */
   private async saveStorage(storage: LightGroupStorage): Promise<void> {
+    this.streamDeck?.logger?.info("Attempting to save group storage:", {
+      groupCount: storage.groups.length,
+      version: storage.version,
+      sdkAvailable: !!this.streamDeck,
+      settingsAvailable: !!this.streamDeck?.settings,
+    });
+
+    // Try file system storage first (more reliable)
     try {
-      const settings = await streamDeck.settings.getGlobalSettings();
-      settings[StreamDeckLightGroupRepository.STORAGE_KEY] = storage as any;
-      await streamDeck.settings.setGlobalSettings(settings);
-    } catch (error) {
-      streamDeck.logger.error("Failed to save storage:", error);
-      throw new Error("Failed to save group storage");
+      await this.saveToFileSystem(storage);
+      this.streamDeck?.logger?.info(
+        "Successfully saved group storage to file system",
+      );
+      return;
+    } catch (fileError) {
+      this.streamDeck?.logger?.warn(
+        "File system save failed, trying Stream Deck settings:",
+        fileError,
+      );
     }
+
+    // Fallback to Stream Deck settings if available
+    if (this.streamDeck?.settings?.setGlobalSettings) {
+      try {
+        await this.saveToStreamDeckSettings(storage);
+        this.streamDeck?.logger?.info(
+          "Successfully saved group storage to Stream Deck settings",
+        );
+        return;
+      } catch (sdError) {
+        this.streamDeck?.logger?.error(
+          "Stream Deck settings save also failed:",
+          sdError,
+        );
+      }
+    }
+
+    throw new Error("All storage methods failed - unable to save group");
+  }
+
+  /**
+   * Save to file system as primary storage method
+   */
+  private async saveToFileSystem(storage: LightGroupStorage): Promise<void> {
+    const fs = require("fs").promises;
+    const path = require("path");
+
+    // Save to plugin directory
+    const pluginDir = process.cwd();
+    const storageFile = path.join(pluginDir, "light-groups.json");
+
+    try {
+      await fs.writeFile(storageFile, JSON.stringify(storage, null, 2), "utf8");
+      this.streamDeck?.logger?.info(
+        `Saved group storage to file: ${storageFile}`,
+      );
+    } catch (error) {
+      throw new Error(
+        `Failed to save to file system: ${error instanceof Error ? error.message : "Unknown file error"}`,
+      );
+    }
+  }
+
+  /**
+   * Save to Stream Deck settings API (fallback method)
+   */
+  private async saveToStreamDeckSettings(
+    storage: LightGroupStorage,
+  ): Promise<void> {
+    if (!this.streamDeck?.settings?.setGlobalSettings) {
+      throw new Error("Stream Deck settings API not available");
+    }
+
+    // Get existing settings
+    let settings;
+    try {
+      settings = await this.streamDeck.settings.getGlobalSettings();
+    } catch (getError) {
+      this.streamDeck?.logger?.warn(
+        "Failed to get global settings, using empty object:",
+        getError,
+      );
+      settings = {};
+    }
+
+    settings[StreamDeckLightGroupRepository.STORAGE_KEY] = storage as any;
+    await this.streamDeck.settings.setGlobalSettings(settings);
   }
 
   /**

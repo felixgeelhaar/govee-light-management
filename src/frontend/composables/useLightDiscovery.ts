@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, readonly, onMounted, onUnmounted } from "vue";
 import { createActor, type ActorRefFrom } from "xstate";
 import { lightDiscoveryMachine } from "../machines/lightDiscoveryMachine";
 import type { LightItem } from "@shared/types";
@@ -32,12 +32,30 @@ export function useLightDiscovery() {
 
     // Subscribe to state changes
     actor.value.subscribe((snapshot) => {
+      console.log("useLightDiscovery: State change detected");
+      console.log("  State:", snapshot.value);
+      console.log("  Lights count:", snapshot.context.lights.length);
+      console.log(
+        "  Filtered lights count:",
+        snapshot.context.filteredLights.length,
+      );
+      console.log("  Error:", snapshot.context.error);
+      console.log("  Is fetching:", snapshot.context.isFetching);
+
       state.value = snapshot.value as string;
       lights.value = snapshot.context.lights;
       filteredLights.value = snapshot.context.filteredLights;
       searchQuery.value = snapshot.context.searchQuery;
       error.value = snapshot.context.error;
       isFetching.value = snapshot.context.isFetching;
+
+      console.log("useLightDiscovery: Vue refs updated");
+      console.log("  isReady computed:", snapshot.value === "success");
+      console.log("  hasLights computed:", snapshot.context.lights.length > 0);
+      console.log(
+        "  hasFilteredLights computed:",
+        snapshot.context.filteredLights.length > 0,
+      );
     });
 
     actor.value.start();
@@ -52,8 +70,16 @@ export function useLightDiscovery() {
 
   // Actions
   const fetchLights = () => {
+    console.log("useLightDiscovery: fetchLights called");
+    console.log("Actor exists:", !!actor.value);
     if (actor.value) {
+      console.log("useLightDiscovery: Sending FETCH event to actor");
       actor.value.send({ type: "FETCH" });
+      console.log("useLightDiscovery: FETCH event sent");
+    } else {
+      console.error(
+        "useLightDiscovery: Actor is null, cannot send FETCH event",
+      );
     }
   };
 
@@ -82,13 +108,13 @@ export function useLightDiscovery() {
   };
 
   return {
-    // State
-    state: computed(() => state.value),
-    lights: computed(() => lights.value),
-    filteredLights: computed(() => filteredLights.value),
-    searchQuery: computed(() => searchQuery.value),
-    error: computed(() => error.value),
-    isFetching: computed(() => isFetching.value),
+    // State - return the reactive refs directly, not double-wrapped
+    state: readonly(state),
+    lights: readonly(lights),
+    filteredLights: readonly(filteredLights),
+    searchQuery: readonly(searchQuery),
+    error: readonly(error),
+    isFetching: readonly(isFetching),
 
     // Computed convenience states
     isIdle,

@@ -43,7 +43,7 @@ export class CircuitBreaker {
     private readonly name: string,
     private readonly config: CircuitBreakerConfig,
   ) {
-    streamDeck.logger.info(`Circuit breaker initialized: ${name}`, config);
+    streamDeck?.logger?.info(`Circuit breaker initialized: ${name}`, config);
   }
 
   /**
@@ -56,7 +56,7 @@ export class CircuitBreaker {
       if (this.shouldAttemptReset()) {
         this.state = CircuitState.HALF_OPEN;
         this.successCount = 0;
-        streamDeck.logger.info(
+        streamDeck?.logger?.info(
           `Circuit breaker ${this.name} transitioning to HALF_OPEN`,
         );
       } else {
@@ -96,7 +96,7 @@ export class CircuitBreaker {
       if (this.successCount >= this.config.successThreshold) {
         this.state = CircuitState.CLOSED;
         this.successCount = 0;
-        streamDeck.logger.info(
+        streamDeck?.logger?.info(
           `Circuit breaker ${this.name} CLOSED - service recovered`,
         );
       }
@@ -114,13 +114,13 @@ export class CircuitBreaker {
     if (this.state === CircuitState.HALF_OPEN) {
       this.state = CircuitState.OPEN;
       this.setNextAttemptTime();
-      streamDeck.logger.warn(
+      streamDeck?.logger?.warn(
         `Circuit breaker ${this.name} OPEN - service still failing`,
       );
     } else if (this.failureCount >= this.config.failureThreshold) {
       this.state = CircuitState.OPEN;
       this.setNextAttemptTime();
-      streamDeck.logger.warn(
+      streamDeck?.logger?.warn(
         `Circuit breaker ${this.name} OPEN - failure threshold reached (${this.failureCount}/${this.config.failureThreshold})`,
       );
     }
@@ -166,7 +166,7 @@ export class CircuitBreaker {
     this.successCount = 0;
     this.lastFailureTime = undefined;
     this.nextAttemptTime = undefined;
-    streamDeck.logger.info(`Circuit breaker ${this.name} manually reset`);
+    streamDeck?.logger?.info(`Circuit breaker ${this.name} manually reset`);
   }
 
   /**
@@ -175,7 +175,7 @@ export class CircuitBreaker {
   forceOpen(): void {
     this.state = CircuitState.OPEN;
     this.setNextAttemptTime();
-    streamDeck.logger.info(`Circuit breaker ${this.name} manually opened`);
+    streamDeck?.logger?.info(`Circuit breaker ${this.name} manually opened`);
   }
 }
 

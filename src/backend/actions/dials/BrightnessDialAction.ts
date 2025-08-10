@@ -22,6 +22,7 @@ type BrightnessDialSettings = {
   minBrightness?: number;
   maxBrightness?: number;
   stepSize?: number;
+  event?: string;
 };
 
 /**
@@ -35,6 +36,16 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
   private currentBrightness: number = 50;
   private isPressed: boolean = false;
 
+  // Allow dependency injection for testing
+  constructor(
+    lightRepository?: GoveeLightRepository,
+    lightControlService?: LightControlService
+  ) {
+    super();
+    this.lightRepository = lightRepository;
+    this.lightControlService = lightControlService;
+  }
+
   /**
    * Initialize services when action appears
    */
@@ -43,8 +54,11 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
   ): Promise<void> {
     const { settings } = ev.payload;
 
-    if (settings.apiKey) {
+    if (settings.apiKey && !this.lightRepository) {
       this.initializeServices(settings.apiKey);
+    }
+    
+    if (settings.apiKey && this.lightRepository) {
       await this.loadSelectedLight(settings);
     }
 
@@ -68,7 +82,7 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
     // Calculate brightness change
     const stepSize = settings.stepSize || 5;
     const delta = ticks * stepSize * (pressed ? 2 : 1); // Double speed when pressed
-    
+
     // Update brightness
     this.currentBrightness = Math.max(
       settings.minBrightness || 0,
@@ -78,7 +92,10 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
     try {
       // Apply brightness to light
       const brightness = new Brightness(this.currentBrightness);
-      await this.lightControlService.setBrightness(this.currentLight, brightness);
+      await this.lightControlService.setBrightness(
+        this.currentLight,
+        brightness,
+      );
 
       // Update feedback display
       await this.updateFeedback(ev.action);
@@ -103,7 +120,7 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
     try {
       // Toggle light on/off
       await this.lightControlService.toggle(this.currentLight);
-      
+
       // If turning on, restore previous brightness
       if (!this.currentLight.isOn) {
         this.currentBrightness = 50; // Default when turning on
@@ -136,10 +153,13 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
     if (hold && this.currentLight && this.lightControlService) {
       // Long press - reset to 50%
       this.currentBrightness = 50;
-      
+
       try {
         const brightness = new Brightness(50);
-        await this.lightControlService.setBrightness(this.currentLight, brightness);
+        await this.lightControlService.setBrightness(
+          this.currentLight,
+          brightness,
+        );
         await this.updateFeedback(ev.action);
       } catch (error) {
         await ev.action.showAlert();
@@ -152,24 +172,30 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
    * Handle messages from property inspector
    */
   override async onSendToPlugin(
-    ev: SendToPluginEvent<BrightnessDialSettings, JsonValue>,
+    ev: SendToPluginEvent<JsonValue, BrightnessDialSettings>,
   ): Promise<void> {
     const { payload, action } = ev;
 
-    if (payload.event === "getDevices" && this.lightRepository) {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return;
+    }
+
+    const data = payload as any;
+
+    if (data.event === "getDevices" && this.lightRepository) {
       try {
         const lights = await this.lightRepository.getAllLights();
-        await action.sendToPropertyInspector({
+        await (action as any).sendToPropertyInspector({
           event: "devicesReceived",
           devices: lights.map((light) => ({
-            deviceId: light.id,
+            deviceId: light.deviceId,
             model: light.model,
             name: light.name,
             isOnline: light.isOnline,
           })),
         });
       } catch (error) {
-        await action.sendToPropertyInspector({
+        await (action as any).sendToPropertyInspector({
           event: "devicesReceived",
           error: error instanceof Error ? error.message : "Unknown error",
           devices: [],
@@ -199,12 +225,12 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
     try {
       const lights = await this.lightRepository.getAllLights();
       this.currentLight = lights.find(
-        (light) => light.id === settings.selectedDeviceId,
+        (light) => light.deviceId === settings.selectedDeviceId,
       );
 
       if (this.currentLight) {
         // Get current brightness
-        this.currentBrightness = this.currentLight.brightness?.value || 50;
+        this.currentBrightness = this.currentLight.brightness?.level || 50;
       }
     } catch (error) {
       console.error("Failed to load selected light:", error);

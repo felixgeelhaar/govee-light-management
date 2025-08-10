@@ -1,141 +1,123 @@
 {
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
 	"Name": "Govee Light Management",
 	"Version": "1.0.0.0",
 	"Author": "Felix Geelhaar",
 	"Actions": [
 		{
-			"Name": "Light Control",
-			"UUID": "com.felixgeelhaar.govee-light-management.lights",
-			"Icon": "imgs/actions/light/icon",
-			"Tooltip": "Control individual Govee lights with advanced settings",
-			"PropertyInspectorPath": "ui/light-control.html",
+			"Name": "Toggle On/Off",
+			"UUID": "com.felixgeelhaar.govee-light-management.toggle",
+			"Icon": "imgs/actions/toggle/icon",
+			"Tooltip": "Toggle individual lights on/off with Stream Deck+ support",
+			"PropertyInspectorPath": "ui/toggle-action.html",
 			"Controllers": [
-				"Keypad"
+				"Keypad",
+				"Encoder"
 			],
+			"Encoder": {
+				"layout": "$X1",
+				"TriggerDescription": {
+					"Push": "Toggle Light",
+					"Touch": "Toggle Light"
+				}
+			},
 			"States": [
 				{
-					"Image": "imgs/actions/light/key",
+					"Image": "imgs/actions/toggle/key",
 					"TitleAlignment": "middle"
 				}
 			]
 		},
 		{
-			"Name": "Group Control",
-			"UUID": "com.felixgeelhaar.govee-light-management.groups",
-			"Icon": "imgs/actions/group/icon",
-			"Tooltip": "Control multiple Govee lights as a group",
-			"PropertyInspectorPath": "ui/group-control.html",
+			"Name": "Brightness Control",
+			"UUID": "com.felixgeelhaar.govee-light-management.brightness",
+			"Icon": "imgs/actions/brightness/icon",
+			"Tooltip": "Control brightness with dial rotation and touchscreen on Stream Deck+",
+			"PropertyInspectorPath": "ui/brightness-action.html",
 			"Controllers": [
-				"Keypad"
+				"Keypad",
+				"Encoder"
 			],
+			"Encoder": {
+				"layout": "$A0",
+				"TriggerDescription": {
+					"Push": "Set Brightness",
+					"Touch": "Set Brightness",
+					"Rotate": "Adjust Brightness"
+				}
+			},
 			"States": [
 				{
-					"Image": "imgs/actions/group/key",
+					"Image": "imgs/actions/brightness/key",
 					"TitleAlignment": "middle"
 				}
 			]
 		},
 		{
-			"Name": "Brightness Dial",
-			"UUID": "com.felixgeelhaar.govee-light-management.brightness-dial",
-			"Icon": "imgs/actions/brightness-dial/icon",
-			"Tooltip": "Control light brightness with the dial",
-			"PropertyInspectorPath": "ui/brightness-dial.html",
+			"Name": "Color Control",
+			"UUID": "com.felixgeelhaar.govee-light-management.color",
+			"Icon": "imgs/actions/color/icon",
+			"Tooltip": "Control color with presets or hue adjustment on Stream Deck+",
+			"PropertyInspectorPath": "ui/color-action.html",
 			"Controllers": [
+				"Keypad",
 				"Encoder"
 			],
 			"Encoder": {
-				"layout": "layouts/brightness-dial.json",
+				"layout": "$B1",
 				"TriggerDescription": {
-					"Rotate": "Adjust brightness",
-					"Push": "Toggle light on/off",
-					"LongTouch": "Reset to 50%"
+					"Push": "Set Color",
+					"Touch": "Set Color",
+					"Rotate": "Cycle Colors"
 				}
 			},
 			"States": [
 				{
-					"Image": "imgs/actions/brightness-dial/key"
+					"Image": "imgs/actions/color/key",
+					"TitleAlignment": "middle"
 				}
 			]
 		},
 		{
-			"Name": "Color Temperature Dial",
-			"UUID": "com.felixgeelhaar.govee-light-management.temperature-dial",
-			"Icon": "imgs/actions/temperature-dial/icon",
-			"Tooltip": "Adjust color temperature with the dial",
-			"PropertyInspectorPath": "ui/temperature-dial.html",
+			"Name": "Color Temperature",
+			"UUID": "com.felixgeelhaar.govee-light-management.warmth",
+			"Icon": "imgs/actions/warmth/icon",
+			"Tooltip": "Control color temperature (warmth) with dial rotation on Stream Deck+",
+			"PropertyInspectorPath": "ui/warmth-action.html",
 			"Controllers": [
+				"Keypad",
 				"Encoder"
 			],
 			"Encoder": {
-				"layout": "layouts/temperature-dial.json",
+				"layout": "$A0",
 				"TriggerDescription": {
-					"Rotate": "Adjust temperature",
-					"Push": "Cycle presets",
-					"Touch": "Open presets"
+					"Push": "Set Temperature",
+					"Touch": "Set Temperature",
+					"Rotate": "Adjust Warmth"
 				}
 			},
 			"States": [
 				{
-					"Image": "imgs/actions/temperature-dial/key"
-				}
-			]
-		},
-		{
-			"Name": "RGB Color Dial",
-			"UUID": "com.felixgeelhaar.govee-light-management.color-dial",
-			"Icon": "imgs/actions/color-dial/icon",
-			"Tooltip": "Control RGB color with the dial",
-			"PropertyInspectorPath": "ui/color-dial.html",
-			"Controllers": [
-				"Encoder"
-			],
-			"Encoder": {
-				"layout": "layouts/color-dial.json",
-				"TriggerDescription": {
-					"Rotate": "Adjust hue/saturation/brightness",
-					"Push": "Switch mode",
-					"LongTouch": "Reset to white"
-				}
-			},
-			"States": [
-				{
-					"Image": "imgs/actions/color-dial/key"
-				}
-			]
-		},
-		{
-			"Name": "Group Master Dial",
-			"UUID": "com.felixgeelhaar.govee-light-management.group-dial",
-			"Icon": "imgs/actions/group-dial/icon",
-			"Tooltip": "Control all lights in a group",
-			"PropertyInspectorPath": "ui/group-dial.html",
-			"Controllers": [
-				"Encoder"
-			],
-			"Encoder": {
-				"layout": "layouts/group-dial.json",
-				"TriggerDescription": {
-					"Rotate": "Adjust all lights",
-					"Push": "Toggle group",
-					"Touch": "Quick presets"
-				}
-			},
-			"States": [
-				{
-					"Image": "imgs/actions/group-dial/key"
+					"Image": "imgs/actions/warmth/key",
+					"TitleAlignment": "middle"
 				}
 			]
 		}
 	],
-	"Category": "Govee Light Management",
+	"Category": "Smart Home",
 	"CategoryIcon": "imgs/plugin/category-icon",
 	"CodePath": "bin/plugin.js",
-	"Description": "Enterprise-grade management of Govee smart lights with advanced group control and DDD architecture",
+	"Nodejs": {
+		"Version": "20",
+		"Debug": "enabled"
+	},
+	"Description": "Professional Govee smart light control with Stream Deck Plus dial support",
+	"Keywords": ["govee", "smart lights", "home automation", "rgb", "lighting", "smart home", "elgato"],
 	"Icon": "imgs/plugin/marketplace",
 	"SDKVersion": 2,
+	"SupportedInLanguages": ["en", "de"],
 	"Software": {
-		"MinimumVersion": "6.5"
+		"MinimumVersion": "6.6"
 	},
 	"OS": [
 		{
@@ -147,9 +129,6 @@
 			"MinimumVersion": "10"
 		}
 	],
-	"Nodejs": {
-		"Version": "20",
-		"Debug": "enabled"
-	},
+	"PropertyInspectorPath": "ui/global-settings.html",
 	"UUID": "com.felixgeelhaar.govee-light-management"
 }

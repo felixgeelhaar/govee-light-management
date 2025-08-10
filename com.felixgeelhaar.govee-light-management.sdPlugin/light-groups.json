@@ -1,0 +1,79 @@
+{
+  "groups": [
+    {
+      "id": "group-yrdgdgsdfgsd-1753864659615",
+      "lights": [
+        {
+          "deviceId": "01:A9:98:3D:AE:0A:1E:D8",
+          "model": "H600D",
+          "name": "Head Light 2nd"
+        },
+        {
+          "deviceId": "8A:0A:98:3D:AE:0A:B9:D8",
+          "model": "H600D",
+          "name": "Head Light 3rd"
+        },
+        {
+          "deviceId": "93:CE:E8:06:90:03:9B:B4",
+          "model": "H600D",
+          "name": "Head Light 4th"
+        },
+        {
+          "deviceId": "3C:19:98:3D:AE:12:6F:30",
+          "model": "H600D",
+          "name": "Head Light 1st"
+        }
+      ],
+      "name": "Yrdgdgsdfgsd"
+    },
+    {
+      "id": "group-asd-1754349045613",
+      "name": "asd",
+      "lights": [
+        {
+          "deviceId": "0B:5B:CF:32:34:38:3B:50",
+          "model": "H6056",
+          "name": "Desk"
+        },
+        {
+          "deviceId": "19:B9:D2:39:32:35:73:4C",
+          "model": "H61B5",
+          "name": "Backlight"
+        }
+      ]
+    },
+    {
+      "id": "group-sfsdfsfsdfsdf-1754349106762",
+      "name": "sfsdfsfsdfsdf",
+      "lights": [
+        {
+          "deviceId": "0B:5B:CF:32:34:38:3B:50",
+          "model": "H6056",
+          "name": "Desk"
+        },
+        {
+          "deviceId": "19:B9:D2:39:32:35:73:4C",
+          "model": "H61B5",
+          "name": "Backlight"
+        }
+      ]
+    },
+    {
+      "id": "group-kklkl-1754377648657",
+      "name": "kklkl",
+      "lights": [
+        {
+          "deviceId": "0B:5B:CF:32:34:38:3B:50",
+          "model": "H6056",
+          "name": "Desk"
+        },
+        {
+          "deviceId": "19:B9:D2:39:32:35:73:4C",
+          "model": "H61B5",
+          "name": "Backlight"
+        }
+      ]
+    }
+  ],
+  "version": "1.0"
+}

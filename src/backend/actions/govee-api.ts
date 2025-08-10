@@ -53,13 +53,13 @@ export class GoveeLightManagement extends SingletonAction<GoveeSettings> {
         if (settings.apiKey) {
           const response = await this.fetchGoveeLights(settings.apiKey ?? "");
           if (response instanceof Error) {
-            streamDeck.logger.error(
+            streamDeck?.logger?.error(
               "Failed to fetch Govee lights:",
               response.message,
             );
             return;
           }
-          streamDeck.logger.info("SENDING TO PROPERTY INSPECTOR");
+          streamDeck?.logger?.info("SENDING TO PROPERTY INSPECTOR");
 
           return streamDeck.ui.current?.sendToPropertyInspector({
             event: "getLights",
@@ -69,7 +69,9 @@ export class GoveeLightManagement extends SingletonAction<GoveeSettings> {
             })),
           });
         } else {
-          streamDeck.logger.error("API key is required to fetch Govee lights.");
+          streamDeck?.logger?.error(
+            "API key is required to fetch Govee lights.",
+          );
         }
       });
     }
@@ -89,7 +91,7 @@ export class GoveeLightManagement extends SingletonAction<GoveeSettings> {
       },
     );
     if (!result.ok) {
-      streamDeck.logger.error(
+      streamDeck?.logger?.error(
         "Failed to fetch Govee lights:",
         result.statusText,
       );

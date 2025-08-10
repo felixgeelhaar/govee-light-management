@@ -97,7 +97,12 @@ export const apiConnectionMachine = setup({
             }
 
             return new Promise<boolean>((resolve, reject) => {
+              console.log("ApiConnectionMachine: Starting API key validation");
+
               const timeout = setTimeout(() => {
+                console.log(
+                  "ApiConnectionMachine: Validation timeout after 10 seconds",
+                );
                 websocketService.off(
                   "sendToPropertyInspector",
                   responseHandler,
@@ -106,7 +111,14 @@ export const apiConnectionMachine = setup({
               }, 10000); // 10 second timeout for network operations
 
               const responseHandler = (message: any) => {
+                console.log(
+                  "ApiConnectionMachine: Received message:",
+                  JSON.stringify(message),
+                );
                 if (message.payload?.event === "apiKeyValidated") {
+                  console.log(
+                    "ApiConnectionMachine: Received apiKeyValidated response",
+                  );
                   clearTimeout(timeout);
                   websocketService.off(
                     "sendToPropertyInspector",
@@ -114,21 +126,35 @@ export const apiConnectionMachine = setup({
                   );
 
                   if (message.payload.isValid) {
+                    console.log(
+                      "ApiConnectionMachine: API key validation successful",
+                    );
                     // Cache successful validation
                     apiCacheService.cacheApiKeyValidation(input.apiKey, true);
                     resolve(true);
                   } else {
+                    console.log(
+                      "ApiConnectionMachine: API key validation failed:",
+                      message.payload.error,
+                    );
                     // Don't cache failures as they might be temporary network issues
                     reject(
                       new Error(message.payload.error || "Invalid API key"),
                     );
                   }
+                } else {
+                  console.log(
+                    "ApiConnectionMachine: Received non-validation message:",
+                    message.payload?.event,
+                  );
                 }
               };
 
+              console.log("ApiConnectionMachine: Setting up response handler");
               // Listen for response
               websocketService.on("sendToPropertyInspector", responseHandler);
 
+              console.log("ApiConnectionMachine: Sending validation request");
               // Send validation request
               websocketService.validateApiKey(input.apiKey);
             });

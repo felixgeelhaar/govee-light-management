@@ -22,6 +22,9 @@ type GroupDialSettings = {
   controlMode?: "brightness" | "color" | "temperature";
   stepSize?: number;
   syncDelay?: number;
+  event?: string;
+  presetId?: string;
+  settings?: any;
 };
 
 interface GroupPreset {
@@ -58,8 +61,11 @@ export class GroupDialAction extends SingletonAction<GroupDialSettings> {
   ): Promise<void> {
     const { settings } = ev.payload;
 
-    if (settings.apiKey) {
+    if (settings.apiKey && !this.lightRepository) {
       this.initializeServices(settings.apiKey);
+    }
+    
+    if (settings.apiKey && this.lightRepository) {
       await this.loadGroup(settings);
     }
 
@@ -83,9 +89,12 @@ export class GroupDialAction extends SingletonAction<GroupDialSettings> {
     // Calculate brightness change
     const stepSize = settings.stepSize || 5;
     const delta = ticks * stepSize * (pressed ? 2 : 1);
-    
+
     // Update brightness
-    this.groupBrightness = Math.max(0, Math.min(100, this.groupBrightness + delta));
+    this.groupBrightness = Math.max(
+      0,
+      Math.min(100, this.groupBrightness + delta),
+    );
 
     try {
       // Apply brightness to all lights in group with delay
@@ -95,7 +104,7 @@ export class GroupDialAction extends SingletonAction<GroupDialSettings> {
       for (const light of this.currentGroup.lights) {
         await this.lightControlService.setBrightness(light, brightness);
         if (delay > 0) {
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
 
@@ -120,7 +129,7 @@ export class GroupDialAction extends SingletonAction<GroupDialSettings> {
     try {
       // Toggle all lights in group
       await this.groupManagementService.toggleGroup(this.currentGroup);
-      
+
       // Update group state
       await this.loadGroup(ev.payload.settings);
       await this.updateFeedback(ev.action);
@@ -140,7 +149,7 @@ export class GroupDialAction extends SingletonAction<GroupDialSettings> {
 
     if (!hold) {
       // Short tap - show preset menu
-      await ev.action.sendToPropertyInspector({
+      await (ev.action as any).sendToPropertyInspector({
         event: "showPresets",
         presets: DEFAULT_PRESETS.map((preset, index) => ({
           ...preset,
@@ -154,11 +163,11 @@ export class GroupDialAction extends SingletonAction<GroupDialSettings> {
         try {
           this.groupBrightness = 50;
           const brightness = new Brightness(50);
-          
+
           for (const light of this.currentGroup.lights) {
             await this.lightControlService!.setBrightness(light, brightness);
           }
-          
+
           this.activePreset = -1;
           await this.updateFeedback(ev.action);
         } catch (error) {
@@ -172,44 +181,53 @@ export class GroupDialAction extends SingletonAction<GroupDialSettings> {
    * Handle messages from property inspector
    */
   override async onSendToPlugin(
-    ev: SendToPluginEvent<GroupDialSettings, JsonValue>,
+    ev: SendToPluginEvent<JsonValue, GroupDialSettings>,
   ): Promise<void> {
     const { payload, action } = ev;
 
-    if (payload.event === "getDevices" && this.lightRepository) {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return;
+    }
+
+    const data = payload as any;
+
+    if (data.event === "getDevices" && this.lightRepository) {
       try {
         const lights = await this.lightRepository.getAllLights();
-        await action.sendToPropertyInspector({
+        await (action as any).sendToPropertyInspector({
           event: "devicesReceived",
           devices: lights.map((light) => ({
-            deviceId: light.id,
+            deviceId: light.deviceId,
             model: light.model,
             name: light.name,
             isOnline: light.isOnline,
           })),
         });
       } catch (error) {
-        await action.sendToPropertyInspector({
+        await (action as any).sendToPropertyInspector({
           event: "devicesReceived",
           error: error instanceof Error ? error.message : "Unknown error",
           devices: [],
         });
       }
-    } else if (payload.event === "applyPreset" && typeof payload.presetId === "number") {
+    } else if (
+      data.event === "applyPreset" &&
+      typeof data.presetId === "number"
+    ) {
       // Apply selected preset
-      const preset = DEFAULT_PRESETS[payload.presetId];
+      const preset = DEFAULT_PRESETS[data.presetId];
       if (preset && this.currentGroup && this.groupManagementService) {
         try {
           await this.applyPreset(preset);
-          this.activePreset = payload.presetId;
+          this.activePreset = data.presetId;
           await this.updateFeedback(action);
         } catch (error) {
           await action.showAlert();
         }
       }
-    } else if (payload.event === "updateGroup") {
+    } else if (data.event === "updateGroup") {
       // Update group configuration
-      await this.loadGroup(action.settings);
+      await this.loadGroup((action as any).settings);
       await this.updateFeedback(action);
     }
   }
@@ -237,11 +255,12 @@ export class GroupDialAction extends SingletonAction<GroupDialSettings> {
     try {
       const allLights = await this.lightRepository.getAllLights();
       const groupLights = allLights.filter((light) =>
-        settings.selectedLightIds!.includes(light.id),
+        settings.selectedLightIds!.includes(light.deviceId),
       );
 
       if (groupLights.length > 0) {
-        this.currentGroup = new LightGroup(
+        this.currentGroup = LightGroup.create(
+          `group-${Date.now()}`, // Generate unique ID
           settings.groupName || "My Group",
           groupLights,
         );
@@ -249,8 +268,8 @@ export class GroupDialAction extends SingletonAction<GroupDialSettings> {
         // Calculate average brightness
         const brightnesses = groupLights
           .filter((light) => light.brightness)
-          .map((light) => light.brightness!.value);
-        
+          .map((light) => light.brightness!.level);
+
         if (brightnesses.length > 0) {
           this.groupBrightness = Math.round(
             brightnesses.reduce((a, b) => a + b, 0) / brightnesses.length,
@@ -278,12 +297,18 @@ export class GroupDialAction extends SingletonAction<GroupDialSettings> {
 
       if (preset.color) {
         const { ColorRgb } = await import("@felixgeelhaar/govee-api-client");
-        const color = new ColorRgb(preset.color.r, preset.color.g, preset.color.b);
+        const color = new ColorRgb(
+          preset.color.r,
+          preset.color.g,
+          preset.color.b,
+        );
         await this.lightControlService.setColor(light, color);
       }
 
       if (preset.temperature) {
-        const { ColorTemperature } = await import("@felixgeelhaar/govee-api-client");
+        const { ColorTemperature } = await import(
+          "@felixgeelhaar/govee-api-client"
+        );
         const temp = new ColorTemperature(preset.temperature);
         await this.lightControlService.setColorTemperature(light, temp);
       }
@@ -300,7 +325,8 @@ export class GroupDialAction extends SingletonAction<GroupDialSettings> {
   private async updateFeedback(action: any): Promise<void> {
     const groupName = this.currentGroup?.name || "No Group";
     const lightCount = this.currentGroup?.lights.length || 0;
-    const onlineCount = this.currentGroup?.lights.filter((l) => l.isOnline).length || 0;
+    const onlineCount =
+      this.currentGroup?.lights.filter((l) => l.isOnline).length || 0;
     const onCount = this.currentGroup?.lights.filter((l) => l.isOn).length || 0;
 
     await action.setFeedback({
@@ -310,7 +336,10 @@ export class GroupDialAction extends SingletonAction<GroupDialSettings> {
         value: this.groupBrightness,
         enabled: onCount > 0,
       },
-      icon: onCount === 0 ? "imgs/actions/group-dial/off" : "imgs/actions/group-dial/on",
+      icon:
+        onCount === 0
+          ? "imgs/actions/group-dial/off"
+          : "imgs/actions/group-dial/on",
     });
 
     // Update title with group status

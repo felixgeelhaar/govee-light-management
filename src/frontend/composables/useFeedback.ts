@@ -9,7 +9,7 @@ export function useFeedback() {
   const feedbackSystem =
     inject<Ref<InstanceType<typeof FeedbackSystem>>>("feedbackSystem");
 
-  if (!feedbackSystem?.value) {
+  if (!feedbackSystem) {
     console.warn("Feedback system not available - ensure App.vue provides it");
     // Return no-op functions to prevent errors
     return {
@@ -20,6 +20,7 @@ export function useFeedback() {
       showInfo: () => "",
       dismissToast: () => {},
       updateToastProgress: () => {},
+      updateToast: () => {},
       showGlobalLoading: () => {},
       hideGlobalLoading: () => {},
       updateGlobalLoadingProgress: () => {},
@@ -29,22 +30,23 @@ export function useFeedback() {
 
   return {
     // Toast methods
-    showToast: feedbackSystem.value.showToast,
-    showSuccessToast: feedbackSystem.value.showSuccessToast,
-    showError: feedbackSystem.value.showError,
-    showWarning: feedbackSystem.value.showWarning,
-    showInfo: feedbackSystem.value.showInfo,
-    dismissToast: feedbackSystem.value.dismissToast,
-    updateToastProgress: feedbackSystem.value.updateToastProgress,
+    showToast: (toast: any) => feedbackSystem.value?.showToast(toast) ?? "",
+    showSuccessToast: (title: string, message?: string) => feedbackSystem.value?.showSuccessToast(title, message) ?? "",
+    showError: (title: string, message?: string, actions?: any[]) => feedbackSystem.value?.showError(title, message, actions) ?? "",
+    showWarning: (title: string, message?: string) => feedbackSystem.value?.showWarning(title, message) ?? "",
+    showInfo: (title: string, message?: string) => feedbackSystem.value?.showInfo(title, message) ?? "",
+    dismissToast: (id: string) => feedbackSystem.value?.dismissToast(id),
+    updateToastProgress: (id: string, progress: number) => feedbackSystem.value?.updateToastProgress(id, progress),
+    updateToast: (id: string, updates: any) => feedbackSystem.value?.updateToast(id, updates),
 
     // Global loading methods
-    showGlobalLoading: feedbackSystem.value.showGlobalLoading,
-    hideGlobalLoading: feedbackSystem.value.hideGlobalLoading,
-    updateGlobalLoadingProgress:
-      feedbackSystem.value.updateGlobalLoadingProgress,
+    showGlobalLoading: (text: string, progress?: number) => feedbackSystem.value?.showGlobalLoading(text, progress),
+    hideGlobalLoading: () => feedbackSystem.value?.hideGlobalLoading(),
+    updateGlobalLoadingProgress: (progress: number, text?: string) => 
+      feedbackSystem.value?.updateGlobalLoadingProgress(progress, text),
 
     // Success animation
-    showSuccessAnimation: feedbackSystem.value.showSuccessAnimation,
+    showSuccessAnimation: (message: string) => feedbackSystem.value?.showSuccessAnimation(message),
   };
 }
 

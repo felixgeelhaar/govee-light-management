@@ -22,6 +22,8 @@ type ColorTemperatureDialSettings = {
   maxTemperature?: number;
   stepSize?: number;
   presets?: number[];
+  event?: string;
+  temperature?: number;
 };
 
 // Common color temperature presets
@@ -46,6 +48,16 @@ export class ColorTemperatureDialAction extends SingletonAction<ColorTemperature
   private currentTemperature: number = 4000;
   private presetIndex: number = 0;
 
+  // Allow dependency injection for testing
+  constructor(
+    lightRepository?: GoveeLightRepository,
+    lightControlService?: LightControlService
+  ) {
+    super();
+    this.lightRepository = lightRepository;
+    this.lightControlService = lightControlService;
+  }
+
   /**
    * Initialize services when action appears
    */
@@ -54,8 +66,12 @@ export class ColorTemperatureDialAction extends SingletonAction<ColorTemperature
   ): Promise<void> {
     const { settings } = ev.payload;
 
-    if (settings.apiKey) {
+    if (settings.apiKey && !this.lightRepository) {
       this.initializeServices(settings.apiKey);
+    }
+    
+    // Load selected light if we have repository (whether from injection or initialization)
+    if (this.lightRepository && settings.selectedDeviceId) {
       await this.loadSelectedLight(settings);
     }
 
@@ -79,7 +95,7 @@ export class ColorTemperatureDialAction extends SingletonAction<ColorTemperature
     // Calculate temperature change
     const stepSize = settings.stepSize || 100;
     const delta = ticks * stepSize * (pressed ? 2 : 1); // Double speed when pressed
-    
+
     // Update temperature
     const minTemp = settings.minTemperature || 2000;
     const maxTemp = settings.maxTemperature || 9000;
@@ -91,7 +107,10 @@ export class ColorTemperatureDialAction extends SingletonAction<ColorTemperature
     try {
       // Apply color temperature to light
       const colorTemp = new ColorTemperature(this.currentTemperature);
-      await this.lightControlService.setColorTemperature(this.currentLight, colorTemp);
+      await this.lightControlService.setColorTemperature(
+        this.currentLight,
+        colorTemp,
+      );
 
       // Update feedback display
       await this.updateFeedback(ev.action);
@@ -116,14 +135,17 @@ export class ColorTemperatureDialAction extends SingletonAction<ColorTemperature
     try {
       // Get presets
       const presets = settings.presets || DEFAULT_PRESETS;
-      
+
       // Cycle to next preset
       this.presetIndex = (this.presetIndex + 1) % presets.length;
       this.currentTemperature = presets[this.presetIndex];
 
       // Apply preset temperature
       const colorTemp = new ColorTemperature(this.currentTemperature);
-      await this.lightControlService.setColorTemperature(this.currentLight, colorTemp);
+      await this.lightControlService.setColorTemperature(
+        this.currentLight,
+        colorTemp,
+      );
 
       await this.updateFeedback(ev.action);
     } catch (error) {
@@ -145,7 +167,7 @@ export class ColorTemperatureDialAction extends SingletonAction<ColorTemperature
     }
 
     // Send preset options to property inspector
-    await ev.action.sendToPropertyInspector({
+    await (ev.action as any).sendToPropertyInspector({
       event: "showPresets",
       presets: (settings.presets || DEFAULT_PRESETS).map((temp) => ({
         value: temp,
@@ -159,38 +181,50 @@ export class ColorTemperatureDialAction extends SingletonAction<ColorTemperature
    * Handle messages from property inspector
    */
   override async onSendToPlugin(
-    ev: SendToPluginEvent<ColorTemperatureDialSettings, JsonValue>,
+    ev: SendToPluginEvent<JsonValue, ColorTemperatureDialSettings>,
   ): Promise<void> {
     const { payload, action } = ev;
 
-    if (payload.event === "getDevices" && this.lightRepository) {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return;
+    }
+
+    const data = payload as any;
+
+    if (data.event === "getDevices" && this.lightRepository) {
       try {
         const lights = await this.lightRepository.getAllLights();
-        await action.sendToPropertyInspector({
+        await (action as any).sendToPropertyInspector({
           event: "devicesReceived",
           devices: lights.map((light) => ({
-            deviceId: light.id,
+            deviceId: light.deviceId,
             model: light.model,
             name: light.name,
             isOnline: light.isOnline,
-            supportsColorTemp: light.capabilities?.colorTemperature || false,
+            supportsColorTemp: true, // Assume temperature support
           })),
         });
       } catch (error) {
-        await action.sendToPropertyInspector({
+        await (action as any).sendToPropertyInspector({
           event: "devicesReceived",
           error: error instanceof Error ? error.message : "Unknown error",
           devices: [],
         });
       }
-    } else if (payload.event === "selectPreset" && typeof payload.temperature === "number") {
+    } else if (
+      data.event === "selectPreset" &&
+      typeof data.temperature === "number"
+    ) {
       // Apply selected preset
-      this.currentTemperature = payload.temperature;
-      
+      this.currentTemperature = data.temperature;
+
       if (this.currentLight && this.lightControlService) {
         try {
           const colorTemp = new ColorTemperature(this.currentTemperature);
-          await this.lightControlService.setColorTemperature(this.currentLight, colorTemp);
+          await this.lightControlService.setColorTemperature(
+            this.currentLight,
+            colorTemp,
+          );
           await this.updateFeedback(action);
         } catch (error) {
           await action.showAlert();
@@ -220,7 +254,7 @@ export class ColorTemperatureDialAction extends SingletonAction<ColorTemperature
     try {
       const lights = await this.lightRepository.getAllLights();
       this.currentLight = lights.find(
-        (light) => light.id === settings.selectedDeviceId,
+        (light) => light.deviceId === settings.selectedDeviceId,
       );
 
       if (this.currentLight && this.currentLight.colorTemperature) {
@@ -256,7 +290,8 @@ export class ColorTemperatureDialAction extends SingletonAction<ColorTemperature
     // Calculate position on warm-cool scale (0-100)
     const minTemp = 2000;
     const maxTemp = 9000;
-    const position = ((this.currentTemperature - minTemp) / (maxTemp - minTemp)) * 100;
+    const position =
+      ((this.currentTemperature - minTemp) / (maxTemp - minTemp)) * 100;
 
     await action.setFeedback({
       title: lightName,

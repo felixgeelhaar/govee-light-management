@@ -1,4 +1,4 @@
-import streamDeck from "@elgato/streamdeck";
+import { streamDeck } from "@elgato/streamdeck";
 import { ApiValidationError } from "../validation/ApiResponseValidator";
 
 /**
@@ -121,9 +121,9 @@ export class ErrorBoundaries {
     };
 
     try {
-      streamDeck.logger.debug(`Starting API operation: ${operationName}`);
+      streamDeck?.logger?.debug(`Starting API operation: ${operationName}`);
       const result = await operation();
-      streamDeck.logger.debug(
+      streamDeck?.logger?.debug(
         `API operation completed successfully: ${operationName}`,
       );
       return result;
@@ -140,7 +140,7 @@ export class ErrorBoundaries {
     context: ErrorContext,
     operationName: string,
   ): never {
-    streamDeck.logger.error(`API operation failed: ${operationName}`, error);
+    streamDeck?.logger?.error(`API operation failed: ${operationName}`, error);
 
     if (error instanceof ApiValidationError) {
       throw new PluginError(
@@ -254,7 +254,7 @@ export class ErrorBoundaries {
       return validationFn();
     } catch (error) {
       if (error instanceof ApiValidationError) {
-        streamDeck.logger.error(
+        streamDeck?.logger?.error(
           `Validation failed for ${operationName}:`,
           error,
         );
@@ -284,16 +284,16 @@ export class ErrorBoundaries {
 
     switch (error.severity) {
       case ErrorSeverity.CRITICAL:
-        streamDeck.logger.error("CRITICAL ERROR:", logData);
+        streamDeck?.logger?.error("CRITICAL ERROR:", logData);
         break;
       case ErrorSeverity.HIGH:
-        streamDeck.logger.error("HIGH SEVERITY ERROR:", logData);
+        streamDeck?.logger?.error("HIGH SEVERITY ERROR:", logData);
         break;
       case ErrorSeverity.MEDIUM:
-        streamDeck.logger.warn("MEDIUM SEVERITY ERROR:", logData);
+        streamDeck?.logger?.warn("MEDIUM SEVERITY ERROR:", logData);
         break;
       case ErrorSeverity.LOW:
-        streamDeck.logger.info("LOW SEVERITY ERROR:", logData);
+        streamDeck?.logger?.info("LOW SEVERITY ERROR:", logData);
         break;
     }
   }

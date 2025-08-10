@@ -1,0 +1,519 @@
+/* Common styles shared across property inspector views */
+/* Designed to match Elgato's official plugin aesthetic (Cam Link, Key Light, etc.) */
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Elgato-inspired design system with modern dark theme */
+:root {
+  /* Core Elgato color palette - matches official plugins */
+  --elgato-bg-primary: #1e1e1e;
+  --elgato-bg-secondary: #2d2d30;
+  --elgato-bg-section: #262629;
+  --elgato-bg-input: #3a3a3a;
+  --elgato-bg-input-focus: #404040;
+  
+  /* Elgato brand blue (primary accent) */
+  --elgato-blue: #0099ff;
+  --elgato-blue-hover: #0088cc;
+  --elgato-blue-pressed: #0077aa;
+  
+  /* Secondary accent colors */
+  --elgato-orange: #ff6937;
+  --elgato-orange-hover: #e55a2e;
+  --elgato-green: #00d26a;
+  --elgato-green-hover: #00b85c;
+  --elgato-red: #ff453a;
+  --elgato-red-hover: #e03e33;
+  
+  /* Text colors matching Elgato hierarchy */
+  --elgato-text-primary: #ffffff;
+  --elgato-text-secondary: #efefef;
+  --elgato-text-tertiary: #999999;
+  --elgato-text-disabled: #666666;
+  
+  /* Border and divider colors */
+  --elgato-border: #404040;
+  --elgato-border-light: #4a4a4a;
+  --elgato-border-focus: var(--elgato-blue);
+  
+  /* Status colors matching Elgato's feedback system */
+  --elgato-status-info-bg: rgba(0, 153, 255, 0.15);
+  --elgato-status-info-border: var(--elgato-blue);
+  --elgato-status-info-text: #79c7ff;
+  
+  --elgato-status-success-bg: rgba(0, 210, 106, 0.15);
+  --elgato-status-success-border: var(--elgato-green);
+  --elgato-status-success-text: #7dd87d;
+  
+  --elgato-status-error-bg: rgba(255, 69, 58, 0.15);
+  --elgato-status-error-border: var(--elgato-red);
+  --elgato-status-error-text: #ff7979;
+  
+  --elgato-status-warning-bg: rgba(255, 105, 55, 0.15);
+  --elgato-status-warning-border: var(--elgato-orange);
+  --elgato-status-warning-text: #ffab00;
+  
+  /* Shadows for depth (subtle, matching Elgato's minimal approach) */
+  --elgato-shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --elgato-shadow-medium: 0 2px 8px rgba(0, 0, 0, 0.3);
+  
+  /* Transition timing matching Elgato's smooth animations */
+  --elgato-transition-fast: 150ms ease;
+  --elgato-transition-medium: 250ms ease;
+  
+  /* Legacy SDPI compatibility (fallbacks) */
+  --sdpi-color-bg-section: var(--elgato-bg-section);
+  --sdpi-color-bg-input: var(--elgato-bg-input);
+  --sdpi-color-text-primary: var(--elgato-text-primary);
+  --sdpi-color-text-secondary: var(--elgato-text-secondary);
+  --sdpi-color-text-tertiary: var(--elgato-text-tertiary);
+  --sdpi-color-accent: var(--elgato-blue);
+  --sdpi-color-border: var(--elgato-border);
+}
+
+/* Status field component - Elgato-style notifications */
+.status-field {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--elgato-shadow-medium);
+  transition: all var(--elgato-transition-medium);
+  border: 1px solid transparent;
+}
+
+.status-field.info {
+  background-color: var(--elgato-status-info-bg);
+  color: var(--elgato-status-info-text);
+  border-color: var(--elgato-status-info-border);
+}
+
+.status-field.success {
+  background-color: var(--elgato-status-success-bg);
+  color: var(--elgato-status-success-text);
+  border-color: var(--elgato-status-success-border);
+}
+
+.status-field.error {
+  background-color: var(--elgato-status-error-bg);
+  color: var(--elgato-status-error-text);
+  border-color: var(--elgato-status-error-border);
+}
+
+.status-field.warning {
+  background-color: var(--elgato-status-warning-bg);
+  color: var(--elgato-status-warning-text);
+  border-color: var(--elgato-status-warning-border);
+}
+
+.status-field .status-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.status-field .status-text {
+  flex: 1;
+  line-height: 1.4;
+}
+
+/* Form sections - Elgato-inspired clean layout */
+.config-section {
+  margin-bottom: 8px;
+  padding: 12px;
+  background-color: var(--elgato-bg-section);
+  border-radius: 6px;
+  border: 1px solid var(--elgato-border);
+  transition: border-color var(--elgato-transition-fast);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.config-section:hover {
+  border-color: var(--elgato-border-light);
+}
+
+.config-section h2 {
+  margin: 0 0 10px 0;
+  color: var(--elgato-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--elgato-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+.input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Elgato-style form inputs */
+.form-input,
+.form-select {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 12px;
+  background-color: var(--elgato-bg-input);
+  border: 1px solid var(--elgato-border);
+  border-radius: 4px;
+  color: var(--elgato-text-primary);
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  transition: all var(--elgato-transition-fast);
+  box-sizing: border-box;
+}
+
+/* Override sdpi-item-value height restriction if class is still present */
+.form-input.sdpi-item-value,
+.form-select.sdpi-item-value,
+input.sdpi-item-value,
+select.sdpi-item-value {
+  height: auto !important;
+  min-height: 36px !important;
+}
+
+/* Custom select styling to remove double arrows */
+.form-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 14px 14px !important;
+  background-attachment: scroll !important;
+  padding-right: 40px;
+}
+
+.form-select:hover:not(:disabled) {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23efefef' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+}
+
+.form-select:focus {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230099ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--elgato-blue);
+  background-color: var(--elgato-bg-input-focus);
+  box-shadow: 0 0 0 3px rgba(0, 153, 255, 0.15);
+}
+
+.form-input:hover:not(:disabled),
+.form-select:hover:not(:disabled) {
+  border-color: var(--elgato-border-light);
+}
+
+.form-input:disabled,
+.form-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: var(--elgato-text-disabled);
+  background-color: var(--elgato-bg-secondary);
+}
+
+.form-select:disabled {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+}
+
+.help-text {
+  display: block;
+  margin-top: 4px;
+  color: var(--elgato-text-tertiary);
+  font-size: 11px;
+  line-height: 1.3;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+/* Elgato-style buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--elgato-transition-fast);
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: var(--elgato-text-disabled) !important;
+  background-color: var(--elgato-bg-secondary) !important;
+}
+
+/* Primary button - Elgato brand blue */
+.btn-primary {
+  background-color: var(--elgato-blue);
+  color: var(--elgato-text-primary);
+  border: 1px solid var(--elgato-blue);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--elgato-blue-hover);
+  border-color: var(--elgato-blue-hover);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active:not(:disabled) {
+  background-color: var(--elgato-blue-pressed);
+  transform: translateY(0);
+}
+
+/* Secondary button - neutral gray */
+.btn-secondary {
+  background-color: var(--elgato-bg-input);
+  color: var(--elgato-text-secondary);
+  border: 1.5px solid var(--elgato-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--elgato-bg-input-focus);
+  border-color: var(--elgato-border-light);
+  color: var(--elgato-text-primary);
+}
+
+.btn-secondary:active:not(:disabled) {
+  background-color: var(--elgato-bg-secondary);
+}
+
+/* Icon-only buttons */
+.btn-icon {
+  min-width: 38px;
+  padding: 10px;
+  background-color: var(--elgato-bg-input);
+  color: var(--elgato-text-secondary);
+  border: 1.5px solid var(--elgato-border);
+}
+
+.btn-icon:hover:not(:disabled) {
+  background-color: var(--elgato-bg-input-focus);
+  border-color: var(--elgato-border-light);
+  color: var(--elgato-text-primary);
+}
+
+/* Button grouping styles */
+.button-group, .group-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 14px;
+}
+
+/* Small button variant */
+.btn-small {
+  padding: 8px 12px;
+  font-size: 12px;
+  min-height: 32px;
+  font-weight: 500;
+}
+
+/* Accent button - Elgato orange */
+.btn-accent {
+  background-color: var(--elgato-orange);
+  color: var(--elgato-text-primary);
+  border: 1px solid var(--elgato-orange);
+}
+
+.btn-accent:hover:not(:disabled) {
+  background-color: var(--elgato-orange-hover);
+  border-color: var(--elgato-orange-hover);
+  transform: translateY(-1px);
+}
+
+.btn-accent:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Success button - Elgato green */
+.btn-success {
+  background-color: var(--elgato-green);
+  color: var(--elgato-text-primary);
+  border: 1px solid var(--elgato-green);
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: var(--elgato-green-hover);
+  border-color: var(--elgato-green-hover);
+  transform: translateY(-1px);
+}
+
+.btn-success:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Danger button - Elgato red */
+.btn-danger {
+  background-color: var(--elgato-red);
+  color: var(--elgato-text-primary);
+  border: 1px solid var(--elgato-red);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--elgato-red-hover);
+  border-color: var(--elgato-red-hover);
+  transform: translateY(-1px);
+}
+
+.btn-danger:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Loading state for buttons */
+.btn:disabled .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Range input feedback styling */
+.range-feedback-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.range-description {
+  font-size: 11px;
+  color: var(--elgato-text-tertiary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Spinner for loading buttons */
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 6px;
+}
+
+/* Enhanced focus indicators for better accessibility */
+.form-input:focus,
+.form-select:focus,
+.form-range:focus,
+.form-color:focus {
+  outline: 2px solid var(--elgato-blue);
+  outline-offset: 2px;
+}
+
+.btn:focus {
+  outline: 2px solid var(--elgato-blue);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --elgato-bg-primary: #000000;
+    --elgato-bg-secondary: #1a1a1a;
+    --elgato-text-primary: #ffffff;
+    --elgato-text-secondary: #ffffff;
+    --elgato-border: #ffffff;
+    --elgato-blue: #00aaff;
+  }
+  
+  .config-section {
+    border: 2px solid var(--elgato-border);
+  }
+  
+  .btn {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .config-section,
+  .status-field,
+  .form-input,
+  .form-select {
+    transition: none;
+  }
+  
+  .spinner {
+    animation: none;
+  }
+  
+  .btn:hover {
+    transform: none;
+  }
+}

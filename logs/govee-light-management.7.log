@@ -1,0 +1,13 @@
+2025-08-06T15:47:59.885Z INFO  ToggleAction: Constructor called
+2025-08-06T15:47:59.889Z ERROR CRITICAL: Failed to register actions: 
+Error: Failed to read manifest.json as the file does not exist.
+    at readManifest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/@elgato/streamdeck/dist/index.js:1417:15)
+    at getManifest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/@elgato/streamdeck/dist/index.js:1408:28)
+    at Lazy.<anonymous> (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/@elgato/streamdeck/dist/index.js:2552:33)
+    at Lazy.get value [as value] (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/@elgato/streamdeck/dist/index.js:986:45)
+    at ActionService.registerAction (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/@elgato/streamdeck/dist/index.js:2710:23)
+    at /Users/felixgeelhaar/Developer/projects/govee-light-management/src/backend/plugin.ts:65:26
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at VitestExecutor.runModule (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:397:4)
+    at VitestExecutor.directRequest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:375:3)
+    at VitestExecutor.cachedRequest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:189:11)

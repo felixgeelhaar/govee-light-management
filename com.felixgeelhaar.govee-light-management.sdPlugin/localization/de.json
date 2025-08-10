@@ -1,0 +1,62 @@
+{
+  "Name": "Govee Licht-Management",
+  "Description": "Professionelle Govee Smart-Licht-Steuerung mit Stream Deck Plus Drehregler-Unterstützung",
+  "Category": "Smart Home",
+  
+  "Actions": {
+    "Toggle": {
+      "Name": "Ein/Aus schalten",
+      "Tooltip": "Einzelne Lichter ein/aus schalten mit Stream Deck+ Unterstützung"
+    },
+    "Brightness": {
+      "Name": "Helligkeits-Steuerung", 
+      "Tooltip": "Helligkeit mit Drehregler und Touchscreen am Stream Deck+ steuern"
+    },
+    "Color": {
+      "Name": "Farb-Steuerung",
+      "Tooltip": "Farbe mit Voreinstellungen oder Farbton-Anpassung am Stream Deck+ steuern"
+    },
+    "Warmth": {
+      "Name": "Farbtemperatur",
+      "Tooltip": "Farbtemperatur (Wärme) mit Drehregler am Stream Deck+ steuern"
+    }
+  },
+  
+  "Settings": {
+    "ApiKey": "Govee API-Schlüssel",
+    "ApiKeyHelp": "Holen Sie sich Ihren API-Schlüssel aus der Govee Home App: Profil → Einstellungen → API-Schlüssel beantragen",
+    "ConnectionStatus": "Verbindungsstatus",
+    "TestConnection": "Verbindung testen",
+    "SaveApiKey": "API-Schlüssel speichern",
+    "DefaultBrightness": "Standard-Helligkeit (%)",
+    "DefaultColorTemp": "Standard-Farbtemperatur (K)",
+    "AutoDiscover": "Neue Geräte automatisch erkennen",
+    "AutoDiscoverHelp": "Neue Govee-Geräte automatisch erkennen, wenn sie online kommen",
+    "InterfaceLanguage": "Oberflächensprache",
+    "HighContrast": "Verstärkter Kontrast-Modus",
+    "HighContrastHelp": "Erhöht den visuellen Kontrast für bessere Zugänglichkeit",
+    "ScreenReader": "Erweiterte Bildschirmleser-Unterstützung",
+    "ScreenReaderHelp": "Bietet zusätzliche Ansagen für Bildschirmleser-Benutzer"
+  },
+  
+  "Status": {
+    "Connected": "Verbunden",
+    "NotConnected": "Nicht verbunden", 
+    "Testing": "Teste...",
+    "Warning": "Warnung",
+    "ConnectedSuccessfully": "Erfolgreich verbunden",
+    "InvalidApiKey": "Ungültiger API-Schlüssel",
+    "ConnectionFailed": "Verbindung fehlgeschlagen",
+    "ApiKeyRequired": "API-Schlüssel erforderlich"
+  },
+  
+  "Messages": {
+    "SettingsSaved": "Einstellungen erfolgreich gespeichert",
+    "SettingsSaveFailed": "Fehler beim Speichern der Einstellungen",
+    "DeviceOffline": "Gerät ist offline oder nicht erreichbar",
+    "InvalidSettings": "Ungültige Einstellungen. Bitte überprüfen Sie Ihre Konfiguration",
+    "DeviceNotFound": "Gerät nicht gefunden. Es wurde möglicherweise entfernt",
+    "OperationTimeout": "Vorgang-Timeout. Bitte versuchen Sie es erneut",
+    "TooManyRequests": "Zu viele Anfragen. Bitte warten Sie einen Moment"
+  }
+}

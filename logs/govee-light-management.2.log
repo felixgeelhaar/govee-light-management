@@ -1,0 +1,37 @@
+2025-08-06T19:52:47.925Z ERROR CRITICAL: Failed to register actions: 
+Error: The action's manifestId cannot be undefined.
+    at ActionService.registerAction (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/@elgato/streamdeck/dist/index.js:2708:19)
+    at /Users/felixgeelhaar/Developer/projects/govee-light-management/src/backend/plugin.ts:68:26
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at VitestExecutor.runModule (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:397:4)
+    at VitestExecutor.directRequest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:375:3)
+    at VitestExecutor.cachedRequest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:189:11)
+    at VitestExecutor.dependencyRequest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:239:10)
+    at /Users/felixgeelhaar/Developer/projects/govee-light-management/src/backend/actions/dials/ColorDialAction.ts:15:1
+    at VitestExecutor.runModule (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:397:4)
+    at VitestExecutor.directRequest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:375:3)
+2025-08-06T19:52:47.926Z INFO  ToggleAction: Constructor called
+2025-08-06T19:52:47.930Z ERROR CRITICAL: Failed to register actions: 
+Error: The action's manifestId cannot be undefined.
+    at ActionService.registerAction (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/@elgato/streamdeck/dist/index.js:2708:19)
+    at /Users/felixgeelhaar/Developer/projects/govee-light-management/src/backend/plugin.ts:68:26
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at VitestExecutor.runModule (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:397:4)
+    at VitestExecutor.directRequest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:375:3)
+    at VitestExecutor.cachedRequest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:189:11)
+    at VitestExecutor.dependencyRequest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:239:10)
+    at /Users/felixgeelhaar/Developer/projects/govee-light-management/src/backend/actions/dials/BrightnessDialAction.ts:16:1
+    at VitestExecutor.runModule (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:397:4)
+    at VitestExecutor.directRequest (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vite-node/dist/client.mjs:375:3)
+2025-08-06T19:52:47.950Z ERROR Process encountered uncaught exception 
+Error: write EPIPE
+    at process.target._send (node:internal/child_process:877:20)
+    at process.target.send (node:internal/child_process:751:19)
+    at post (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vitest/dist/chunks/utils.CAioKnHs.js:30:4)
+    at file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vitest/dist/chunks/index.B521nVV-.js:71:11
+    at new Promise (<anonymous>)
+    at sendCall (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vitest/dist/chunks/index.B521nVV-.js:53:16)
+    at file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vitest/dist/chunks/rpc.-pEldfrD.js:66:19
+    at withSafeTimers (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vitest/dist/chunks/rpc.-pEldfrD.js:19:18)
+    at Proxy.safeSendCall (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vitest/dist/chunks/rpc.-pEldfrD.js:65:37)
+    at VitestTestRunner.onAfterRunSuite (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vitest/dist/runners.js:158:16)

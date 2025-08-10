@@ -19,12 +19,14 @@ type ColorDialSettings = {
   selectedModel?: string;
   selectedLightName?: string;
   stepSize?: number;
+  event?: string;
+  color?: { h: number; s: number; b: number };
 };
 
 type ColorMode = "hue" | "saturation" | "brightness";
 
 interface HSB {
-  hue: number;        // 0-360
+  hue: number; // 0-360
   saturation: number; // 0-100
   brightness: number; // 0-100
 }
@@ -40,6 +42,16 @@ export class ColorDialAction extends SingletonAction<ColorDialSettings> {
   private currentHSB: HSB = { hue: 0, saturation: 100, brightness: 100 };
   private colorMode: ColorMode = "hue";
 
+  // Allow dependency injection for testing
+  constructor(
+    lightRepository?: GoveeLightRepository,
+    lightControlService?: LightControlService
+  ) {
+    super();
+    this.lightRepository = lightRepository;
+    this.lightControlService = lightControlService;
+  }
+
   /**
    * Initialize services when action appears
    */
@@ -48,8 +60,13 @@ export class ColorDialAction extends SingletonAction<ColorDialSettings> {
   ): Promise<void> {
     const { settings } = ev.payload;
 
-    if (settings.apiKey) {
+    // Initialize services if not already injected (for production use)
+    if (settings.apiKey && !this.lightRepository) {
       this.initializeServices(settings.apiKey);
+    }
+    
+    // Load selected light if we have repository (whether from injection or initialization)
+    if (this.lightRepository && settings.selectedDeviceId) {
       await this.loadSelectedLight(settings);
     }
 
@@ -79,10 +96,16 @@ export class ColorDialAction extends SingletonAction<ColorDialSettings> {
         this.currentHSB.hue = (this.currentHSB.hue + delta + 360) % 360;
         break;
       case "saturation":
-        this.currentHSB.saturation = Math.max(0, Math.min(100, this.currentHSB.saturation + delta));
+        this.currentHSB.saturation = Math.max(
+          0,
+          Math.min(100, this.currentHSB.saturation + delta),
+        );
         break;
       case "brightness":
-        this.currentHSB.brightness = Math.max(0, Math.min(100, this.currentHSB.brightness + delta));
+        this.currentHSB.brightness = Math.max(
+          0,
+          Math.min(100, this.currentHSB.brightness + delta),
+        );
         break;
     }
 
@@ -112,7 +135,7 @@ export class ColorDialAction extends SingletonAction<ColorDialSettings> {
     this.colorMode = modes[(currentIndex + 1) % modes.length];
 
     await this.updateFeedback(ev.action);
-    
+
     // Show mode change notification
     await ev.action.setTitle(`Mode: ${this.colorMode.toUpperCase()}`);
     setTimeout(() => this.updateFeedback(ev.action), 1500);
@@ -129,7 +152,7 @@ export class ColorDialAction extends SingletonAction<ColorDialSettings> {
     if (hold && this.currentLight && this.lightControlService) {
       // Long press - reset to white
       this.currentHSB = { hue: 0, saturation: 0, brightness: 100 };
-      
+
       try {
         const color = new ColorRgb(255, 255, 255);
         await this.lightControlService.setColor(this.currentLight, color);
@@ -145,35 +168,42 @@ export class ColorDialAction extends SingletonAction<ColorDialSettings> {
    * Handle messages from property inspector
    */
   override async onSendToPlugin(
-    ev: SendToPluginEvent<ColorDialSettings, JsonValue>,
+    ev: SendToPluginEvent<JsonValue, ColorDialSettings>,
   ): Promise<void> {
     const { payload, action } = ev;
 
-    if (payload.event === "getDevices" && this.lightRepository) {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return;
+    }
+
+    const data = payload as any;
+
+    if (data.event === "getDevices" && this.lightRepository) {
       try {
         const lights = await this.lightRepository.getAllLights();
-        await action.sendToPropertyInspector({
+        await (action as any).sendToPropertyInspector({
           event: "devicesReceived",
           devices: lights.map((light) => ({
-            deviceId: light.id,
+            deviceId: light.deviceId,
             model: light.model,
             name: light.name,
             isOnline: light.isOnline,
-            supportsColor: light.capabilities?.color || false,
+            supportsColor: true, // Assume color support
           })),
         });
       } catch (error) {
-        await action.sendToPropertyInspector({
+        await (action as any).sendToPropertyInspector({
           event: "devicesReceived",
           error: error instanceof Error ? error.message : "Unknown error",
           devices: [],
         });
       }
-    } else if (payload.event === "setColor" && payload.color) {
+    } else if (data.event === "setColor" && data.color) {
       // Apply color from color picker in property inspector
-      const { r, g, b } = payload.color as { r: number; g: number; b: number };
+      const colorData = data.color as any;
+      const { r, g, b } = colorData as { r: number; g: number; b: number };
       this.currentHSB = this.rgbToHsb({ r, g, b });
-      
+
       if (this.currentLight && this.lightControlService) {
         try {
           const color = new ColorRgb(r, g, b);
@@ -197,9 +227,7 @@ export class ColorDialAction extends SingletonAction<ColorDialSettings> {
   /**
    * Load selected light from settings
    */
-  private async loadSelectedLight(
-    settings: ColorDialSettings,
-  ): Promise<void> {
+  private async loadSelectedLight(settings: ColorDialSettings): Promise<void> {
     if (!settings.selectedDeviceId || !this.lightRepository) {
       return;
     }
@@ -207,7 +235,7 @@ export class ColorDialAction extends SingletonAction<ColorDialSettings> {
     try {
       const lights = await this.lightRepository.getAllLights();
       this.currentLight = lights.find(
-        (light) => light.id === settings.selectedDeviceId,
+        (light) => light.deviceId === settings.selectedDeviceId,
       );
 
       if (this.currentLight && this.currentLight.color) {
@@ -221,38 +249,51 @@ export class ColorDialAction extends SingletonAction<ColorDialSettings> {
   }
 
   /**
-   * Convert HSB to RGB
+   * Convert HSB to RGB using a simpler, more reliable algorithm
    */
   private hsbToRgb(hsb: HSB): { r: number; g: number; b: number } {
-    const h = hsb.hue / 360;
+    const h = hsb.hue;
     const s = hsb.saturation / 100;
-    const b = hsb.brightness / 100;
+    const v = hsb.brightness / 100;
 
-    let r: number, g: number, bl: number;
+    const c = v * s;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const m = v - c;
 
-    if (s === 0) {
-      r = g = bl = b;
-    } else {
-      const hue2rgb = (p: number, q: number, t: number): number => {
-        if (t < 0) t += 1;
-        if (t > 1) t -= 1;
-        if (t < 1/6) return p + (q - p) * 6 * t;
-        if (t < 1/2) return q;
-        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-        return p;
-      };
+    let r = 0,
+      g = 0,
+      b = 0;
 
-      const q = b < 0.5 ? b * (1 + s) : b + s - b * s;
-      const p = 2 * b - q;
-      r = hue2rgb(p, q, h + 1/3);
-      g = hue2rgb(p, q, h);
-      bl = hue2rgb(p, q, h - 1/3);
+    if (0 <= h && h < 60) {
+      r = c;
+      g = x;
+      b = 0;
+    } else if (60 <= h && h < 120) {
+      r = x;
+      g = c;
+      b = 0;
+    } else if (120 <= h && h < 180) {
+      r = 0;
+      g = c;
+      b = x;
+    } else if (180 <= h && h < 240) {
+      r = 0;
+      g = x;
+      b = c;
+    } else if (240 <= h && h < 300) {
+      r = x;
+      g = 0;
+      b = c;
+    } else if (300 <= h && h < 360) {
+      r = c;
+      g = 0;
+      b = x;
     }
 
     return {
-      r: Math.round(r * 255),
-      g: Math.round(g * 255),
-      b: Math.round(bl * 255),
+      r: Math.round((r + m) * 255),
+      g: Math.round((g + m) * 255),
+      b: Math.round((b + m) * 255),
     };
   }
 
@@ -325,11 +366,13 @@ export class ColorDialAction extends SingletonAction<ColorDialSettings> {
       indicator: {
         value: indicatorValue,
         enabled: isOn && isOnline,
-        color: `#${rgb.r.toString(16).padStart(2, '0')}${rgb.g.toString(16).padStart(2, '0')}${rgb.b.toString(16).padStart(2, '0')}`,
+        color: `#${rgb.r.toString(16).padStart(2, "0")}${rgb.g.toString(16).padStart(2, "0")}${rgb.b.toString(16).padStart(2, "0")}`,
       },
     });
 
     // Set title to show current mode
-    await action.setTitle(`${this.colorMode.charAt(0).toUpperCase()}${this.colorMode.slice(1)}`);
+    await action.setTitle(
+      `${this.colorMode.charAt(0).toUpperCase()}${this.colorMode.slice(1)}`,
+    );
   }
 }

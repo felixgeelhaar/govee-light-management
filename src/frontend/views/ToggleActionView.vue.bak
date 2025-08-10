@@ -1,0 +1,535 @@
+<template>
+  <div class="toggle-action-view">
+    <!-- API Configuration Section -->
+    <section
+      class="config-section"
+      :class="{ minimized: isApiSectionMinimized }"
+    >
+      <h2 @click="toggleApiSection" class="collapsible-header">
+        <span>API Configuration</span>
+        <span class="collapse-icon">{{
+          isApiSectionMinimized ? "▶" : "▼"
+        }}</span>
+      </h2>
+      <div class="api-content" v-show="!isApiSectionMinimized">
+        <div class="form-group">
+          <label for="apiKey">API Key</label>
+          <div class="input-group">
+            <input
+              id="apiKey"
+              v-model="localApiKey"
+              :type="showApiKey ? 'text' : 'password'"
+              class="form-input sdpi-item-value"
+              placeholder="Enter your Govee API key"
+              autocomplete="off"
+              :disabled="apiConnection.isConnecting.value"
+              @keyup.enter="connectToApi"
+            />
+            <button
+              type="button"
+              class="btn btn-icon"
+              @click="showApiKey = !showApiKey"
+              :title="showApiKey ? 'Hide API key' : 'Show API key'"
+            >
+              {{ showApiKey ? "🙈" : "👁️" }}
+            </button>
+            <button
+              v-if="
+                apiConnection.isDisconnected.value ||
+                apiConnection.hasError.value
+              "
+              class="btn btn-primary"
+              :disabled="!localApiKey || apiConnection.isConnecting.value"
+              @click="connectToApi"
+            >
+              <span v-if="apiConnection.isConnecting.value">Connecting...</span>
+              <span v-else>Connect</span>
+            </button>
+            <button
+              v-else-if="apiConnection.isConnected.value"
+              class="btn btn-secondary"
+              @click="apiConnection.disconnect"
+            >
+              Disconnect
+            </button>
+          </div>
+          <small class="help-text">
+            Get your API key from the Govee Home app → Settings → About Us →
+            Apply for API Key
+          </small>
+        </div>
+      </div>
+    </section>
+
+    <!-- Target Selection Section -->
+    <section class="config-section">
+      <h2>Target Selection</h2>
+
+      <!-- Light Selection -->
+      <div class="form-group">
+        <label for="lightSelect">Select Light</label>
+        <div v-if="lightDiscovery.isIdle.value">
+          <button
+            class="btn btn-primary"
+            :disabled="!apiConnection.isConnected.value"
+            @click="lightDiscovery.fetchLights"
+          >
+            Discover Lights
+          </button>
+          <small class="help-text">
+            Connect your API key first, then discover available lights
+          </small>
+        </div>
+        <div v-else-if="lightDiscovery.isReady.value">
+          <select
+            id="lightSelect"
+            v-model="selectedLight"
+            class="form-select sdpi-item-value"
+            :disabled="!lightDiscovery.hasFilteredLights.value"
+          >
+            <option value="" disabled>
+              {{
+                lightDiscovery.hasFilteredLights.value
+                  ? "Select a light..."
+                  : "No lights found"
+              }}
+            </option>
+            <option
+              v-for="light in lightDiscovery.filteredLights.value"
+              :key="light.value"
+              :value="light.value"
+            >
+              {{ light.label }}
+            </option>
+          </select>
+
+          <div class="button-group">
+            <button
+              class="btn btn-secondary btn-small"
+              @click="refreshLights"
+              :disabled="lightDiscovery.isFetchingLights.value"
+            >
+              <span v-if="lightDiscovery.isFetchingLights.value"
+                >Refreshing...</span
+              >
+              <span v-else>🔄 Refresh</span>
+            </button>
+            <button
+              class="btn btn-accent btn-small"
+              @click="testSelectedLight"
+              :disabled="!selectedLight || isTestingLight"
+            >
+              <span v-if="isTestingLight">Testing...</span>
+              <span v-else>💡 Test Light</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Operation Settings Section -->
+    <section class="config-section">
+      <h2>Toggle Settings</h2>
+      <div class="form-group">
+        <label for="operation">Button Action</label>
+        <select
+          id="operation"
+          v-model="operation"
+          class="form-select sdpi-item-value"
+        >
+          <option value="toggle">Toggle On/Off</option>
+          <option value="on">Always Turn On</option>
+          <option value="off">Always Turn Off</option>
+        </select>
+        <small class="help-text">
+          Choose what happens when the Stream Deck button is pressed
+        </small>
+      </div>
+    </section>
+
+    <!-- Status Field for Stream Deck -->
+    <div v-if="statusMessage" class="status-field" :class="statusType">
+      <span class="status-icon">{{ statusIcon }}</span>
+      <span class="status-text">{{ statusMessage }}</span>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch, onMounted } from "vue";
+import type { ToggleActionSettings } from "@shared/types/newActions";
+import { useApiConnection } from "../composables/useApiConnection";
+import { useLightDiscovery } from "../composables/useLightDiscovery";
+import { websocketService } from "../services/websocketService";
+
+// XState composables
+const apiConnection = useApiConnection();
+const lightDiscovery = useLightDiscovery();
+
+// Local reactive state
+const isTestingLight = ref<boolean>(false);
+const showApiKey = ref<boolean>(false);
+
+// API section collapsing
+const isApiSectionMinimized = ref<boolean>(false);
+
+// Status field for Stream Deck
+const statusMessage = ref<string>("");
+const statusType = ref<"info" | "success" | "error" | "warning">("info");
+const statusIcon = computed(() => {
+  const icons = {
+    info: "ℹ️",
+    success: "✅",
+    error: "❌",
+    warning: "⚠️",
+  };
+  return icons[statusType.value];
+});
+
+// Settings state (will be synced with Stream Deck settings)
+const localApiKey = ref<string>("");
+const selectedLight = ref<string>("");
+const operation = ref<"toggle" | "on" | "off">("toggle");
+
+// Status helper functions
+const showStatus = (
+  message: string,
+  type: "info" | "success" | "error" | "warning" = "info",
+  duration = 3000,
+) => {
+  statusMessage.value = message;
+  statusType.value = type;
+
+  if (duration > 0) {
+    setTimeout(() => {
+      statusMessage.value = "";
+    }, duration);
+  }
+};
+
+// Actions
+const connectToApi = () => {
+  if (localApiKey.value) {
+    showStatus("Validating API key...", "info");
+    apiConnection.connect(localApiKey.value);
+  }
+};
+
+const refreshLights = () => {
+  showStatus("Refreshing lights...", "info");
+  lightDiscovery.refreshLights();
+};
+
+// Test light functionality
+const testSelectedLight = async () => {
+  if (!selectedLight.value || isTestingLight.value) return;
+
+  const [deviceId, model] = selectedLight.value.split("|");
+  if (!deviceId || !model) {
+    showStatus("Invalid light selection", "error");
+    return;
+  }
+
+  isTestingLight.value = true;
+
+  try {
+    showStatus("Testing light...", "info", 0); // No auto-clear
+
+    // Send test command to backend
+    await websocketService.sendToPlugin({
+      event: "testLight",
+      deviceId,
+      model,
+    });
+
+    console.log("Test light command sent successfully");
+
+    // Add timeout as fallback
+    setTimeout(() => {
+      if (isTestingLight.value) {
+        console.warn("Test light timeout reached, resetting state");
+        isTestingLight.value = false;
+        showStatus("Test timeout - light may have still blinked", "warning");
+      }
+    }, 5000);
+  } catch (error) {
+    console.error("Failed to send test light command:", error);
+    isTestingLight.value = false;
+    showStatus("Failed to send test command", "error");
+  }
+};
+
+// API section methods
+const toggleApiSection = () => {
+  isApiSectionMinimized.value = !isApiSectionMinimized.value;
+};
+
+// Settings persistence
+const saveSettings = () => {
+  const settings: ToggleActionSettings = {
+    apiKey: localApiKey.value || undefined,
+    operation: operation.value,
+  };
+
+  // Add light-specific settings
+  if (selectedLight.value) {
+    const [deviceId, model] = selectedLight.value.split("|");
+    const lightName = lightDiscovery.filteredLights.value.find(
+      (l) => l.value === selectedLight.value,
+    )?.label;
+
+    settings.lightId = deviceId;
+    settings.lightModel = model;
+    settings.lightName = lightName;
+  }
+
+  // Send settings to Stream Deck
+  websocketService.sendToPlugin({
+    event: "setSettings",
+    settings: settings,
+  });
+};
+
+const loadSettings = () => {
+  // Request current settings from Stream Deck
+  websocketService.sendToPlugin({
+    event: "getSettings",
+  });
+};
+
+// Watch for changes and auto-save
+watch([localApiKey, selectedLight, operation], () => {
+  saveSettings();
+});
+
+// Watch for API connection changes
+watch(
+  () => apiConnection.isConnected.value,
+  (isConnected, wasConnected) => {
+    if (isConnected && !wasConnected) {
+      showStatus("API connected successfully", "success");
+      // Auto-discover lights
+      if (lightDiscovery.isIdle.value) {
+        lightDiscovery.fetchLights();
+      }
+    }
+  },
+);
+
+// Watch for API connection errors
+watch(
+  () => apiConnection.error.value,
+  (error) => {
+    if (error) {
+      showStatus(`API connection failed: ${error}`, "error");
+      // Expand API section when there's an error so user can retry
+      isApiSectionMinimized.value = false;
+    }
+  },
+);
+
+// Watch for light discovery state changes
+watch(
+  () => lightDiscovery.state.value,
+  (newState, oldState) => {
+    if (newState === "fetching" && oldState === "idle") {
+      showStatus("Discovering lights...", "info", 0);
+    } else if (newState === "success" && oldState === "fetching") {
+      const lightCount = lightDiscovery.lights.value.length;
+      if (lightCount > 0) {
+        showStatus(
+          `Found ${lightCount} light${lightCount !== 1 ? "s" : ""}`,
+          "success",
+        );
+      } else {
+        showStatus("No lights found - check connections", "warning");
+      }
+    } else if (newState === "error") {
+      showStatus("Light discovery failed", "error");
+    }
+  },
+);
+
+// Auto-minimize API section only after successful validation
+watch(
+  () => apiConnection.isConnected.value,
+  (isConnected) => {
+    // Auto-minimize only when API connection is successfully established
+    if (isConnected) {
+      isApiSectionMinimized.value = true;
+    }
+  },
+);
+
+// Initialize on mount
+onMounted(() => {
+  // Wait for WebSocket connection before loading settings
+  const checkConnection = () => {
+    if (websocketService.isConnected) {
+      // First, request global API key
+      websocketService.sendToPlugin({
+        event: "getGlobalApiKey",
+      });
+
+      // Load existing settings
+      loadSettings();
+
+      // Set up WebSocket event listeners
+      websocketService.on("sendToPropertyInspector", (data: any) => {
+        if (data.payload?.event === "globalApiKey") {
+          // Handle global API key response
+          const globalApiKey = data.payload.apiKey;
+          if (globalApiKey && !localApiKey.value) {
+            // Use global API key if no local one is set
+            localApiKey.value = globalApiKey;
+            showStatus("Using global API key", "info");
+            
+            // Auto-connect with global API key
+            if (!apiConnection.isConnected.value) {
+              apiConnection.connect(globalApiKey);
+            }
+          }
+        }
+        
+        if (data.payload?.event === "currentSettings") {
+          const settings = data.payload.settings as ToggleActionSettings;
+
+          // Load settings into reactive state
+          // Only override API key if it's explicitly set in settings
+          if (settings.apiKey) {
+            localApiKey.value = settings.apiKey;
+          }
+          operation.value = settings.operation || "toggle";
+
+          selectedLight.value =
+            settings.lightId && settings.lightModel
+              ? `${settings.lightId}|${settings.lightModel}`
+              : "";
+
+          // Auto-connect if API key is available and not already connected
+          if (localApiKey.value && !apiConnection.isConnected.value) {
+            apiConnection.connect(localApiKey.value);
+          }
+        }
+
+        // Handle test light result
+        if (data.payload?.event === "testResult") {
+          isTestingLight.value = false;
+
+          if (data.payload.success) {
+            showStatus(
+              data.payload.message || "Light blinked successfully!",
+              "success",
+            );
+          } else {
+            showStatus(
+              data.payload.message || "Failed to control the light",
+              "error",
+            );
+          }
+        }
+      });
+    } else {
+      // Retry after a short delay
+      setTimeout(checkConnection, 100);
+    }
+  };
+
+  // Start checking for connection
+  checkConnection();
+});
+</script>
+
+<style scoped>
+@import "../assets/common.css";
+
+/* Elgato-style collapsible API section */
+.collapsible-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  padding: 8px 12px;
+  margin: -8px -12px 16px -12px;
+  border-radius: 8px;
+  transition: all var(--elgato-transition-fast);
+  border: 1px solid transparent;
+}
+
+.collapsible-header:hover {
+  background-color: var(--elgato-bg-input);
+  border-color: var(--elgato-border-light);
+}
+
+.collapse-icon {
+  font-size: 12px;
+  color: var(--elgato-text-tertiary);
+  transition: all var(--elgato-transition-fast);
+  width: 20px;
+  text-align: center;
+}
+
+.config-section.minimized .collapse-icon {
+  transform: rotate(-90deg);
+  color: var(--elgato-blue);
+}
+
+.api-content {
+  transition: all var(--elgato-transition-medium);
+  overflow: hidden;
+}
+
+.config-section.minimized {
+  padding-bottom: 16px;
+  border-color: var(--elgato-blue);
+  background: linear-gradient(
+    135deg,
+    var(--elgato-bg-section) 0%,
+    rgba(0, 153, 255, 0.03) 100%
+  );
+}
+
+.config-section.minimized .api-content {
+  max-height: 0;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
+  transform: translateY(-10px);
+}
+
+.toggle-action-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px;
+  background-color: var(--elgato-bg-primary);
+  min-height: 100vh;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+/* Ensure proper Stream Deck property inspector layout */
+html,
+body {
+  background-color: var(--elgato-bg-primary);
+  color: var(--elgato-text-primary);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* Stream Deck property inspector wrapper */
+.sdpi-wrapper {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+</style>

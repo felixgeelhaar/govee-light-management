@@ -1,0 +1,62 @@
+{
+  "Name": "Govee Light Management",
+  "Description": "Professional Govee smart light control with Stream Deck Plus dial support",
+  "Category": "Smart Home",
+  
+  "Actions": {
+    "Toggle": {
+      "Name": "Toggle On/Off",
+      "Tooltip": "Toggle individual lights on/off with Stream Deck+ support"
+    },
+    "Brightness": {
+      "Name": "Brightness Control", 
+      "Tooltip": "Control brightness with dial rotation and touchscreen on Stream Deck+"
+    },
+    "Color": {
+      "Name": "Color Control",
+      "Tooltip": "Control color with presets or hue adjustment on Stream Deck+"
+    },
+    "Warmth": {
+      "Name": "Color Temperature",
+      "Tooltip": "Control color temperature (warmth) with dial rotation on Stream Deck+"
+    }
+  },
+  
+  "Settings": {
+    "ApiKey": "Govee API Key",
+    "ApiKeyHelp": "Get your API key from the Govee Home app: Profile → Settings → Apply for API Key",
+    "ConnectionStatus": "Connection Status",
+    "TestConnection": "Test Connection",
+    "SaveApiKey": "Save API Key",
+    "DefaultBrightness": "Default Brightness (%)",
+    "DefaultColorTemp": "Default Color Temperature (K)",
+    "AutoDiscover": "Auto-discover new devices",
+    "AutoDiscoverHelp": "Automatically detect new Govee devices when they come online",
+    "InterfaceLanguage": "Interface Language",
+    "HighContrast": "Enhanced contrast mode",
+    "HighContrastHelp": "Increases visual contrast for better accessibility",
+    "ScreenReader": "Enhanced screen reader support",
+    "ScreenReaderHelp": "Provides additional announcements for screen reader users"
+  },
+  
+  "Status": {
+    "Connected": "Connected",
+    "NotConnected": "Not Connected", 
+    "Testing": "Testing...",
+    "Warning": "Warning",
+    "ConnectedSuccessfully": "Connected Successfully",
+    "InvalidApiKey": "Invalid API Key",
+    "ConnectionFailed": "Connection Failed",
+    "ApiKeyRequired": "API Key Required"
+  },
+  
+  "Messages": {
+    "SettingsSaved": "Settings saved successfully",
+    "SettingsSaveFailed": "Failed to save settings",
+    "DeviceOffline": "Device is offline or unreachable",
+    "InvalidSettings": "Invalid settings. Please check your configuration",
+    "DeviceNotFound": "Device not found. It may have been removed",
+    "OperationTimeout": "Operation timed out. Please try again",
+    "TooManyRequests": "Too many requests. Please wait a moment"
+  }
+}

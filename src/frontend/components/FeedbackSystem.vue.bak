@@ -1,0 +1,1154 @@
+<template>
+  <!-- Try without Teleport first to see if toasts render -->
+  <div>
+    
+    <!-- Toast Notifications -->
+    <Transition name="toast-container">
+      <div v-if="toasts.length > 0" class="toast-container" :data-toast-count="toasts.length">
+        <TransitionGroup name="toast" tag="div">
+          <div
+            v-for="toast in toasts"
+            :key="toast.id"
+            :class="[
+              'toast',
+              `toast-${toast.type}`,
+              { 
+                'toast-persistent': toast.persistent,
+                'toast-paused': hoveredToasts.has(toast.id)
+              },
+            ]"
+            :role="'alert'"
+            :aria-live="toast.type === 'error' ? 'assertive' : 'polite'"
+            :aria-atomic="true"
+            :aria-labelledby="`toast-title-${toast.id}`"
+            :aria-describedby="toast.message ? `toast-message-${toast.id}` : undefined"
+            :tabindex="0"
+            @click="handleToastClick(toast)"
+            @keydown="handleToastKeydown($event, toast)"
+            @mouseenter="pauseToast(toast.id)"
+            @mouseleave="resumeToast(toast.id)"
+          >
+            <div class="toast-icon" :aria-hidden="true">
+              <svg viewBox="0 0 24 24" class="icon" :class="`icon-${toast.type}`">
+                <path v-if="toast.type === 'success'" d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <path v-else-if="toast.type === 'error'" d="M18 6L6 18M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <path v-else-if="toast.type === 'warning'" d="M12 9v4M12 17h.01M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86L7.86 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <circle v-else-if="toast.type === 'info'" cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" />
+                <path v-if="toast.type === 'info'" d="M12 16v-4M12 8h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+            <div class="toast-content">
+              <div :id="`toast-title-${toast.id}`" class="toast-title">{{ toast.title }}</div>
+              <div v-if="toast.message" :id="`toast-message-${toast.id}`" class="toast-message">
+                {{ toast.message }}
+              </div>
+              <div v-if="toast.actions" class="toast-actions">
+                <button
+                  v-for="action in toast.actions"
+                  :key="action.label"
+                  :class="[
+                    'toast-action',
+                    `toast-action-${action.type || 'primary'}`,
+                  ]"
+                  @click.stop="handleToastAction(action, toast.id)"
+                >
+                  {{ action.label }}
+                </button>
+              </div>
+            </div>
+            <button
+              v-if="!toast.persistent"
+              class="toast-close"
+              :aria-label="'Dismiss notification'"
+              @click.stop="dismissToast(toast.id)"
+            >
+              <svg viewBox="0 0 24 24" class="close-icon">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+              </svg>
+            </button>
+            <!-- Auto-dismiss progress indicator -->
+            <div v-if="!toast.persistent && toast.progress !== undefined" class="toast-progress">
+              <div
+                class="toast-progress-bar"
+                :style="{ 
+                  width: `${toast.progress}%`,
+                  backgroundColor: getProgressColor(toast.type)
+                }"
+              ></div>
+            </div>
+            <!-- Pause indicator -->
+            <div v-if="hoveredToasts.has(toast.id)" class="toast-pause-indicator" :aria-hidden="true">
+              ⏸
+            </div>
+          </div>
+        </TransitionGroup>
+      </div>
+    </Transition>
+
+    <!-- Loading Overlay -->
+    <Transition name="loading-overlay">
+      <div v-if="globalLoading" class="loading-overlay">
+        <div class="loading-content">
+          <LoadingSpinner :size="48" />
+          <div class="loading-text">{{ globalLoadingText }}</div>
+          <div
+            v-if="globalLoadingProgress !== undefined"
+            class="loading-progress"
+          >
+            <div class="loading-progress-bar">
+              <div
+                class="loading-progress-fill"
+                :style="{ width: `${globalLoadingProgress}%` }"
+              ></div>
+            </div>
+            <div class="loading-progress-text">
+              {{ Math.round(globalLoadingProgress) }}%
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Success Animations -->
+    <Transition name="success-overlay">
+      <div
+        v-if="showSuccessAnimation"
+        class="success-overlay"
+        @click="hideSuccessAnimation"
+      >
+        <div class="success-content">
+          <div class="success-icon">
+            <svg viewBox="0 0 50 50" class="success-checkmark">
+              <circle
+                class="success-circle"
+                cx="25"
+                cy="25"
+                r="23"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+              <path
+                class="success-check"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                d="M14 27l7 7 16-16"
+              />
+            </svg>
+          </div>
+          <div class="success-text">{{ successMessage }}</div>
+        </div>
+      </div>
+    </Transition>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from "vue";
+import LoadingSpinner from "./LoadingSpinner.vue";
+import { useToastMachine } from "../composables/useToastMachine";
+
+// Toast notification interface (for compatibility)
+interface Toast {
+  id: string;
+  type: "success" | "error" | "warning" | "info";
+  title: string;
+  message?: string;
+  duration?: number;
+  persistent?: boolean;
+  progress?: number;
+  actions?: Array<{
+    label: string;
+    type?: "primary" | "secondary" | "danger";
+    action: () => void | Promise<void>;
+  }>;
+}
+
+// Use the toast machine
+const toastMachine = useToastMachine();
+
+// Convert machine toasts to component format
+const toasts = ref<Toast[]>([]);
+
+// Global loading state (independent of toast machine)
+const globalLoading = ref(false);
+const globalLoadingText = ref("Loading...");
+const globalLoadingProgress = ref<number | undefined>(undefined);
+const showSuccessAnimation = ref(false);
+const successMessage = ref("");
+
+// Track toast timeouts for auto-dismissal
+const toastTimeouts = new Map<string, NodeJS.Timeout>();
+const progressIntervals = new Map<string, NodeJS.Timeout>();
+const hoveredToasts = new Set<string>();
+
+// Sync machine state with component state
+const syncMachineState = () => {
+  const machineToasts = toastMachine.activeToasts.value;
+  
+  // Convert machine toasts to component format
+  toasts.value = machineToasts.map(machineToast => ({
+    id: machineToast.id,
+    type: machineToast.type,
+    title: machineToast.title,
+    message: machineToast.message,
+    duration: machineToast.duration,
+    persistent: machineToast.persistent,
+    progress: undefined,
+    actions: undefined
+  }));
+  
+  // Set up auto-dismiss timers and progress indicators for non-persistent toasts
+  toasts.value.forEach(toast => {
+    const dismissDuration = toast.duration || 5000;
+    
+    if (!toast.persistent && !toastTimeouts.has(toast.id)) {
+      // Set up progress indicator
+      setupProgressIndicator(toast.id, dismissDuration);
+      
+      // Set up auto-dismiss timer
+      const timeout = setTimeout(() => {
+        if (!hoveredToasts.has(toast.id)) {
+          dismissToast(toast.id);
+        }
+      }, dismissDuration);
+      toastTimeouts.set(toast.id, timeout);
+    }
+  });
+  
+  // Clean up timers for dismissed toasts
+  Array.from(toastTimeouts.keys()).forEach(id => {
+    if (!toasts.value.find(t => t.id === id)) {
+      const timeout = toastTimeouts.get(id);
+      if (timeout) {
+        clearTimeout(timeout);
+        toastTimeouts.delete(id);
+      }
+    }
+  });
+};
+
+// Watch for machine state changes
+let unsubscribe: (() => void) | undefined;
+
+onMounted(() => {
+  syncMachineState();
+  
+  if (typeof toastMachine.subscribe === 'function') {
+    unsubscribe = toastMachine.subscribe(() => {
+      syncMachineState();
+    });
+  }
+});
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe();
+  }
+  // Clean up all timeouts and intervals
+  toastTimeouts.forEach(timeout => clearTimeout(timeout));
+  toastTimeouts.clear();
+  progressIntervals.forEach(interval => clearInterval(interval));
+  progressIntervals.clear();
+  hoveredToasts.clear();
+});
+
+// Toast management - delegate to machine
+const showToast = (toast: Omit<Toast, "id">): string => {
+  return toastMachine.showToast({
+    type: toast.type,
+    title: toast.title,
+    message: toast.message,
+    duration: toast.duration,
+    persistent: toast.persistent,
+    priority: 5 // Default priority
+  });
+};
+
+const dismissToast = (id: string): void => {
+  toastMachine.dismissToast(id);
+  
+  // Clean up local timeout and progress interval
+  const timeout = toastTimeouts.get(id);
+  if (timeout) {
+    clearTimeout(timeout);
+    toastTimeouts.delete(id);
+  }
+  
+  const progressInterval = progressIntervals.get(id);
+  if (progressInterval) {
+    clearInterval(progressInterval);
+    progressIntervals.delete(id);
+  }
+  
+  hoveredToasts.delete(id);
+};
+
+const updateToastProgress = (id: string, progress: number): void => {
+  // Find the toast in our local state and update progress
+  const toast = toasts.value.find((t) => t.id === id);
+  if (toast) {
+    toast.progress = Math.max(0, Math.min(100, progress));
+  }
+};
+
+const updateToast = (id: string, updates: Partial<Omit<Toast, 'id'>>): void => {
+  // Update via machine
+  toastMachine.updateToast(id, {
+    type: updates.type,
+    title: updates.title,
+    message: updates.message,
+    duration: updates.duration,
+    persistent: updates.persistent
+  });
+  
+  // Clear existing timeout before updating
+  const existingTimeout = toastTimeouts.get(id);
+  if (existingTimeout) {
+    clearTimeout(existingTimeout);
+    toastTimeouts.delete(id);
+  }
+  
+  // Set new auto-dismiss timer if duration changed
+  if (updates.duration !== undefined && !updates.persistent && updates.duration > 0) {
+    const timeout = window.setTimeout(() => {
+      dismissToast(id);
+    }, updates.duration);
+    toastTimeouts.set(id, timeout as unknown as NodeJS.Timeout);
+  }
+};
+
+const handleToastAction = async (
+  action: NonNullable<Toast["actions"]>[0],
+  toastId: string,
+) => {
+  if (action.action) {
+    try {
+      await action.action();
+    } catch (error) {
+      // Action failed silently
+    }
+  }
+  dismissToast(toastId);
+};
+
+// Global loading management
+const showGlobalLoading = (text = "Loading...", progress?: number) => {
+  globalLoading.value = true;
+  globalLoadingText.value = text;
+  globalLoadingProgress.value = progress;
+};
+
+const hideGlobalLoading = () => {
+  globalLoading.value = false;
+  globalLoadingProgress.value = undefined;
+};
+
+const updateGlobalLoadingProgress = (progress: number, text?: string) => {
+  globalLoadingProgress.value = Math.max(0, Math.min(100, progress));
+  if (text) {
+    globalLoadingText.value = text;
+  }
+};
+
+// Success animation
+const displaySuccessAnimation = (message: string, duration = 2000) => {
+  successMessage.value = message;
+  showSuccessAnimation.value = true;
+
+  window.setTimeout(() => {
+    hideSuccessAnimation();
+  }, duration);
+};
+
+const hideSuccessAnimation = () => {
+  showSuccessAnimation.value = false;
+};
+
+// Toast interaction handlers
+const pauseToast = (id: string): void => {
+  hoveredToasts.add(id);
+  
+  // Pause the auto-dismiss timer
+  const timeout = toastTimeouts.get(id);
+  if (timeout) {
+    clearTimeout(timeout);
+    toastTimeouts.delete(id);
+  }
+  
+  // Pause progress indicator
+  const progressInterval = progressIntervals.get(id);
+  if (progressInterval) {
+    clearInterval(progressInterval);
+    progressIntervals.delete(id);
+  }
+};
+
+const resumeToast = (id: string): void => {
+  hoveredToasts.delete(id);
+  
+  const toast = toasts.value.find(t => t.id === id);
+  if (!toast || toast.persistent) return;
+  
+  // Resume auto-dismiss with remaining time
+  const remainingTime = Math.max(1000, (toast.duration || 5000) * 0.3);
+  
+  const timeout = setTimeout(() => {
+    dismissToast(id);
+  }, remainingTime);
+  toastTimeouts.set(id, timeout);
+  
+  // Resume progress indicator
+  setupProgressIndicator(id, remainingTime, toast.progress || 0);
+};
+
+const handleToastClick = (toast: Toast): void => {
+  // For non-actionable toasts, clicking dismisses them
+  if (!toast.actions || toast.actions.length === 0) {
+    dismissToast(toast.id);
+  }
+};
+
+const handleToastKeydown = (event: KeyboardEvent, toast: Toast): void => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    dismissToast(toast.id);
+  } else if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    // If toast has actions, focus first action button
+    if (toast.actions && toast.actions.length > 0) {
+      const firstActionButton = event.currentTarget?.querySelector('.toast-action') as HTMLButtonElement;
+      firstActionButton?.focus();
+    } else {
+      // Otherwise dismiss the toast
+      dismissToast(toast.id);
+    }
+  }
+};
+
+const setupProgressIndicator = (id: string, duration: number, startProgress = 0): void => {
+  const toast = toasts.value.find(t => t.id === id);
+  if (!toast || toast.persistent) return;
+  
+  const updateInterval = 50; // Update every 50ms for smooth animation
+  const totalUpdates = duration / updateInterval;
+  let currentUpdate = Math.floor((startProgress / 100) * totalUpdates);
+  
+  const progressInterval = setInterval(() => {
+    if (hoveredToasts.has(id)) {
+      return; // Don't update progress while paused
+    }
+    
+    currentUpdate++;
+    const progress = Math.min(100, (currentUpdate / totalUpdates) * 100);
+    
+    const currentToast = toasts.value.find(t => t.id === id);
+    if (currentToast) {
+      currentToast.progress = progress;
+    }
+    
+    if (progress >= 100) {
+      clearInterval(progressInterval);
+      progressIntervals.delete(id);
+    }
+  }, updateInterval);
+  
+  progressIntervals.set(id, progressInterval);
+};
+
+// Helper functions
+
+const getProgressColor = (type: Toast["type"]) => {
+  const colors = {
+    success: "#28a745",
+    error: "#dc3545",
+    warning: "#ffc107",
+    info: "var(--sdpi-color-accent, #0099ff)",
+  };
+  return colors[type] || colors.info;
+};
+
+// Quick helper methods for common toast types - delegate to machine
+const showSuccessToast = (title: string, message?: string): string => {
+  return toastMachine.showSuccess(title, message);
+};
+
+const showError = (
+  title: string,
+  message?: string,
+  actions?: Toast["actions"],
+): string => {
+  return toastMachine.showError(title, message);
+};
+
+const showWarning = (title: string, message?: string): string => {
+  return toastMachine.showWarning(title, message);
+};
+
+const showInfo = (title: string, message?: string): string => {
+  return toastMachine.showInfo(title, message);
+};
+
+// Expose methods to parent components
+defineExpose({
+  showToast,
+  dismissToast,
+  updateToastProgress,
+  updateToast,
+  showGlobalLoading,
+  hideGlobalLoading,
+  updateGlobalLoadingProgress,
+  showSuccessToast,
+  showError,
+  showWarning,
+  showInfo,
+  showSuccessAnimation: displaySuccessAnimation,
+});
+</script>
+
+<script lang="ts">
+// Component registration for icons (simple text-based icons for Stream Deck compatibility)
+export default {
+  name: "FeedbackSystem",
+};
+</script>
+
+<style scoped>
+/* Toast Container */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  max-width: 420px;
+  pointer-events: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 20px 16px 18px;
+  margin-bottom: 0;
+  /* Modern glass-morphism design */
+  background: rgba(45, 45, 48, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+  min-width: 320px;
+  max-width: 400px;
+  pointer-events: auto;
+  cursor: pointer;
+  /* Smooth transitions for all interactions */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #fff;
+  opacity: 1;
+  visibility: visible;
+  z-index: 10001;
+  /* Improved stacking */
+  transform-origin: top right;
+  /* Hardware acceleration */
+  transform: translateZ(0);
+  will-change: transform, opacity;
+}
+
+.toast:focus {
+  outline: 3px solid var(--sdpi-color-accent, #0099ff);
+  outline-offset: 2px;
+}
+
+.toast:focus-visible {
+  box-shadow: 
+    0 12px 48px rgba(0, 0, 0, 0.4),
+    0 0 0 3px rgba(0, 153, 255, 0.6);
+}
+
+.toast:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    0 12px 48px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.toast:active {
+  transform: translateY(-2px) scale(0.98);
+  transition-duration: 0.1s;
+}
+
+.toast-paused {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    0 12px 48px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+.toast-paused::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 12px;
+  background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.05) 50%, transparent 70%);
+  pointer-events: none;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.toast-success {
+  border-left: 4px solid #28a745;
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.15), rgba(45, 45, 48, 0.95));
+}
+
+.toast-error {
+  border-left: 4px solid #dc3545;
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.15), rgba(45, 45, 48, 0.95));
+}
+
+.toast-warning {
+  border-left: 4px solid #ffc107;
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(45, 45, 48, 0.95));
+}
+
+.toast-info {
+  border-left: 4px solid var(--sdpi-color-accent, #0099ff);
+  background: linear-gradient(135deg, rgba(0, 153, 255, 0.15), rgba(45, 45, 48, 0.95));
+}
+
+.toast-icon {
+  min-width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.toast-success .toast-icon {
+  color: #28a745;
+}
+.toast-error .toast-icon {
+  color: #dc3545;
+}
+.toast-warning .toast-icon {
+  color: #ffc107;
+}
+.toast-info .toast-icon {
+  color: var(--sdpi-color-accent, #0099ff);
+}
+
+.toast-content {
+  flex: 1;
+  min-width: 0;
+  padding-right: 4px;
+}
+
+.toast-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: #ffffff;
+  margin-bottom: 4px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.toast-message {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.toast-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.toast-action {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 44px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast-action-primary {
+  background: linear-gradient(135deg, #0099ff, #0088cc);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 153, 255, 0.3);
+}
+
+.toast-action-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 153, 255, 0.4);
+}
+
+.toast-action-primary:focus {
+  outline: 2px solid rgba(0, 153, 255, 0.6);
+  outline-offset: 2px;
+}
+
+.toast-action-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--sdpi-color-text, #cccccc);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.toast-action-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.toast-action-secondary:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+.toast-action-danger {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.toast-action-danger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+.toast-action-danger:focus {
+  outline: 2px solid rgba(220, 53, 69, 0.6);
+  outline-offset: 2px;
+}
+
+.toast-close {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: var(--sdpi-color-text-secondary, #999);
+  cursor: pointer;
+  padding: 8px;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.toast-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--sdpi-color-text, #cccccc);
+  transform: scale(1.05);
+}
+
+.toast-close:focus {
+  outline: 2px solid var(--sdpi-color-accent, #0099ff);
+  outline-offset: 2px;
+}
+
+.close-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+}
+
+.toast-progress-bar {
+  height: 100%;
+  background: currentColor;
+  transition: width 0.05s linear;
+  border-radius: 0 0 12px 12px;
+  position: relative;
+}
+
+.toast-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3));
+  transform: translateX(100%);
+  animation: progress-shine 2s ease-in-out infinite;
+}
+
+@keyframes progress-shine {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
+
+.toast-pause-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-content {
+  text-align: center;
+  color: var(--sdpi-color-text, #cccccc);
+}
+
+.loading-text {
+  margin-top: 16px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.loading-progress {
+  margin-top: 20px;
+  min-width: 200px;
+}
+
+.loading-progress-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.loading-progress-fill {
+  height: 100%;
+  background: var(--sdpi-color-accent, #0099ff);
+  transition: width 0.3s ease;
+}
+
+.loading-progress-text {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--sdpi-color-text-secondary, #999);
+}
+
+/* Success Animation */
+.success-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  cursor: pointer;
+}
+
+.success-content {
+  text-align: center;
+  color: #28a745;
+}
+
+.success-icon {
+  margin-bottom: 16px;
+}
+
+.success-checkmark {
+  width: 80px;
+  height: 80px;
+  color: #28a745;
+}
+
+.success-circle {
+  stroke-dasharray: 144;
+  stroke-dashoffset: 144;
+  animation: success-circle 0.6s ease-in-out forwards;
+}
+
+.success-check {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: success-check 0.4s ease-in-out 0.6s forwards;
+}
+
+.success-text {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Animations */
+@keyframes success-circle {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes success-check {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Smooth Transitions with fade effects */
+.toast-container-enter-active,
+.toast-container-leave-active {
+  transition: all 0.5s ease;
+}
+
+.toast-container-enter-from {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.toast-container-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* Enhanced toast transitions */
+.toast-enter-active {
+  transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.toast-leave-active {
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  z-index: 9999; /* Ensure leaving toasts don't interfere */
+}
+
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(120px) scale(0.85) rotateY(15deg);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(150px) scale(0.9) rotateY(-10deg);
+}
+
+.toast-move {
+  transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Staggered animation for multiple toasts */
+.toast:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.toast:nth-child(2) {
+  animation-delay: 0.1s;
+  transform: translateZ(-10px);
+}
+
+.toast:nth-child(3) {
+  animation-delay: 0.2s;
+  transform: translateZ(-20px);
+  opacity: 0.95;
+}
+
+.toast:nth-child(n+4) {
+  opacity: 0.9;
+  transform: translateZ(-30px) scale(0.98);
+}
+
+.loading-overlay-enter-active,
+.loading-overlay-leave-active {
+  transition: all 0.3s ease;
+}
+
+.loading-overlay-enter-from,
+.loading-overlay-leave-to {
+  opacity: 0;
+}
+
+.success-overlay-enter-active,
+.success-overlay-leave-active {
+  transition: all 0.4s ease;
+}
+
+.success-overlay-enter-from,
+.success-overlay-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+/* Improved responsive design */
+@media (max-width: 768px) {
+  .toast-container {
+    left: env(safe-area-inset-left, 16px);
+    right: env(safe-area-inset-right, 16px);
+    top: env(safe-area-inset-top, 16px);
+    max-width: none;
+  }
+
+  .toast {
+    min-width: auto;
+    max-width: none;
+    padding: 16px;
+    gap: 12px;
+    border-radius: 12px;
+    min-height: 68px;
+  }
+  
+  .toast:nth-child(n+3) {
+    display: none; /* Show max 2 toasts on mobile */
+  }
+  
+  .toast-close {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .toast-action {
+    min-height: 48px;
+    padding: 12px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .toast-container {
+    left: env(safe-area-inset-left, 12px);
+    right: env(safe-area-inset-right, 12px);
+    top: env(safe-area-inset-top, 12px);
+  }
+
+  .toast {
+    padding: 16px;
+    gap: 12px;
+    border-radius: 10px;
+  }
+  
+  .toast-title {
+    font-size: 14px;
+  }
+  
+  .toast-message {
+    font-size: 13px;
+  }
+  
+  .close-icon {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* Touch device optimizations */
+@media (pointer: coarse) {
+  .toast {
+    padding: 18px;
+  }
+
+  .toast-action {
+    min-height: 48px;
+    padding: 12px 20px;
+  }
+
+  .toast-close {
+    min-width: 48px;
+    min-height: 48px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .toast {
+    background: #000;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+  }
+  
+  .toast-progress {
+    background: #333;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast-enter-active,
+  .toast-leave-active,
+  .toast-move,
+  .toast-progress-bar,
+  .toast-action,
+  .toast-close {
+    transition: none;
+    animation: none;
+  }
+  
+  .toast:hover,
+  .toast-action:hover,
+  .toast-close:hover {
+    transform: none;
+  }
+  
+  .toast-paused::before {
+    animation: none;
+  }
+  
+  .progress-shine,
+  .shimmer {
+    animation: none;
+  }
+}
+</style>

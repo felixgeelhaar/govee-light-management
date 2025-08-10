@@ -26,6 +26,14 @@ vi.mock('@elgato/streamdeck', () => ({
       debug: vi.fn(),
     },
   },
+  streamDeck: {
+    logger: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    },
+  },
 }));
 
 describe('EnhancedGoveeLightRepository Integration Tests', () => {

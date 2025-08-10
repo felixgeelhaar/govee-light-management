@@ -6,25 +6,74 @@ import { resolve } from 'path'
 export default defineConfig({
   plugins: [vue()],
   
+  // Set base to relative paths for Stream Deck
+  base: './',
+  
   // Build configuration for Property Inspector
   build: {
-    outDir: 'com.felixgeelhaar.govee-light-management.sdPlugin/ui/dist',
+    outDir: 'com.felixgeelhaar.govee-light-management.sdPlugin/ui',
     emptyOutDir: true,
+    // Generate sourcemaps for development
+    sourcemap: process.env.NODE_ENV !== 'production',
+    // Target modern browsers (Stream Deck uses Chromium)
+    target: 'es2020',
+    // Optimize chunk size
+    chunkSizeWarningLimit: 500,
+    // Enable minification and tree shaking
+    minify: 'esbuild',
+    // Compression settings
+    reportCompressedSize: true,
+    // CSS code splitting
+    cssCodeSplit: true,
     rollupOptions: {
       input: {
         'light-control': resolve(__dirname, 'src/frontend/light-control.html'),
-        'group-control': resolve(__dirname, 'src/frontend/group-control.html'),
+        'toggle-action': resolve(__dirname, 'src/frontend/toggle-action.html'),
+        'brightness-action': resolve(__dirname, 'src/frontend/brightness-action.html'),
+        'color-action': resolve(__dirname, 'src/frontend/color-action.html'),
+        'warmth-action': resolve(__dirname, 'src/frontend/warmth-action.html'),
       },
       output: {
         entryFileNames: '[name].js',
-        chunkFileNames: '[name].js',
-        assetFileNames: '[name].[ext]'
+        chunkFileNames: 'chunks/[name]-[hash].js',
+        assetFileNames: (assetInfo) => {
+          // Place HTML files in root, others with extensions
+          if (assetInfo.name?.endsWith('.html')) {
+            return '[name].[ext]';
+          }
+          return '[name].[ext]';
+        },
+        // Manual chunks for better code splitting
+        manualChunks(id) {
+          // Vendor chunk for core dependencies
+          if (id.includes('node_modules')) {
+            if (id.includes('vue') || id.includes('@vue')) {
+              return 'vue-vendor';
+            }
+            if (id.includes('xstate') || id.includes('@xstate')) {
+              return 'xstate-vendor';
+            }
+            return 'vendor';
+          }
+          // Feedback system chunk
+          if (id.includes('/components/Feedback') || 
+              id.includes('/components/Toast') ||
+              id.includes('/components/GlobalLoading') ||
+              id.includes('/components/SuccessAnimation')) {
+            return 'feedback';
+          }
+          // Monitoring chunk
+          if (id.includes('Dashboard') || id.includes('Monitoring')) {
+            return 'monitoring';
+          }
+        }
+      },
+      // Tree shaking optimizations
+      treeshake: {
+        moduleSideEffects: false,
+        propertyReadSideEffects: false
       }
-    },
-    // Generate sourcemaps for development
-    sourcemap: true,
-    // Target modern browsers (Stream Deck uses Chromium)
-    target: 'es2020'
+    }
   },
   
   // Development server configuration
@@ -40,6 +89,16 @@ export default defineConfig({
       '@': resolve(__dirname, 'src/frontend'),
       '@shared': resolve(__dirname, 'src/shared'),
     }
+  },
+  
+  // Optimize dependency pre-bundling
+  optimizeDeps: {
+    include: [
+      'vue',
+      '@xstate/vue',
+      'xstate'
+    ],
+    exclude: ['@elgato/streamdeck']
   },
 
   // Environment variables

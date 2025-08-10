@@ -79,6 +79,15 @@ export class Light {
     return this._state.isOnline;
   }
 
+  get capabilities(): string[] {
+    // Default capabilities for Stream Deck integration
+    const caps = ["power"];
+    if (this._state.brightness !== undefined) caps.push("brightness");
+    if (this._state.color !== undefined) caps.push("color");
+    if (this._state.colorTemperature !== undefined) caps.push("colorTemperature");
+    return caps;
+  }
+
   equals(other: Light): boolean {
     return this._deviceId === other._deviceId && this._model === other._model;
   }

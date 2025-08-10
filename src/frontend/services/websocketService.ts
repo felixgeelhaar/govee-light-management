@@ -160,9 +160,16 @@ export class WebSocketService {
    */
   sendMessage(message: BaseMessage): void {
     if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+      console.log(
+        "WebSocketService: Sending message via WebSocket:",
+        JSON.stringify(message),
+      );
       this.websocket.send(JSON.stringify(message));
+      console.log("WebSocketService: Message sent successfully");
     } else {
       console.warn("WebSocket not connected, cannot send message:", message);
+      console.warn("WebSocket state:", this.websocket?.readyState);
+      console.warn("Expected state (OPEN):", WebSocket.OPEN);
     }
   }
 
@@ -184,13 +191,23 @@ export class WebSocketService {
    * Request lights from plugin
    */
   requestLights(): void {
-    this.sendMessage({
+    console.log(
+      "WebSocketService: requestLights called, sending getLights message",
+    );
+    console.log("WebSocket connection state:", this.websocket?.readyState);
+    console.log("WebSocket.OPEN constant:", WebSocket.OPEN);
+    console.log("Is connected:", this.isConnected);
+
+    const message = {
       event: "sendToPlugin",
       context: this.uuid || "",
       payload: {
         event: "getLights",
       },
-    });
+    };
+    console.log("Sending message:", JSON.stringify(message));
+
+    this.sendMessage(message);
   }
 
   /**
@@ -235,17 +252,48 @@ export class WebSocketService {
   }
 
   /**
+   * Request API key status from plugin
+   */
+  requestApiKeyStatus(): void {
+    this.sendMessage({
+      event: "sendToPlugin",
+      context: this.uuid || "",
+      payload: {
+        event: "getApiKeyStatus",
+      },
+    });
+  }
+
+  /**
    * Validate API key via plugin
    */
   validateApiKey(apiKey: string): void {
-    this.sendMessage({
+    console.log(
+      "WebSocketService: validateApiKey called with key:",
+      apiKey ? "present" : "missing",
+    );
+    console.log(
+      "WebSocket state:",
+      this.websocket?.readyState,
+      "Expected OPEN:",
+      WebSocket.OPEN,
+    );
+    console.log("UUID:", this.uuid);
+
+    const message = {
       event: "sendToPlugin",
       context: this.uuid || "",
       payload: {
         event: "validateApiKey",
         apiKey,
       },
-    });
+    };
+
+    console.log(
+      "WebSocketService: Sending validateApiKey message:",
+      JSON.stringify(message),
+    );
+    this.sendMessage(message);
   }
 
   /**
@@ -255,6 +303,17 @@ export class WebSocketService {
     this.sendMessage({
       event: "getSettings",
       context: this.uuid || "",
+    });
+  }
+
+  /**
+   * Send custom event to plugin
+   */
+  sendToPlugin(payload: Record<string, any>): void {
+    this.sendMessage({
+      event: "sendToPlugin",
+      context: this.uuid || "",
+      payload,
     });
   }
 

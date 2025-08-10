@@ -7,6 +7,20 @@
 
 import { beforeEach, vi } from 'vitest';
 
+// Mock fs module for plugin.ts debug logging
+vi.mock('fs', () => ({
+  default: {
+    appendFileSync: vi.fn(),
+    existsSync: vi.fn().mockReturnValue(false),
+    readFileSync: vi.fn(),
+    writeFileSync: vi.fn()
+  },
+  appendFileSync: vi.fn(),
+  existsSync: vi.fn().mockReturnValue(false),
+  readFileSync: vi.fn(),
+  writeFileSync: vi.fn()
+}));
+
 // Mock browser globals for frontend tests
 global.WebSocket = vi.fn().mockImplementation(() => ({
   readyState: WebSocket.CONNECTING,
@@ -26,32 +40,78 @@ Object.defineProperty(window, 'connectElgatoStreamDeckSocket', {
 });
 
 // Mock Stream Deck SDK for testing
-vi.mock('@elgato/streamdeck', () => ({
-  streamDeck: {
+vi.mock('@elgato/streamdeck', () => {
+  const mockStreamDeck = {
     logger: {
       info: vi.fn(),
       warn: vi.fn(),
       error: vi.fn(),
-      debug: vi.fn()
+      debug: vi.fn(),
+      setLevel: vi.fn()
     },
     settings: {
       getGlobalSettings: vi.fn().mockResolvedValue({}),
       setGlobalSettings: vi.fn().mockResolvedValue(undefined)
     },
     ui: {
-      current: null
+      current: {
+        sendToPropertyInspector: vi.fn().mockResolvedValue(undefined)
+      },
+      sendToPropertyInspector: vi.fn().mockResolvedValue(undefined)
+    },
+    actions: {
+      registerAction: vi.fn().mockImplementation(() => {
+        // Mock successful registration without needing manifest.json
+        return Promise.resolve();
+      })
+    },
+    system: {
+      onDidConnect: vi.fn(),
+      onDidDisconnect: vi.fn()
+    },
+    connect: vi.fn()
+  };
+  
+  return {
+    default: mockStreamDeck,
+    streamDeck: mockStreamDeck,
+    LogLevel: {
+      TRACE: 0,
+      DEBUG: 1,
+      INFO: 2,
+      WARN: 3,
+      ERROR: 4
+    },
+    SingletonAction: class SingletonAction {
+      constructor() {}
+      onWillAppear = vi.fn();
+      onWillDisappear = vi.fn();
+      onKeyDown = vi.fn();
+      onKeyUp = vi.fn();
+      onDialRotate = vi.fn();
+      onDialDown = vi.fn();
+      onDialUp = vi.fn();
+      onTouchTap = vi.fn();
+      onPropertyInspectorDidAppear = vi.fn();
+      onPropertyInspectorDidDisappear = vi.fn();
+      onSendToPlugin = vi.fn();
+      onDidReceiveSettings = vi.fn();
+    },
+    action: () => (target: any) => target,
+    KeyAction: class KeyAction {
+      constructor() {}
+    },
+    DialAction: class DialAction {
+      constructor() {}
     }
-  },
-  SingletonAction: class SingletonAction {
-    constructor() {}
-  },
-  action: () => (target: any) => target
-}));
+  };
+});
 
 // Mock Govee API client base class to avoid network calls in unit tests
 vi.mock('@felixgeelhaar/govee-api-client', () => {
   // Create constructor functions that work with instanceof
   const MockBrightness = function(this: any, value: number) {
+    this.value = value;
     this.level = value;
   };
   
@@ -59,13 +119,38 @@ vi.mock('@felixgeelhaar/govee-api-client', () => {
     this.kelvin = kelvin;
   };
   
-  const MockColorRgb = function(this: any, hex: string) {
-    this.hex = hex;
+  const MockColorRgb = function(this: any, r: number | string, g?: number, b?: number) {
+    // Handle both constructor signatures: (hex: string) and (r: number, g: number, b: number)
+    if (typeof r === 'string') {
+      this.hex = r;
+      // Parse hex to RGB
+      const hex = r.replace('#', '');
+      this.r = parseInt(hex.substr(0, 2), 16);
+      this.g = parseInt(hex.substr(2, 2), 16);
+      this.b = parseInt(hex.substr(4, 2), 16);
+    } else {
+      this.r = r;
+      this.g = g || 0;
+      this.b = b || 0;
+      this.hex = `#${r.toString(16).padStart(2, '0')}${(g || 0).toString(16).padStart(2, '0')}${(b || 0).toString(16).padStart(2, '0')}`;
+    }
+    this.red = this.r;
+    this.green = this.g;
+    this.blue = this.b;
   };
   
   MockColorRgb.fromHex = (hex: string) => new (MockColorRgb as any)(hex);
   
   return {
+    GoveeClient: vi.fn().mockImplementation(() => ({
+      getDevices: vi.fn().mockResolvedValue([]),
+      getDeviceState: vi.fn().mockResolvedValue(null),
+      controlDevice: vi.fn().mockResolvedValue(true),
+      setBrightness: vi.fn().mockResolvedValue({}),
+      setColor: vi.fn().mockResolvedValue({}),
+      setColorTemperature: vi.fn().mockResolvedValue({}),
+      setPowerState: vi.fn().mockResolvedValue({})
+    })),
     GoveeApiClient: vi.fn().mockImplementation(() => ({
       getDevices: vi.fn().mockResolvedValue([]),
       getDeviceState: vi.fn().mockResolvedValue(null),

@@ -175,7 +175,13 @@ export const lightDiscoveryMachine = setup({
               websocketService.on("sendToPropertyInspector", responseHandler);
 
               // Send lights request
+              console.log(
+                "LightDiscoveryMachine: About to call websocketService.requestLights()",
+              );
               websocketService.requestLights();
+              console.log(
+                "LightDiscoveryMachine: websocketService.requestLights() called",
+              );
             });
           },
           { operation: "light-discovery", cached: "false" },

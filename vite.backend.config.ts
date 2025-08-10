@@ -9,7 +9,7 @@ export default defineConfig({
       entry: resolve(__dirname, 'src/backend/plugin.ts'),
       name: 'govee-light-management-plugin',
       fileName: 'plugin',
-      formats: ['es']
+      formats: ['cjs']
     },
     outDir: 'com.felixgeelhaar.govee-light-management.sdPlugin/bin',
     emptyOutDir: false, // Don't empty the entire bin directory
@@ -17,17 +17,16 @@ export default defineConfig({
     rollupOptions: {
       // External dependencies that should not be bundled
       external: [
-        '@elgato/streamdeck',
-        '@felixgeelhaar/govee-api-client'
+        '@elgato/streamdeck'
       ],
       
       output: {
-        // Ensure ESM format with proper file extension
+        // Use CommonJS format for Stream Deck compatibility
         entryFileNames: 'plugin.js',
-        format: 'es',
+        format: 'cjs',
         
-        // Custom banner to add package.json for ESM
-        banner: '// ESM Module - package.json will be emitted separately'
+        // Banner for CommonJS compatibility
+        banner: '// CommonJS Module for Stream Deck compatibility'
       },
       
       // Watch additional files that should trigger rebuilds
@@ -67,19 +66,8 @@ export default defineConfig({
     include: []
   },
   
-  // Custom plugin to emit package.json for ESM support
+  // Plugins for Stream Deck development
   plugins: [
-    {
-      name: 'emit-esm-package-json',
-      generateBundle() {
-        this.emitFile({
-          type: 'asset',
-          fileName: 'package.json',
-          source: JSON.stringify({ type: 'module' }, null, 2)
-        })
-      }
-    },
-    
     // Custom plugin to watch manifest.json
     {
       name: 'watch-stream-deck-manifest',

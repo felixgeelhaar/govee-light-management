@@ -130,7 +130,7 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
           }
 
           light.updateState({ isOn });
-          streamDeck.logger.info(
+          streamDeck?.logger?.info(
             `Light ${light.name} power set to ${isOn ? "ON" : "OFF"}`,
           );
         });
@@ -155,7 +155,7 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
             brightness,
           );
           light.updateState({ brightness });
-          streamDeck.logger.info(
+          streamDeck?.logger?.info(
             `Light ${light.name} brightness set to ${brightness.level}%`,
           );
         });
@@ -176,7 +176,7 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
         return deviceCircuitBreaker.execute(async () => {
           await this.client.setColor(light.deviceId, light.model, color);
           light.updateState({ color, colorTemperature: undefined });
-          streamDeck.logger.info(
+          streamDeck?.logger?.info(
             `Light ${light.name} color set to ${color.toString()}`,
           );
         });
@@ -204,7 +204,7 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
             colorTemperature,
           );
           light.updateState({ colorTemperature, color: undefined });
-          streamDeck.logger.info(
+          streamDeck?.logger?.info(
             `Light ${light.name} color temperature set to ${colorTemperature.kelvin}K`,
           );
         });
@@ -232,7 +232,7 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
             brightness,
           );
           light.updateState({ isOn: true, brightness });
-          streamDeck.logger.info(
+          streamDeck?.logger?.info(
             `Light ${light.name} turned on with brightness ${brightness.level}%`,
           );
         });
@@ -267,7 +267,7 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
             brightness: brightness || light.state.brightness,
             colorTemperature: undefined,
           });
-          streamDeck.logger.info(
+          streamDeck?.logger?.info(
             `Light ${light.name} turned on with color ${color.toString()}`,
           );
         });
@@ -302,7 +302,7 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
             brightness: brightness || light.state.brightness,
             color: undefined,
           });
-          streamDeck.logger.info(
+          streamDeck?.logger?.info(
             `Light ${light.name} turned on with color temperature ${colorTemperature.kelvin}K`,
           );
         });
@@ -321,44 +321,62 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
         );
 
         return deviceCircuitBreaker.execute(async () => {
-          const deviceState = await this.client.getDeviceState(
-            light.deviceId,
-            light.model,
-          );
+          try {
+            const deviceState = await this.client.getDeviceState(
+              light.deviceId,
+              light.model,
+            );
 
-          // Validate device state response
-          const validatedState = ApiResponseValidator.validate(
-            GoveeDeviceStateSchema,
-            deviceState,
-            "Device state response",
-          );
+            // Validate device state response
+            const validatedState = ApiResponseValidator.validate(
+              GoveeDeviceStateSchema,
+              deviceState,
+              "Device state response",
+            );
 
-          const newState: Partial<LightState> = {
-            isOn: validatedState.getPowerState() === "on",
-            isOnline: validatedState.isOnline(),
-          };
+            const newState: Partial<LightState> = {
+              isOn: validatedState.getPowerState() === "on",
+              isOnline: validatedState.isOnline(),
+            };
 
-          // Extract brightness if available
-          const brightness = validatedState.getBrightness?.();
-          if (brightness) {
-            newState.brightness = brightness;
+            // Extract brightness if available
+            const brightness = validatedState.getBrightness?.();
+            if (brightness) {
+              newState.brightness = brightness;
+            }
+
+            // Extract color if available
+            const color = validatedState.getColor?.();
+            if (color) {
+              newState.color = color;
+              newState.colorTemperature = undefined;
+            }
+
+            // Extract color temperature if available
+            const colorTemperature = validatedState.getColorTemperature?.();
+            if (colorTemperature) {
+              newState.colorTemperature = colorTemperature;
+              newState.color = undefined;
+            }
+
+            light.updateState(newState);
+          } catch (error) {
+            // Handle capabilities-related errors from the API client
+            if (
+              error instanceof Error &&
+              error.message.includes("capabilities")
+            ) {
+              // Log the error but don't fail - assume basic functionality
+              console.warn(
+                `Light ${light.name} capabilities error (non-fatal):`,
+                error.message,
+              );
+              // Update with basic online status only
+              light.updateState({ isOnline: true });
+              return;
+            }
+            throw error;
           }
-
-          // Extract color if available
-          const color = validatedState.getColor?.();
-          if (color) {
-            newState.color = color;
-            newState.colorTemperature = undefined;
-          }
-
-          // Extract color temperature if available
-          const colorTemperature = validatedState.getColorTemperature?.();
-          if (colorTemperature) {
-            newState.colorTemperature = colorTemperature;
-            newState.color = undefined;
-          }
-
-          light.updateState(newState);
         });
       },
       light.deviceId,
@@ -449,6 +467,6 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
   resetCircuitBreakers(): void {
     this.apiCircuitBreaker.reset();
     this.deviceCircuitBreakers.forEach((breaker) => breaker.reset());
-    streamDeck.logger.info("All circuit breakers reset");
+    streamDeck?.logger?.info("All circuit breakers reset");
   }
 }

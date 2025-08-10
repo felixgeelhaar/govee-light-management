@@ -107,19 +107,26 @@
 ### Getting Started
 
 1. **Obtain Govee API Key**
-   - Visit [Govee Developer API](https://developer.govee.com/)
-   - Sign up and create an API key
+   - Open the Govee Home app on your phone
+   - Go to Settings → About Us → Apply for API Key
+   - Follow the instructions to get your key
    - Save your API key securely
 
-2. **Add Actions to Stream Deck**
-   - Drag "Govee Light Control" or "Govee Group Control" to a button
-   - Configure with your API key in the Property Inspector
+2. **Configure API Key** (One-time setup)
+   - Add a "Toggle On/Off" action to any Stream Deck button
+   - Click the button to open its property inspector
+   - Enter your Govee API key in the **API Configuration** section at the top
+   - The key is automatically saved and shared with all Govee actions
+
+3. **Add Actions to Stream Deck**
+   - Drag any Govee action to your Stream Deck buttons
+   - No need to re-enter the API key - it's shared globally
 
 ### Individual Light Control
 
 1. **Setup**
-   - Add "Govee Light Control" action to a Stream Deck button
-   - Enter your Govee API key
+   - Add any Govee action to a Stream Deck button
+   - Click "Discover Lights" to load your devices (uses global API key)
    - Select a light from the dropdown
 
 2. **Configuration Options**
@@ -136,7 +143,7 @@
 
 1. **Create Groups**
    - Add "Govee Group Control" action
-   - Enter API key and click "Create New Group"
+   - Click "Create New Group" (uses global API key)
    - Name your group and select lights to include
    - Click "Create Group" to save
 

@@ -43,7 +43,13 @@
       "mcp__github__get_job_logs",
       "Bash(npx eslint:*)",
       "mcp__github__get_me",
-      "mcp__github__get_workflow_run"
+      "mcp__github__get_workflow_run",
+      "Bash(npx vitest run:*)",
+      "Bash(grep:*)",
+      "mcp__playwright__browser_select_option",
+      "mcp__playwright__browser_click",
+      "mcp__exa__web_search_exa",
+      "Bash(sed:*)"
     ],
     "deny": []
   }
