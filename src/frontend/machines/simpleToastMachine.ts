@@ -1,5 +1,5 @@
 // Simple toast state machine without XState dependencies
-export type ToastType = 'success' | 'error' | 'warning' | 'info';
+export type ToastType = "success" | "error" | "warning" | "info";
 
 // Toast context
 export interface ToastContext {
@@ -20,16 +20,16 @@ export interface QueuedToast extends ToastContext {
 }
 
 // State machine states
-type ToastMachineState = 'idle' | 'displaying' | 'queuing';
+type ToastMachineState = "idle" | "displaying" | "queuing";
 
 // Events
 export type ToastEvent =
-  | { type: 'SHOW'; toast: Omit<ToastContext, 'id' | 'createdAt'> }
-  | { type: 'UPDATE'; id: string; updates: Partial<ToastContext> }
-  | { type: 'DISMISS'; id: string }
-  | { type: 'DISMISS_CATEGORY'; category: string }
-  | { type: 'CLEAR_ALL' }
-  | { type: 'PROCESS_QUEUE' };
+  | { type: "SHOW"; toast: Omit<ToastContext, "id" | "createdAt"> }
+  | { type: "UPDATE"; id: string; updates: Partial<ToastContext> }
+  | { type: "DISMISS"; id: string }
+  | { type: "DISMISS_CATEGORY"; category: string }
+  | { type: "CLEAR_ALL" }
+  | { type: "PROCESS_QUEUE" };
 
 // Machine context
 export interface ToastMachineContext {
@@ -65,31 +65,31 @@ class EventEmitter {
   emit(event: string, ...args: any[]): void {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
-      eventListeners.forEach(listener => listener(...args));
+      eventListeners.forEach((listener) => listener(...args));
     }
   }
 }
 
 // Simple state machine implementation
 export class SimpleToastMachine extends EventEmitter {
-  private state: ToastMachineState = 'idle';
+  private state: ToastMachineState = "idle";
   private context: ToastMachineContext;
   private processingTimer: NodeJS.Timeout | null = null;
 
   constructor() {
     super();
-    
+
     this.context = {
       activeToasts: new Map(),
       queue: [],
       maxActive: 3,
       defaultDuration: 5000,
       categoryLimits: new Map([
-        ['api-connection', 1],
-        ['light-test', 1],
-        ['light-discovery', 1]
+        ["api-connection", 1],
+        ["light-test", 1],
+        ["light-discovery", 1],
       ]),
-      priorityThreshold: 8
+      priorityThreshold: 8,
     };
 
     // Auto-process queue periodically
@@ -99,24 +99,24 @@ export class SimpleToastMachine extends EventEmitter {
   // Public API
   send(event: ToastEvent): void {
     const previousState = this.state;
-    
+
     switch (event.type) {
-      case 'SHOW':
+      case "SHOW":
         this.handleShow(event);
         break;
-      case 'UPDATE':
+      case "UPDATE":
         this.handleUpdate(event);
         break;
-      case 'DISMISS':
+      case "DISMISS":
         this.handleDismiss(event);
         break;
-      case 'DISMISS_CATEGORY':
+      case "DISMISS_CATEGORY":
         this.handleDismissCategory(event);
         break;
-      case 'CLEAR_ALL':
+      case "CLEAR_ALL":
         this.handleClearAll();
         break;
-      case 'PROCESS_QUEUE':
+      case "PROCESS_QUEUE":
         this.handleProcessQueue();
         break;
     }
@@ -126,14 +126,14 @@ export class SimpleToastMachine extends EventEmitter {
 
     // Emit state change if state changed
     if (this.state !== previousState) {
-      this.emit('stateChange', {
+      this.emit("stateChange", {
         state: this.state,
-        context: { ...this.context }
+        context: { ...this.context },
       });
     }
 
     // Always emit context update for reactive systems
-    this.emit('contextUpdate', { ...this.context });
+    this.emit("contextUpdate", { ...this.context });
   }
 
   // Getters
@@ -154,14 +154,17 @@ export class SimpleToastMachine extends EventEmitter {
   }
 
   // Event handlers
-  private handleShow(event: { type: 'SHOW'; toast: Omit<ToastContext, 'id' | 'createdAt'> }): void {
+  private handleShow(event: {
+    type: "SHOW";
+    toast: Omit<ToastContext, "id" | "createdAt">;
+  }): void {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const toast: ToastContext = {
       ...event.toast,
       id,
       createdAt: Date.now(),
       duration: event.toast.duration ?? this.context.defaultDuration,
-      priority: event.toast.priority ?? 5
+      priority: event.toast.priority ?? 5,
     };
 
     if (this.canShowToast(toast)) {
@@ -171,7 +174,11 @@ export class SimpleToastMachine extends EventEmitter {
     }
   }
 
-  private handleUpdate(event: { type: 'UPDATE'; id: string; updates: Partial<ToastContext> }): void {
+  private handleUpdate(event: {
+    type: "UPDATE";
+    id: string;
+    updates: Partial<ToastContext>;
+  }): void {
     const existingToast = this.context.activeToasts.get(event.id);
     if (existingToast) {
       const updatedToast = { ...existingToast, ...event.updates };
@@ -179,12 +186,15 @@ export class SimpleToastMachine extends EventEmitter {
     }
   }
 
-  private handleDismiss(event: { type: 'DISMISS'; id: string }): void {
+  private handleDismiss(event: { type: "DISMISS"; id: string }): void {
     this.context.activeToasts.delete(event.id);
     this.processQueue();
   }
 
-  private handleDismissCategory(event: { type: 'DISMISS_CATEGORY'; category: string }): void {
+  private handleDismissCategory(event: {
+    type: "DISMISS_CATEGORY";
+    category: string;
+  }): void {
     // Remove from active toasts
     Array.from(this.context.activeToasts.entries()).forEach(([id, toast]) => {
       if (toast.category === event.category) {
@@ -194,7 +204,7 @@ export class SimpleToastMachine extends EventEmitter {
 
     // Remove from queue
     this.context.queue = this.context.queue.filter(
-      toast => toast.category !== event.category
+      (toast) => toast.category !== event.category,
     );
 
     this.processQueue();
@@ -224,9 +234,11 @@ export class SimpleToastMachine extends EventEmitter {
 
     // Check category limits
     if (toast.category) {
-      const categoryLimit = this.context.categoryLimits.get(toast.category) || Infinity;
-      const categoryCount = Array.from(this.context.activeToasts.values())
-        .filter(t => t.category === toast.category).length;
+      const categoryLimit =
+        this.context.categoryLimits.get(toast.category) || Infinity;
+      const categoryCount = Array.from(
+        this.context.activeToasts.values(),
+      ).filter((t) => t.category === toast.category).length;
 
       if (categoryCount >= categoryLimit) {
         // If same category, replace the oldest one
@@ -250,10 +262,14 @@ export class SimpleToastMachine extends EventEmitter {
       }
     }
     // If we're at capacity, remove lowest priority toast
-    else if (this.context.activeToasts.size >= this.context.maxActive && 
-             toast.priority && toast.priority >= this.context.priorityThreshold) {
-      const lowestPriority = Array.from(this.context.activeToasts.entries())
-        .sort(([_, a], [__, b]) => (a.priority || 0) - (b.priority || 0));
+    else if (
+      this.context.activeToasts.size >= this.context.maxActive &&
+      toast.priority &&
+      toast.priority >= this.context.priorityThreshold
+    ) {
+      const lowestPriority = Array.from(
+        this.context.activeToasts.entries(),
+      ).sort(([_, a], [__, b]) => (a.priority || 0) - (b.priority || 0));
 
       if (lowestPriority.length > 0) {
         const [oldId] = lowestPriority[0];
@@ -266,8 +282,9 @@ export class SimpleToastMachine extends EventEmitter {
 
   private shouldReplaceExistingToast(toast: ToastContext): boolean {
     if (toast.category) {
-      const existingInCategory = Array.from(this.context.activeToasts.entries())
-        .filter(([_, t]) => t.category === toast.category);
+      const existingInCategory = Array.from(
+        this.context.activeToasts.entries(),
+      ).filter(([_, t]) => t.category === toast.category);
 
       return existingInCategory.length > 0;
     }
@@ -278,7 +295,7 @@ export class SimpleToastMachine extends EventEmitter {
   private addToQueue(toast: ToastContext): void {
     const queuedToast: QueuedToast = {
       ...toast,
-      queuedAt: Date.now()
+      queuedAt: Date.now(),
     };
 
     // Insert in priority order (highest first)
@@ -287,15 +304,19 @@ export class SimpleToastMachine extends EventEmitter {
   }
 
   private processQueue(): void {
-    while (this.context.activeToasts.size < this.context.maxActive && 
-           this.context.queue.length > 0) {
+    while (
+      this.context.activeToasts.size < this.context.maxActive &&
+      this.context.queue.length > 0
+    ) {
       const nextToast = this.context.queue.shift()!;
 
       // Check category limits again
       if (nextToast.category) {
-        const categoryLimit = this.context.categoryLimits.get(nextToast.category) || Infinity;
-        const categoryCount = Array.from(this.context.activeToasts.values())
-          .filter(t => t.category === nextToast.category).length;
+        const categoryLimit =
+          this.context.categoryLimits.get(nextToast.category) || Infinity;
+        const categoryCount = Array.from(
+          this.context.activeToasts.values(),
+        ).filter((t) => t.category === nextToast.category).length;
 
         if (categoryCount >= categoryLimit) {
           continue; // Skip this toast, try next
@@ -313,19 +334,21 @@ export class SimpleToastMachine extends EventEmitter {
     const queueCount = this.context.queue.length;
 
     if (activeCount === 0 && queueCount === 0) {
-      this.state = 'idle';
+      this.state = "idle";
     } else if (activeCount > 0 && queueCount === 0) {
-      this.state = 'displaying';
+      this.state = "displaying";
     } else {
-      this.state = 'queuing';
+      this.state = "queuing";
     }
   }
 
   private startProcessingTimer(): void {
     this.processingTimer = setInterval(() => {
-      if (this.context.queue.length > 0 && 
-          this.context.activeToasts.size < this.context.maxActive) {
-        this.send({ type: 'PROCESS_QUEUE' });
+      if (
+        this.context.queue.length > 0 &&
+        this.context.activeToasts.size < this.context.maxActive
+      ) {
+        this.send({ type: "PROCESS_QUEUE" });
       }
     }, 500);
   }
@@ -350,41 +373,43 @@ export class ToastService {
     this.machine = new SimpleToastMachine();
 
     // Set up state change listeners
-    this.machine.on('stateChange', (state: any) => {
-      this.callbacks.forEach(callback => callback(state));
+    this.machine.on("stateChange", (state: any) => {
+      this.callbacks.forEach((callback) => callback(state));
     });
 
-    this.machine.on('contextUpdate', (context: any) => {
+    this.machine.on("contextUpdate", (context: any) => {
       // Trigger callbacks for reactive updates
-      this.callbacks.forEach(callback => callback({
-        state: this.machine.getState(),
-        context
-      }));
+      this.callbacks.forEach((callback) =>
+        callback({
+          state: this.machine.getState(),
+          context,
+        }),
+      );
     });
   }
 
   // Public API
-  showToast(toast: Omit<ToastContext, 'id' | 'createdAt'>): string {
+  showToast(toast: Omit<ToastContext, "id" | "createdAt">): string {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const toastWithId = { ...toast, id, createdAt: Date.now() };
-    this.machine.send({ type: 'SHOW', toast: toastWithId });
+    this.machine.send({ type: "SHOW", toast: toastWithId });
     return id;
   }
 
   updateToast(id: string, updates: Partial<ToastContext>): void {
-    this.machine.send({ type: 'UPDATE', id, updates });
+    this.machine.send({ type: "UPDATE", id, updates });
   }
 
   dismissToast(id: string): void {
-    this.machine.send({ type: 'DISMISS', id });
+    this.machine.send({ type: "DISMISS", id });
   }
 
   dismissCategory(category: string): void {
-    this.machine.send({ type: 'DISMISS_CATEGORY', category });
+    this.machine.send({ type: "DISMISS_CATEGORY", category });
   }
 
   clearAll(): void {
-    this.machine.send({ type: 'CLEAR_ALL' });
+    this.machine.send({ type: "CLEAR_ALL" });
   }
 
   // Get current state
@@ -408,76 +433,82 @@ export class ToastService {
 
   // Convenience methods for common toast types
   showSuccess(title: string, message?: string, category?: string): string {
-    return this.showToast({ 
-      type: 'success', 
-      title, 
-      message, 
+    return this.showToast({
+      type: "success",
+      title,
+      message,
       category,
-      priority: 5 
+      priority: 5,
     });
   }
 
   showError(title: string, message?: string, category?: string): string {
-    return this.showToast({ 
-      type: 'error', 
-      title, 
-      message, 
+    return this.showToast({
+      type: "error",
+      title,
+      message,
       category,
       priority: 9, // High priority for errors
-      duration: 8000 
+      duration: 8000,
     });
   }
 
   showWarning(title: string, message?: string, category?: string): string {
-    return this.showToast({ 
-      type: 'warning', 
-      title, 
-      message, 
+    return this.showToast({
+      type: "warning",
+      title,
+      message,
       category,
-      priority: 7 
+      priority: 7,
     });
   }
 
   showInfo(title: string, message?: string, category?: string): string {
-    return this.showToast({ 
-      type: 'info', 
-      title, 
-      message, 
+    return this.showToast({
+      type: "info",
+      title,
+      message,
       category,
-      priority: 3 
+      priority: 3,
     });
   }
 
   // API-specific convenience methods
-  showApiConnectionTesting(category = 'api-connection'): string {
+  showApiConnectionTesting(category = "api-connection"): string {
     return this.showToast({
-      type: 'info',
-      title: 'Testing Connection',
-      message: 'Testing connection to Govee API...',
+      type: "info",
+      title: "Testing Connection",
+      message: "Testing connection to Govee API...",
       category,
       priority: 6,
-      persistent: false
+      persistent: false,
     });
   }
 
-  showApiConnectionSuccess(message?: string, category = 'api-connection'): string {
+  showApiConnectionSuccess(
+    message?: string,
+    category = "api-connection",
+  ): string {
     return this.showToast({
-      type: 'success',
-      title: 'Connection Successful',
-      message: message || 'API key validated successfully!',
+      type: "success",
+      title: "Connection Successful",
+      message: message || "API key validated successfully!",
       category,
-      priority: 5
+      priority: 5,
     });
   }
 
-  showApiConnectionError(message?: string, category = 'api-connection'): string {
+  showApiConnectionError(
+    message?: string,
+    category = "api-connection",
+  ): string {
     return this.showToast({
-      type: 'error',
-      title: 'Connection Failed',
-      message: message || 'Failed to connect to the Govee API',
+      type: "error",
+      title: "Connection Failed",
+      message: message || "Failed to connect to the Govee API",
       category,
       priority: 9,
-      duration: 8000
+      duration: 8000,
     });
   }
 

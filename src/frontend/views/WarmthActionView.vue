@@ -9,60 +9,60 @@
   >
     <template #action-config="{ selectedLight, lightInfo }">
       <!-- Warmth Settings -->
-    <section class="config-section">
-      <h2>Warmth Settings</h2>
+      <section class="config-section">
+        <h2>Warmth Settings</h2>
 
-      <div class="form-group">
-        <label for="temperature">Default Temperature</label>
-        <div class="slider-container">
-          <input
-            id="temperature"
-            type="range"
-            v-model.number="colorTemperature"
-            :min="minTemperature"
-            :max="maxTemperature"
-            :step="100"
-            class="slider"
-          />
-          <span class="slider-value">{{ colorTemperature }}K</span>
+        <div class="form-group">
+          <label for="temperature">Default Temperature</label>
+          <div class="slider-container">
+            <input
+              id="temperature"
+              type="range"
+              v-model.number="colorTemperature"
+              :min="minTemperature"
+              :max="maxTemperature"
+              :step="100"
+              class="slider"
+            />
+            <span class="slider-value">{{ colorTemperature }}K</span>
+          </div>
+          <small class="help-text">
+            {{ getTemperatureDescription(colorTemperature) }} - Set the color
+            temperature when button is pressed
+          </small>
         </div>
-        <small class="help-text">
-          {{ getTemperatureDescription(colorTemperature) }} - Set the color temperature when button is pressed
-        </small>
-      </div>
 
-      <div class="form-group">
-        <label for="stepSize">Step Size (for dial)</label>
-        <div class="slider-container">
-          <input
-            id="stepSize"
-            type="range"
-            v-model.number="stepSize"
-            min="50"
-            max="1000"
-            step="50"
-            class="slider"
-          />
-          <span class="slider-value">{{ stepSize }}K</span>
+        <div class="form-group">
+          <label for="stepSize">Step Size (for dial)</label>
+          <div class="slider-container">
+            <input
+              id="stepSize"
+              type="range"
+              v-model.number="stepSize"
+              min="50"
+              max="1000"
+              step="50"
+              class="slider"
+            />
+            <span class="slider-value">{{ stepSize }}K</span>
+          </div>
+          <small class="help-text">
+            Temperature change per dial rotation step
+          </small>
         </div>
-        <small class="help-text">
-          Temperature change per dial rotation step
-        </small>
-      </div>
 
-
-      <div class="form-group">
-        <label for="toggleOnPush">
-          <input
-            id="toggleOnPush"
-            type="checkbox"
-            v-model="toggleOnPush"
-            class="checkbox"
-          />
-          <span>Toggle on/off with dial push</span>
-        </label>
-      </div>
-    </section>
+        <div class="form-group">
+          <label for="toggleOnPush">
+            <input
+              id="toggleOnPush"
+              type="checkbox"
+              v-model="toggleOnPush"
+              class="checkbox"
+            />
+            <span>Toggle on/off with dial push</span>
+          </label>
+        </div>
+      </section>
     </template>
   </BaseActionView>
 </template>
@@ -84,7 +84,11 @@ const toggleOnPush = ref<boolean>(true);
 const baseActionRef = ref<InstanceType<typeof BaseActionView>>();
 
 // Event handlers for BaseActionView
-const handleLightSelected = (lightId: string, lightModel: string, lightName: string) => {
+const handleLightSelected = (
+  lightId: string,
+  lightModel: string,
+  lightName: string,
+) => {
   // BaseActionView handles this, we just need to save settings
   saveSettings();
 };
@@ -108,7 +112,7 @@ const getTemperatureDescription = (temp: number): string => {
 // Settings persistence
 const saveSettings = () => {
   if (!baseActionRef.value) return;
-  
+
   const settings: WarmthActionSettings = {
     targetType: "light",
     colorTemperature: colorTemperature.value,
@@ -121,7 +125,7 @@ const saveSettings = () => {
   // Add light-specific settings from BaseActionView
   const selectedLightValue = baseActionRef.value.selectedLight;
   const lightInfo = baseActionRef.value.selectedLightInfo;
-  
+
   if (selectedLightValue && lightInfo) {
     const [deviceId, model] = selectedLightValue.split("|");
     settings.lightId = deviceId;
@@ -169,7 +173,6 @@ onMounted(() => {
 <style scoped>
 @import "../assets/common.css";
 
-
 /* Slider styles */
 .slider-container {
   display: flex;
@@ -213,7 +216,9 @@ onMounted(() => {
   cursor: pointer;
   margin-top: -7px;
   border: 2px solid var(--elgato-border, #404040);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.2);
   position: relative;
   z-index: 2;
 }
@@ -252,7 +257,9 @@ onMounted(() => {
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid var(--elgato-border, #404040);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.2);
   position: relative;
   z-index: 2;
 }

@@ -8,23 +8,23 @@ export type TargetType = "light" | "group";
 export interface BaseActionSettings {
   // API Configuration
   apiKey?: string;
-  
+
   // Target Selection
   targetType?: TargetType;
-  
+
   // Light-specific settings
   lightId?: string;
   lightModel?: string;
   lightName?: string;
-  
+
   // Group-specific settings
   groupId?: string;
   groupName?: string;
-  
+
   // Common settings
   showStatus?: boolean;
   debugMode?: boolean;
-  
+
   // Index signature to satisfy JsonObject constraint
   [key: string]: unknown;
 }

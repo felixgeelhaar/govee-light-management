@@ -1,6 +1,10 @@
 <template>
   <Transition name="toast-container">
-    <div v-if="toasts.length > 0" class="toast-container" :data-toast-count="toasts.length">
+    <div
+      v-if="toasts.length > 0"
+      class="toast-container"
+      :data-toast-count="toasts.length"
+    >
       <TransitionGroup name="toast" tag="div">
         <ToastNotification
           v-for="toast in toasts"

@@ -1,0 +1,12 @@
+2025-08-10T20:53:24.665Z ERROR Process encountered uncaught exception 
+Error: Channel closed
+    at process.target.send (node:internal/child_process:753:16)
+    at post (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vitest/dist/chunks/utils.CAioKnHs.js:30:4)
+    at file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vitest/dist/chunks/index.B521nVV-.js:71:11
+    at new Promise (<anonymous>)
+    at sendCall (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vitest/dist/chunks/index.B521nVV-.js:53:16)
+    at file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vitest/dist/chunks/rpc.-pEldfrD.js:66:19
+    at withSafeTimers (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vitest/dist/chunks/rpc.-pEldfrD.js:19:18)
+    at Proxy.safeSendCall (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vitest/dist/chunks/rpc.-pEldfrD.js:65:37)
+    at VitestTestRunner.testRunner.onTaskUpdate (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/vitest/dist/chunks/index.CwejwG0H.js:48:19)
+    at sendTasksUpdate (file:///Users/felixgeelhaar/Developer/projects/govee-light-management/node_modules/@vitest/runner/dist/chunk-hooks.js:1466:134)

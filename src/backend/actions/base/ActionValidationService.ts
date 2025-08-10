@@ -4,7 +4,11 @@
  */
 
 import { GoveeClient } from "@felixgeelhaar/govee-api-client";
-import type { BaseActionSettings, ValidationResult, TargetType } from "./BaseActionSettings";
+import type {
+  BaseActionSettings,
+  ValidationResult,
+  TargetType,
+} from "./BaseActionSettings";
 
 export class ActionValidationService {
   /**
@@ -37,16 +41,20 @@ export class ActionValidationService {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
   /**
    * Validate brightness settings
    */
-  static validateBrightness(value: number, min: number = 0, max: number = 100): ValidationResult {
+  static validateBrightness(
+    value: number,
+    min: number = 0,
+    max: number = 100,
+  ): ValidationResult {
     const errors: string[] = [];
-    
+
     if (typeof value !== "number" || isNaN(value)) {
       errors.push("Brightness must be a number");
     } else if (value < min || value > max) {
@@ -55,7 +63,7 @@ export class ActionValidationService {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -66,16 +74,18 @@ export class ActionValidationService {
     const errors: string[] = [];
     const MIN_TEMP = 2000;
     const MAX_TEMP = 9000;
-    
+
     if (typeof kelvin !== "number" || isNaN(kelvin)) {
       errors.push("Color temperature must be a number");
     } else if (kelvin < MIN_TEMP || kelvin > MAX_TEMP) {
-      errors.push(`Color temperature must be between ${MIN_TEMP}K and ${MAX_TEMP}K`);
+      errors.push(
+        `Color temperature must be between ${MIN_TEMP}K and ${MAX_TEMP}K`,
+      );
     }
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -85,7 +95,7 @@ export class ActionValidationService {
   static validateColor(hex: string): ValidationResult {
     const errors: string[] = [];
     const hexPattern = /^#[0-9A-Fa-f]{6}$/;
-    
+
     if (!hex || typeof hex !== "string") {
       errors.push("Color must be a valid hex string");
     } else if (!hexPattern.test(hex)) {
@@ -94,16 +104,20 @@ export class ActionValidationService {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
   /**
    * Validate step size for incremental adjustments
    */
-  static validateStepSize(step: number, min: number = 1, max: number = 50): ValidationResult {
+  static validateStepSize(
+    step: number,
+    min: number = 1,
+    max: number = 50,
+  ): ValidationResult {
     const errors: string[] = [];
-    
+
     if (typeof step !== "number" || isNaN(step)) {
       errors.push("Step size must be a number");
     } else if (step < min || step > max) {
@@ -114,7 +128,7 @@ export class ActionValidationService {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -124,7 +138,7 @@ export class ActionValidationService {
   static validateApiKeyFormat(apiKey: string): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
-    
+
     if (!apiKey || typeof apiKey !== "string") {
       errors.push("API key is required");
     } else {
@@ -143,7 +157,7 @@ export class ActionValidationService {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -159,24 +173,26 @@ export class ActionValidationService {
     try {
       const client = new GoveeClient({ apiKey: apiKey.trim() });
       const devices = await client.getDevices();
-      
+
       if (!devices || !Array.isArray(devices)) {
         return {
           isValid: false,
-          errors: ["API returned invalid response"]
+          errors: ["API returned invalid response"],
         };
       }
 
       return {
         isValid: true,
         errors: [],
-        warnings: devices.length === 0 ? ["No devices found on account"] : undefined
+        warnings:
+          devices.length === 0 ? ["No devices found on account"] : undefined,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       return {
         isValid: false,
-        errors: [`API validation failed: ${errorMessage}`]
+        errors: [`API validation failed: ${errorMessage}`],
       };
     }
   }
@@ -209,7 +225,7 @@ export class ActionValidationService {
     return {
       isValid: errors.length === 0,
       errors,
-      warnings: warnings.length > 0 ? warnings : undefined
+      warnings: warnings.length > 0 ? warnings : undefined,
     };
   }
 
@@ -217,26 +233,26 @@ export class ActionValidationService {
    * Validate device capabilities for specific operations
    */
   static validateDeviceCapability(
-    capabilities: string[], 
-    requiredCapability: "color" | "colorTem" | "brightness"
+    capabilities: string[],
+    requiredCapability: "color" | "colorTem" | "brightness",
   ): ValidationResult {
     const errors: string[] = [];
-    
+
     if (!capabilities || !Array.isArray(capabilities)) {
       errors.push("Device capabilities not available");
     } else if (!capabilities.includes(requiredCapability)) {
       const capabilityName = {
         color: "color control",
         colorTem: "color temperature",
-        brightness: "brightness control"
+        brightness: "brightness control",
       }[requiredCapability];
-      
+
       errors.push(`Device does not support ${capabilityName}`);
     }
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 }

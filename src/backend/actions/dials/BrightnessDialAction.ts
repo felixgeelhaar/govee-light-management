@@ -39,7 +39,7 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
   // Allow dependency injection for testing
   constructor(
     lightRepository?: GoveeLightRepository,
-    lightControlService?: LightControlService
+    lightControlService?: LightControlService,
   ) {
     super();
     this.lightRepository = lightRepository;
@@ -57,7 +57,7 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
     if (settings.apiKey && !this.lightRepository) {
       this.initializeServices(settings.apiKey);
     }
-    
+
     if (settings.apiKey && this.lightRepository) {
       await this.loadSelectedLight(settings);
     }

@@ -1,16 +1,16 @@
 <template>
   <section class="config-section">
     <h2>Light Selection</h2>
-    
+
     <div class="form-group">
       <label for="lightSelect">Select Light</label>
-      
+
       <!-- No API Key State -->
       <div v-if="!hasApiKey" class="state-message">
         <div class="state-icon">🔑</div>
         <p class="help-text">Configure API key first to discover lights</p>
       </div>
-      
+
       <!-- Initial Discovery State -->
       <div v-else-if="lightDiscovery.isIdle.value" class="state-message">
         <div class="discovery-actions">
@@ -20,20 +20,23 @@
             :disabled="isDiscovering"
           >
             <span v-if="isDiscovering" class="loading-spinner-sm"></span>
-            {{ isDiscovering ? 'Discovering...' : '🔍 Discover Lights' }}
+            {{ isDiscovering ? "Discovering..." : "🔍 Discover Lights" }}
           </button>
           <p class="help-text">Find your Govee lights on the network</p>
         </div>
       </div>
-      
+
       <!-- Loading State -->
-      <div v-else-if="lightDiscovery.isFetchingLights.value" class="state-message">
+      <div
+        v-else-if="lightDiscovery.isFetchingLights.value"
+        class="state-message"
+      >
         <div class="loading-state">
           <div class="loading-spinner-sm"></div>
           <p class="loading-text">Searching for lights...</p>
         </div>
       </div>
-      
+
       <!-- Light Selection State -->
       <div v-else-if="lightDiscovery.isReady.value" class="selection-state">
         <select
@@ -59,7 +62,7 @@
             {{ light.label }}
           </option>
         </select>
-        
+
         <!-- Action Buttons -->
         <div class="button-group">
           <button
@@ -68,10 +71,12 @@
             :disabled="lightDiscovery.isFetchingLights.value"
             title="Refresh light list"
           >
-            <span v-if="lightDiscovery.isFetchingLights.value">Refreshing...</span>
+            <span v-if="lightDiscovery.isFetchingLights.value"
+              >Refreshing...</span
+            >
             <span v-else>🔄 Refresh</span>
           </button>
-          
+
           <button
             v-if="selectedLight"
             class="btn btn-accent btn-small"
@@ -83,18 +88,26 @@
             <span v-else>💡 Test Light</span>
           </button>
         </div>
-        
+
         <!-- Light Count Indicator -->
         <div v-if="lightDiscovery.lights.value.length > 0" class="light-count">
-          Found {{ lightDiscovery.lights.value.length }} light{{ lightDiscovery.lights.value.length !== 1 ? 's' : '' }}
+          Found {{ lightDiscovery.lights.value.length }} light{{
+            lightDiscovery.lights.value.length !== 1 ? "s" : ""
+          }}
         </div>
       </div>
-      
+
       <!-- Error State -->
-      <div v-else-if="lightDiscovery.hasError.value" class="state-message error-state">
+      <div
+        v-else-if="lightDiscovery.hasError.value"
+        class="state-message error-state"
+      >
         <div class="state-icon error">⚠️</div>
         <p class="error-text">Failed to discover lights</p>
-        <button class="btn btn-secondary btn-small" @click="handleRetryDiscovery">
+        <button
+          class="btn btn-secondary btn-small"
+          @click="handleRetryDiscovery"
+        >
           Try Again
         </button>
       </div>
@@ -103,10 +116,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { useLightDiscovery } from '../composables/useLightDiscovery';
-import { useToastMachine } from '../composables/useToastMachine';
-import { websocketService } from '../services/websocketService';
+import { ref, computed, watch } from "vue";
+import { useLightDiscovery } from "../composables/useLightDiscovery";
+import { useToastMachine } from "../composables/useToastMachine";
+import { websocketService } from "../services/websocketService";
 
 // Props
 interface Props {
@@ -116,10 +129,10 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// Emits  
+// Emits
 const emit = defineEmits<{
-  'update:selectedLight': [value: string];
-  'lightSelected': [lightId: string, lightModel: string, lightName: string];
+  "update:selectedLight": [value: string];
+  lightSelected: [lightId: string, lightModel: string, lightName: string];
 }>();
 
 // Composables
@@ -134,7 +147,7 @@ const isTestingLight = ref(false);
 const selectedLightInfo = computed(() => {
   if (!props.selectedLight) return null;
   return lightDiscovery.filteredLights.value.find(
-    light => light.value === props.selectedLight
+    (light) => light.value === props.selectedLight,
   );
 });
 
@@ -150,7 +163,11 @@ const handleDiscoverLights = async () => {
 };
 
 const handleRefreshLights = () => {
-  toast.showInfo("Refreshing Lights", "Discovering available devices...", "light-discovery");
+  toast.showInfo(
+    "Refreshing Lights",
+    "Discovering available devices...",
+    "light-discovery",
+  );
   lightDiscovery.refreshLights();
 };
 
@@ -160,21 +177,25 @@ const handleRetryDiscovery = () => {
 
 const handleLightSelection = (event: Event) => {
   const value = (event.target as HTMLSelectElement).value;
-  emit('update:selectedLight', value);
-  
+  emit("update:selectedLight", value);
+
   if (value) {
-    const [lightId, lightModel] = value.split('|');
-    const lightName = selectedLightInfo.value?.label || 'Unknown Light';
-    emit('lightSelected', lightId, lightModel, lightName);
+    const [lightId, lightModel] = value.split("|");
+    const lightName = selectedLightInfo.value?.label || "Unknown Light";
+    emit("lightSelected", lightId, lightModel, lightName);
   }
 };
 
 const handleTestLight = async () => {
   if (!props.selectedLight || isTestingLight.value) return;
 
-  const [deviceId, model] = props.selectedLight.split('|');
+  const [deviceId, model] = props.selectedLight.split("|");
   if (!deviceId || !model) {
-    toast.showError("Invalid Light Selection", "Please select a valid light from the list", "light-test");
+    toast.showError(
+      "Invalid Light Selection",
+      "Please select a valid light from the list",
+      "light-test",
+    );
     return;
   }
 
@@ -188,9 +209,9 @@ const handleTestLight = async () => {
     testToastId = toast.showLightTestStart(lightName);
 
     await websocketService.sendToPlugin({
-      event: 'testLight',
+      event: "testLight",
       deviceId,
-      model
+      model,
     });
 
     // Add timeout fallback
@@ -199,15 +220,14 @@ const handleTestLight = async () => {
         isTestingLight.value = false;
         if (testToastId) {
           toast.updateToast(testToastId, {
-            type: 'warning',
-            title: 'Test Timeout',
-            message: 'Light test timed out, but light may have still blinked',
-            duration: 3000
+            type: "warning",
+            title: "Test Timeout",
+            message: "Light test timed out, but light may have still blinked",
+            duration: 3000,
           });
         }
       }
     }, 5000);
-
   } catch (error) {
     isTestingLight.value = false;
     toast.showLightTestError("Failed to send test command", lightName);
@@ -226,7 +246,7 @@ watch(
     } else if (newState === "error") {
       toast.showLightDiscoveryError("Failed to discover lights");
     }
-  }
+  },
 );
 
 // Listen for test results
@@ -234,13 +254,13 @@ websocketService.on("sendToPropertyInspector", (data: any) => {
   if (data.payload?.event === "testResult") {
     isTestingLight.value = false;
     const lightName = selectedLightInfo.value?.label;
-    
+
     if (data.payload.success) {
       toast.showLightTestSuccess(lightName);
     } else {
       toast.showLightTestError(
         data.payload.message || "Failed to control the light",
-        lightName
+        lightName,
       );
     }
   }
@@ -355,8 +375,12 @@ websocketService.on("sendToPropertyInspector", (data: any) => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Selection State */
@@ -454,11 +478,11 @@ websocketService.on("sendToPropertyInspector", (data: any) => {
     padding: 12px;
     gap: 8px;
   }
-  
+
   .button-group {
     justify-content: center;
   }
-  
+
   .btn {
     flex: 1;
     min-width: 0;

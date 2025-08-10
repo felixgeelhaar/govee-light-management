@@ -4,18 +4,13 @@
       <LoadingSpinner :size="24" />
       <span v-if="loadingText" class="loading-text">{{ loadingText }}</span>
     </div>
-    <component
-      v-else
-      :is="component"
-      v-bind="$attrs"
-      v-on="$listeners"
-    />
+    <component v-else :is="component" v-bind="$attrs" v-on="$listeners" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, defineAsyncComponent, type Component } from 'vue';
-import LoadingSpinner from './LoadingSpinner.vue';
+import { ref, onMounted, defineAsyncComponent, type Component } from "vue";
+import LoadingSpinner from "./LoadingSpinner.vue";
 
 interface Props {
   loader: () => Promise<Component>;
@@ -24,8 +19,8 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  loadingText: '',
-  delay: 0
+  loadingText: "",
+  delay: 0,
 });
 
 const isLoaded = ref(false);
@@ -34,15 +29,15 @@ const component = ref<Component | null>(null);
 onMounted(async () => {
   // Add delay if specified (useful for preventing flicker on fast loads)
   if (props.delay > 0) {
-    await new Promise(resolve => setTimeout(resolve, props.delay));
+    await new Promise((resolve) => setTimeout(resolve, props.delay));
   }
-  
+
   try {
     const loadedComponent = await props.loader();
     component.value = loadedComponent;
     isLoaded.value = true;
   } catch (error) {
-    console.error('Failed to load component:', error);
+    console.error("Failed to load component:", error);
   }
 });
 </script>

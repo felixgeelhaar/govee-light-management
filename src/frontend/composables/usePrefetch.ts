@@ -1,4 +1,4 @@
-import { onMounted } from 'vue';
+import { onMounted } from "vue";
 
 /**
  * Composable for prefetching components and resources
@@ -6,7 +6,7 @@ import { onMounted } from 'vue';
  */
 export function usePrefetch() {
   const prefetchedComponents = new Set<string>();
-  
+
   /**
    * Prefetch a component module
    * @param componentPath Path to the component to prefetch
@@ -15,7 +15,7 @@ export function usePrefetch() {
     if (prefetchedComponents.has(componentPath)) {
       return;
     }
-    
+
     try {
       // Use dynamic import with webpackPrefetch comment for build optimization
       await import(/* @vite-ignore */ componentPath);
@@ -24,16 +24,16 @@ export function usePrefetch() {
       console.warn(`Failed to prefetch component: ${componentPath}`, error);
     }
   };
-  
+
   /**
    * Prefetch multiple components
    * @param paths Array of component paths to prefetch
    */
   const prefetchComponents = async (paths: string[]) => {
-    const promises = paths.map(path => prefetchComponent(path));
+    const promises = paths.map((path) => prefetchComponent(path));
     await Promise.allSettled(promises);
   };
-  
+
   /**
    * Prefetch components after the main view has loaded
    * This improves initial load time while preparing future navigation
@@ -41,10 +41,13 @@ export function usePrefetch() {
   const prefetchOnIdle = (paths: string[]) => {
     onMounted(() => {
       // Use requestIdleCallback if available, otherwise use setTimeout
-      if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(() => {
-          prefetchComponents(paths);
-        }, { timeout: 2000 });
+      if ("requestIdleCallback" in window) {
+        window.requestIdleCallback(
+          () => {
+            prefetchComponents(paths);
+          },
+          { timeout: 2000 },
+        );
       } else {
         setTimeout(() => {
           prefetchComponents(paths);
@@ -52,7 +55,7 @@ export function usePrefetch() {
       }
     });
   };
-  
+
   /**
    * Prefetch based on user interaction hints
    * @param element Element to observe for interaction
@@ -60,40 +63,43 @@ export function usePrefetch() {
    */
   const prefetchOnInteraction = (
     element: HTMLElement | null,
-    componentPath: string
+    componentPath: string,
   ) => {
     if (!element) return;
-    
+
     const handleInteraction = () => {
       prefetchComponent(componentPath);
       // Remove listeners after first interaction
-      element.removeEventListener('mouseenter', handleInteraction);
-      element.removeEventListener('focus', handleInteraction);
+      element.removeEventListener("mouseenter", handleInteraction);
+      element.removeEventListener("focus", handleInteraction);
     };
-    
-    element.addEventListener('mouseenter', handleInteraction, { once: true });
-    element.addEventListener('focus', handleInteraction, { once: true });
+
+    element.addEventListener("mouseenter", handleInteraction, { once: true });
+    element.addEventListener("focus", handleInteraction, { once: true });
   };
-  
+
   /**
    * Create a link prefetch tag for external resources
    * @param url URL to prefetch
    * @param as Resource type (script, style, etc.)
    */
-  const prefetchResource = (url: string, as: 'script' | 'style' | 'font' = 'script') => {
-    const link = document.createElement('link');
-    link.rel = 'prefetch';
+  const prefetchResource = (
+    url: string,
+    as: "script" | "style" | "font" = "script",
+  ) => {
+    const link = document.createElement("link");
+    link.rel = "prefetch";
     link.as = as;
     link.href = url;
     document.head.appendChild(link);
   };
-  
+
   return {
     prefetchComponent,
     prefetchComponents,
     prefetchOnIdle,
     prefetchOnInteraction,
     prefetchResource,
-    prefetchedComponents
+    prefetchedComponents,
   };
 }

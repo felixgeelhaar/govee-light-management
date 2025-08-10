@@ -52,7 +52,7 @@
 
 <script setup lang="ts">
 interface Props {
-  type: 'success' | 'error' | 'warning' | 'info';
+  type: "success" | "error" | "warning" | "info";
 }
 
 defineProps<Props>();

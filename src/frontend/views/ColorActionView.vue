@@ -9,112 +9,112 @@
   >
     <template #action-config="{ selectedLight, lightInfo }">
       <!-- Color Settings -->
-    <section class="config-section">
-      <h2>Color Settings</h2>
+      <section class="config-section">
+        <h2>Color Settings</h2>
 
-      <!-- Color Selection Mode -->
-      <div class="form-group">
-        <label>Color Selection Mode</label>
-        <div class="radio-group">
-          <label class="radio-option">
-            <input
-              type="radio"
-              v-model="usePresets"
-              :value="true"
-              name="colorMode"
-            />
-            <span>Color Presets</span>
-          </label>
-          <label class="radio-option">
-            <input
-              type="radio"
-              v-model="usePresets"
-              :value="false"
-              name="colorMode"
-            />
-            <span>Color Wheel</span>
-          </label>
-        </div>
-        <small class="help-text">
-          Presets cycle through predefined colors, Color Wheel adjusts hue
-          continuously
-        </small>
-      </div>
-
-      <!-- Current Color -->
-      <div class="form-group">
-        <label for="currentColor">Current Color</label>
-        <div class="color-input-group">
-          <input
-            id="currentColor"
-            v-model="color"
-            type="color"
-            class="color-input"
-          />
-          <input
-            v-model="color"
-            type="text"
-            class="form-input color-hex"
-            placeholder="#FF0000"
-            pattern="^#[0-9A-Fa-f]{6}$"
-          />
-        </div>
-      </div>
-
-      <!-- Color Presets (when usePresets === true) -->
-      <div v-if="usePresets" class="form-group">
-        <label>Color Presets</label>
-        <div class="color-presets">
-          <div
-            v-for="(preset, index) in colorPresets"
-            :key="index"
-            class="color-preset"
-            :class="{ active: currentPresetIndex === index }"
-            :style="{ backgroundColor: preset }"
-            @click="selectPreset(index)"
-            :title="preset"
-          >
-            <span v-if="currentPresetIndex === index" class="preset-check"
-              >✓</span
-            >
+        <!-- Color Selection Mode -->
+        <div class="form-group">
+          <label>Color Selection Mode</label>
+          <div class="radio-group">
+            <label class="radio-option">
+              <input
+                type="radio"
+                v-model="usePresets"
+                :value="true"
+                name="colorMode"
+              />
+              <span>Color Presets</span>
+            </label>
+            <label class="radio-option">
+              <input
+                type="radio"
+                v-model="usePresets"
+                :value="false"
+                name="colorMode"
+              />
+              <span>Color Wheel</span>
+            </label>
           </div>
-          <button
-            class="btn btn-small btn-secondary"
-            @click="addCurrentColorToPresets"
-            :disabled="colorPresets.includes(color)"
-            title="Add current color to presets"
-          >
-            +
-          </button>
+          <small class="help-text">
+            Presets cycle through predefined colors, Color Wheel adjusts hue
+            continuously
+          </small>
         </div>
-        <small class="help-text">
-          Click a preset to select it, or use the + button to add the current
-          color
-        </small>
-      </div>
 
-      <!-- Preset Management -->
-      <div v-if="usePresets" class="form-group">
-        <div class="preset-controls">
-          <button
-            class="btn btn-small btn-secondary"
-            @click="resetToDefaultPresets"
-          >
-            Reset to Defaults
-          </button>
-          <button
-            class="btn btn-small btn-secondary"
-            @click="removeCurrentPreset"
-            :disabled="
-              colorPresets.length <= 1 ||
-              currentPresetIndex >= colorPresets.length
-            "
-          >
-            Remove Selected
-          </button>
+        <!-- Current Color -->
+        <div class="form-group">
+          <label for="currentColor">Current Color</label>
+          <div class="color-input-group">
+            <input
+              id="currentColor"
+              v-model="color"
+              type="color"
+              class="color-input"
+            />
+            <input
+              v-model="color"
+              type="text"
+              class="form-input color-hex"
+              placeholder="#FF0000"
+              pattern="^#[0-9A-Fa-f]{6}$"
+            />
+          </div>
         </div>
-      </div>
-    </section>
+
+        <!-- Color Presets (when usePresets === true) -->
+        <div v-if="usePresets" class="form-group">
+          <label>Color Presets</label>
+          <div class="color-presets">
+            <div
+              v-for="(preset, index) in colorPresets"
+              :key="index"
+              class="color-preset"
+              :class="{ active: currentPresetIndex === index }"
+              :style="{ backgroundColor: preset }"
+              @click="selectPreset(index)"
+              :title="preset"
+            >
+              <span v-if="currentPresetIndex === index" class="preset-check"
+                >✓</span
+              >
+            </div>
+            <button
+              class="btn btn-small btn-secondary"
+              @click="addCurrentColorToPresets"
+              :disabled="colorPresets.includes(color)"
+              title="Add current color to presets"
+            >
+              +
+            </button>
+          </div>
+          <small class="help-text">
+            Click a preset to select it, or use the + button to add the current
+            color
+          </small>
+        </div>
+
+        <!-- Preset Management -->
+        <div v-if="usePresets" class="form-group">
+          <div class="preset-controls">
+            <button
+              class="btn btn-small btn-secondary"
+              @click="resetToDefaultPresets"
+            >
+              Reset to Defaults
+            </button>
+            <button
+              class="btn btn-small btn-secondary"
+              @click="removeCurrentPreset"
+              :disabled="
+                colorPresets.length <= 1 ||
+                currentPresetIndex >= colorPresets.length
+              "
+            >
+              Remove Selected
+            </button>
+          </div>
+        </div>
+      </section>
     </template>
   </BaseActionView>
 </template>
@@ -148,7 +148,11 @@ const currentPresetIndex = ref<number>(0);
 const baseActionRef = ref<InstanceType<typeof BaseActionView>>();
 
 // Event handlers for BaseActionView
-const handleLightSelected = (lightId: string, lightModel: string, lightName: string) => {
+const handleLightSelected = (
+  lightId: string,
+  lightModel: string,
+  lightName: string,
+) => {
   // BaseActionView handles this, we just need to save settings
   saveSettings();
 };
@@ -194,7 +198,7 @@ const resetToDefaultPresets = () => {
 // Settings persistence
 const saveSettings = () => {
   if (!baseActionRef.value) return;
-  
+
   const settings: ColorActionSettings = {
     targetType: "light",
     color: color.value,
@@ -206,7 +210,7 @@ const saveSettings = () => {
   // Add light-specific settings from BaseActionView
   const selectedLightValue = baseActionRef.value.selectedLight;
   const lightInfo = baseActionRef.value.selectedLightInfo;
-  
+
   if (selectedLightValue && lightInfo) {
     const [deviceId, model] = selectedLightValue.split("|");
     settings.lightId = deviceId;
@@ -237,8 +241,11 @@ onMounted(() => {
         if (event.payload?.event === "currentSettings") {
           const settings = event.payload.settings;
           color.value = settings.color || "#FF0000";
-          colorPresets.value = settings.colorPresets || [...defaultColorPresets];
-          usePresets.value = settings.usePresets !== undefined ? settings.usePresets : true;
+          colorPresets.value = settings.colorPresets || [
+            ...defaultColorPresets,
+          ];
+          usePresets.value =
+            settings.usePresets !== undefined ? settings.usePresets : true;
           currentPresetIndex.value = settings.currentPresetIndex || 0;
         }
       });
@@ -334,5 +341,4 @@ onMounted(() => {
 .radio-option input[type="radio"] {
   margin: 0;
 }
-
 </style>

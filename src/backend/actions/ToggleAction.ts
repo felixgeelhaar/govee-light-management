@@ -375,12 +375,12 @@ export class ToggleAction extends SingletonAction<ToggleActionSettings> {
   ): Promise<void> {
     try {
       const globalApiKey = await globalSettingsService.getApiKey();
-      
+
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "globalApiKey",
         apiKey: globalApiKey || null,
       });
-      
+
       streamDeck.logger?.info(
         `ToggleAction: Sent global API key (exists: ${!!globalApiKey})`,
       );
@@ -402,7 +402,7 @@ export class ToggleAction extends SingletonAction<ToggleActionSettings> {
   ): Promise<void> {
     try {
       const apiKey = (ev.payload as any)?.apiKey as string;
-      
+
       if (!apiKey) {
         streamDeck.logger?.warn("ToggleAction: No API key provided to set");
         await streamDeck.ui.current?.sendToPropertyInspector({
@@ -415,12 +415,14 @@ export class ToggleAction extends SingletonAction<ToggleActionSettings> {
 
       // Save API key globally
       await globalSettingsService.setApiKey(apiKey);
-      
+
       // Initialize services with the new API key
       this.initializeServices(apiKey);
-      
-      streamDeck.logger?.info("ToggleAction: Global API key saved successfully");
-      
+
+      streamDeck.logger?.info(
+        "ToggleAction: Global API key saved successfully",
+      );
+
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "globalApiKeySaved",
         success: true,
@@ -430,7 +432,8 @@ export class ToggleAction extends SingletonAction<ToggleActionSettings> {
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "globalApiKeySaved",
         success: false,
-        error: error instanceof Error ? error.message : "Failed to save API key",
+        error:
+          error instanceof Error ? error.message : "Failed to save API key",
       });
     }
   }
@@ -444,16 +447,18 @@ export class ToggleAction extends SingletonAction<ToggleActionSettings> {
     try {
       // Clear API key globally
       await globalSettingsService.clearApiKey();
-      
+
       // Clear local references
       this.apiKey = undefined;
       this.lightRepository = undefined;
       this.lightService = undefined;
       this.groupService = undefined;
       this.lightGroupService = undefined;
-      
-      streamDeck.logger?.info("ToggleAction: Global API key cleared successfully");
-      
+
+      streamDeck.logger?.info(
+        "ToggleAction: Global API key cleared successfully",
+      );
+
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "globalApiKeyCleared",
         success: true,
@@ -463,7 +468,8 @@ export class ToggleAction extends SingletonAction<ToggleActionSettings> {
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "globalApiKeyCleared",
         success: false,
-        error: error instanceof Error ? error.message : "Failed to clear API key",
+        error:
+          error instanceof Error ? error.message : "Failed to clear API key",
       });
     }
   }
@@ -476,7 +482,7 @@ export class ToggleAction extends SingletonAction<ToggleActionSettings> {
   ): Promise<void> {
     try {
       const apiKey = (ev.payload as any)?.apiKey as string;
-      
+
       if (!apiKey) {
         await streamDeck.ui.current?.sendToPropertyInspector({
           event: "apiConnectionTested",
@@ -489,13 +495,15 @@ export class ToggleAction extends SingletonAction<ToggleActionSettings> {
       // Test the API key by trying to fetch lights
       const testRepository = new GoveeLightRepository(apiKey, true);
       const lights = await testRepository.getAllLights();
-      
-      streamDeck.logger?.info(`ToggleAction: API test successful, found ${lights.length} lights`);
-      
+
+      streamDeck.logger?.info(
+        `ToggleAction: API test successful, found ${lights.length} lights`,
+      );
+
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "apiConnectionTested",
         success: true,
-        message: `Connection successful! Found ${lights.length} light${lights.length !== 1 ? 's' : ''}`,
+        message: `Connection successful! Found ${lights.length} light${lights.length !== 1 ? "s" : ""}`,
       });
     } catch (error) {
       streamDeck.logger?.error("Failed to test API connection:", error);
@@ -593,7 +601,9 @@ export class ToggleAction extends SingletonAction<ToggleActionSettings> {
       // Always use global API key per Elgato best practices
       const apiKey = await globalSettingsService.getApiKey();
       if (!apiKey) {
-        throw new Error("API key is required for light test - configure in global settings");
+        throw new Error(
+          "API key is required for light test - configure in global settings",
+        );
       }
 
       // Initialize repository if needed
@@ -731,9 +741,7 @@ export class ToggleAction extends SingletonAction<ToggleActionSettings> {
 
         // Save API key globally on successful validation
         await globalSettingsService.setApiKey(apiKey);
-        streamDeck.logger?.info(
-          "ToggleAction: Saved API key globally",
-        );
+        streamDeck.logger?.info("ToggleAction: Saved API key globally");
 
         await streamDeck.ui.current?.sendToPropertyInspector({
           event: "apiKeyValidated",

@@ -64,7 +64,7 @@ export class GroupDialAction extends SingletonAction<GroupDialSettings> {
     if (settings.apiKey && !this.lightRepository) {
       this.initializeServices(settings.apiKey);
     }
-    
+
     if (settings.apiKey && this.lightRepository) {
       await this.loadGroup(settings);
     }

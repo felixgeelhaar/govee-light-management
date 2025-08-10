@@ -2,12 +2,17 @@
   <main class="light-control-view" role="main" aria-labelledby="main-heading">
     <!-- Feedback System for Toast Notifications -->
     <FeedbackSystem />
-    
+
     <!-- Screen reader only main heading -->
     <h1 id="main-heading" class="sr-only">Govee Light Control Configuration</h1>
-    
+
     <!-- API Configuration Section -->
-    <section class="config-section" data-testid="api-key-section" role="region" aria-labelledby="api-config-heading">
+    <section
+      class="config-section"
+      data-testid="api-key-section"
+      role="region"
+      aria-labelledby="api-config-heading"
+    >
       <h2 id="api-config-heading">API Configuration</h2>
       <div class="form-group">
         <label for="apiKey">API Key</label>
@@ -38,7 +43,9 @@
             "
             class="btn btn-primary"
             :disabled="!localApiKey || apiConnection.isConnecting.value"
-            :aria-describedby="apiConnection.isConnecting.value ? 'connecting-status' : undefined"
+            :aria-describedby="
+              apiConnection.isConnecting.value ? 'connecting-status' : undefined
+            "
             @click="connectToApi"
           >
             <span v-if="apiConnection.isConnecting.value">
@@ -55,12 +62,20 @@
           >
             Disconnect
           </button>
-          
+
           <!-- Hidden status descriptions for screen readers -->
-          <div id="connecting-status" class="sr-only" v-if="apiConnection.isConnecting.value">
+          <div
+            id="connecting-status"
+            class="sr-only"
+            v-if="apiConnection.isConnecting.value"
+          >
             Attempting to connect to Govee API, please wait
           </div>
-          <div id="api-connected-status" class="sr-only" v-if="apiConnection.isConnected.value">
+          <div
+            id="api-connected-status"
+            class="sr-only"
+            v-if="apiConnection.isConnected.value"
+          >
             Successfully connected to Govee API
           </div>
         </div>
@@ -73,7 +88,12 @@
     </section>
 
     <!-- Light Selection Section -->
-    <section class="config-section" data-testid="light-selection-section" role="region" aria-labelledby="light-selection-heading">
+    <section
+      class="config-section"
+      data-testid="light-selection-section"
+      role="region"
+      aria-labelledby="light-selection-heading"
+    >
       <h2 id="light-selection-heading">Light Selection</h2>
 
       <!-- Fetch Lights Button -->
@@ -168,7 +188,12 @@
     </section>
 
     <!-- Control Mode Section -->
-    <section class="config-section" data-testid="control-mode-section" role="region" aria-labelledby="control-mode-heading">
+    <section
+      class="config-section"
+      data-testid="control-mode-section"
+      role="region"
+      aria-labelledby="control-mode-heading"
+    >
       <h2 id="control-mode-heading">Control Mode</h2>
       <div class="form-group">
         <label for="controlMode">Control Mode</label>
@@ -196,12 +221,13 @@
           :aria-valuetext="`${brightnessValue} percent brightness`"
           aria-describedby="brightness-value-display"
         />
-        <span 
-          id="brightness-value-display" 
-          class="range-value" 
-          role="status" 
+        <span
+          id="brightness-value-display"
+          class="range-value"
+          role="status"
           aria-live="polite"
-        >{{ brightnessValue }}%</span>
+          >{{ brightnessValue }}%</span
+        >
       </div>
 
       <!-- Color Control -->
@@ -230,24 +256,28 @@
           aria-describedby="colortemp-value-display colortemp-description"
         />
         <div class="range-feedback-group">
-          <span 
-            id="colortemp-value-display" 
-            class="range-value" 
-            role="status" 
+          <span
+            id="colortemp-value-display"
+            class="range-value"
+            role="status"
             aria-live="polite"
-          >{{ colorTempValue }}K</span>
-          <span 
-            id="colortemp-description" 
-            class="range-description"
-          >{{ colorTempValue < 4000 ? 'Warm' : colorTempValue > 6000 ? 'Cool' : 'Neutral' }}</span>
+            >{{ colorTempValue }}K</span
+          >
+          <span id="colortemp-description" class="range-description">{{
+            colorTempValue < 4000
+              ? "Warm"
+              : colorTempValue > 6000
+                ? "Cool"
+                : "Neutral"
+          }}</span>
         </div>
       </div>
     </section>
 
     <!-- Status Field for Stream Deck -->
-    <div 
-      v-if="statusMessage" 
-      class="status-field" 
+    <div
+      v-if="statusMessage"
+      class="status-field"
       :class="statusType"
       role="status"
       :aria-live="statusType === 'error' ? 'assertive' : 'polite'"
@@ -257,12 +287,12 @@
       <span class="status-icon" aria-hidden="true">{{ statusIcon }}</span>
       <span class="status-text">{{ statusMessage }}</span>
     </div>
-    
+
     <!-- Screen reader status region (always present for announcements) -->
-    <div 
-      class="sr-only" 
-      role="status" 
-      aria-live="polite" 
+    <div
+      class="sr-only"
+      role="status"
+      aria-live="polite"
       aria-atomic="true"
       ref="screenReaderStatus"
     ></div>
@@ -270,7 +300,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick, defineAsyncComponent } from "vue";
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  nextTick,
+  defineAsyncComponent,
+} from "vue";
 import type { ControlMode } from "@shared/types";
 import { useApiConnection } from "../composables/useApiConnection";
 import { useLightDiscovery } from "../composables/useLightDiscovery";
@@ -278,8 +315,8 @@ import { useLightControlSettings } from "../composables/useSettings";
 import { websocketService } from "../services/websocketService";
 
 // Lazy load the FeedbackSystem component
-const FeedbackSystem = defineAsyncComponent(() => 
-  import("../components/FeedbackSystem.vue")
+const FeedbackSystem = defineAsyncComponent(
+  () => import("../components/FeedbackSystem.vue"),
 );
 
 // XState composables
@@ -316,7 +353,7 @@ const showStatus = (
 ) => {
   statusMessage.value = message;
   statusType.value = type;
-  
+
   // Also announce to screen readers
   if (screenReaderStatus.value) {
     screenReaderStatus.value.textContent = message;
@@ -428,7 +465,6 @@ const testSelectedLight = async () => {
       event: "testLight",
     });
 
-
     // Add timeout as fallback in case backend doesn't respond
     setTimeout(() => {
       if (isTestingLight.value) {
@@ -471,7 +507,6 @@ watch(
 watch(
   () => lightDiscovery.state.value,
   (newState, oldState) => {
-
     if (newState === "fetching" && oldState === "idle") {
       showStatus("Discovering lights...", "info", 0);
     } else if (newState === "success" && oldState === "fetching") {
@@ -523,7 +558,6 @@ onMounted(() => {
 
       // Set up WebSocket event listeners
       websocketService.on("sendToPropertyInspector", (data: any) => {
-
         if (data.payload?.event === "testResult") {
           isTestingLight.value = false;
 

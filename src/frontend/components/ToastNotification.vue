@@ -20,29 +20,30 @@
     @mouseleave="$emit('resume')"
   >
     <ToastIcon :type="toast.type" />
-    
+
     <div class="toast-content">
       <div :id="`toast-title-${toast.id}`" class="toast-title">
         {{ toast.title }}
       </div>
-      <div v-if="toast.message" :id="`toast-message-${toast.id}`" class="toast-message">
+      <div
+        v-if="toast.message"
+        :id="`toast-message-${toast.id}`"
+        class="toast-message"
+      >
         {{ toast.message }}
       </div>
       <div v-if="toast.actions" class="toast-actions">
         <button
           v-for="action in toast.actions"
           :key="action.label"
-          :class="[
-            'toast-action',
-            `toast-action-${action.type || 'primary'}`,
-          ]"
+          :class="['toast-action', `toast-action-${action.type || 'primary'}`]"
           @click.stop="handleAction(action)"
         >
           {{ action.label }}
         </button>
       </div>
     </div>
-    
+
     <button
       v-if="!toast.persistent"
       class="toast-close"
@@ -60,9 +61,12 @@
         />
       </svg>
     </button>
-    
+
     <!-- Auto-dismiss progress indicator -->
-    <div v-if="!toast.persistent && toast.progress !== undefined" class="toast-progress">
+    <div
+      v-if="!toast.persistent && toast.progress !== undefined"
+      class="toast-progress"
+    >
       <div
         class="toast-progress-bar"
         :style="{
@@ -71,7 +75,7 @@
         }"
       ></div>
     </div>
-    
+
     <!-- Pause indicator -->
     <div v-if="isPaused" class="toast-pause-indicator" :aria-hidden="true">
       ⏸
@@ -151,7 +155,8 @@ const handleAction = (action: ToastAction) => {
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 12px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
     0 4px 6px -2px rgba(0, 0, 0, 0.05);
   position: relative;
   overflow: hidden;
@@ -161,7 +166,8 @@ const handleAction = (action: ToastAction) => {
 
 .toast:hover {
   transform: translateX(-4px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
     0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 

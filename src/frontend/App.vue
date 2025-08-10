@@ -25,7 +25,7 @@ const FeedbackSystem = defineAsyncComponent({
   onError(error, retry, fail) {
     console.error("Failed to load FeedbackSystem:", error);
     fail();
-  }
+  },
 });
 
 // Main application component for Govee Light Management Property Inspector

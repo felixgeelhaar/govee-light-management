@@ -30,25 +30,31 @@ import type {
 } from "./BaseActionSettings";
 
 export abstract class AbstractStreamDeckAction<
-  TSettings extends BaseActionSettings & JsonObject
+  TSettings extends BaseActionSettings & JsonObject,
 > extends SingletonAction<TSettings> {
   // Repositories
   protected lightRepository?: GoveeLightRepository;
   protected groupRepository?: StreamDeckLightGroupRepository;
-  
+
   // Services
   protected lightService?: LightControlService;
   protected groupService?: GroupControlService;
   protected lightGroupService?: LightGroupService;
-  
+
   // State management
   protected actionStates = new Map<string, ActionState>();
-  
+
   // Abstract methods that must be implemented by subclasses
   protected abstract getActionName(): string;
-  protected abstract executeAction(action: ExtendedAction<TSettings>, settings: TSettings): Promise<void>;
-  protected abstract updateDisplay(action: ExtendedAction<TSettings>, state: ActionState): Promise<void>;
-  
+  protected abstract executeAction(
+    action: ExtendedAction<TSettings>,
+    settings: TSettings,
+  ): Promise<void>;
+  protected abstract updateDisplay(
+    action: ExtendedAction<TSettings>,
+    state: ActionState,
+  ): Promise<void>;
+
   /**
    * Handle action appearance
    */
@@ -56,19 +62,19 @@ export abstract class AbstractStreamDeckAction<
     const { action, payload } = ev;
     const { settings } = payload;
     const extendedAction = action as unknown as ExtendedAction<TSettings>;
-    
+
     try {
       // Initialize state
       await this.setActionState(extendedAction, {
         isLoading: false,
         errorMessage: undefined,
       });
-      
+
       // Validate and initialize if we have settings
       if (settings) {
         await this.handleInitialization(extendedAction, settings);
       }
-      
+
       // Let subclass do specific initialization
       await this.onActionWillAppear?.(ev);
     } catch (error) {
@@ -80,43 +86,49 @@ export abstract class AbstractStreamDeckAction<
           operation: "onWillAppear",
           settings: settings as any,
         },
-        (state) => this.setActionState(extendedAction, state)
+        (state) => this.setActionState(extendedAction, state),
       );
     }
   }
-  
+
   /**
    * Optional hook for subclasses to implement custom appearance logic
    */
   protected onActionWillAppear?(ev: WillAppearEvent<TSettings>): Promise<void>;
-  
+
   /**
    * Handle action disappearance
    */
-  override async onWillDisappear(ev: WillDisappearEvent<TSettings>): Promise<void> {
+  override async onWillDisappear(
+    ev: WillDisappearEvent<TSettings>,
+  ): Promise<void> {
     const { action } = ev;
     const extendedAction = action as unknown as ExtendedAction<TSettings>;
-    
+
     // Clean up state
     this.actionStates.delete(action.id);
-    
+
     // Let subclass do specific cleanup
     await this.onActionWillDisappear?.(ev);
   }
-  
+
   /**
    * Optional hook for subclasses to implement custom disappearance logic
    */
-  protected onActionWillDisappear?(ev: WillDisappearEvent<TSettings>): Promise<void>;
-  
+  protected onActionWillDisappear?(
+    ev: WillDisappearEvent<TSettings>,
+  ): Promise<void>;
+
   /**
    * Handle settings changes
    */
-  override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<TSettings>): Promise<void> {
+  override async onDidReceiveSettings(
+    ev: DidReceiveSettingsEvent<TSettings>,
+  ): Promise<void> {
     const { action, payload } = ev;
     const { settings } = payload;
     const extendedAction = action as unknown as ExtendedAction<TSettings>;
-    
+
     try {
       // Validate new settings
       const validation = ActionValidationService.validateSettings(settings);
@@ -124,10 +136,10 @@ export abstract class AbstractStreamDeckAction<
         await this.handleValidationErrors(extendedAction, validation);
         return;
       }
-      
+
       // Reinitialize with new settings
       await this.handleInitialization(extendedAction, settings);
-      
+
       // Let subclass handle specific settings
       await this.onActionDidReceiveSettings?.(ev);
     } catch (error) {
@@ -139,48 +151,56 @@ export abstract class AbstractStreamDeckAction<
           operation: "onDidReceiveSettings",
           settings: settings as any,
         },
-        (state) => this.setActionState(extendedAction, state)
+        (state) => this.setActionState(extendedAction, state),
       );
     }
   }
-  
+
   /**
    * Optional hook for subclasses to implement custom settings logic
    */
-  protected onActionDidReceiveSettings?(ev: DidReceiveSettingsEvent<TSettings>): Promise<void>;
-  
+  protected onActionDidReceiveSettings?(
+    ev: DidReceiveSettingsEvent<TSettings>,
+  ): Promise<void>;
+
   /**
    * Handle messages from property inspector
    */
-  override async onSendToPlugin(ev: SendToPluginEvent<JsonValue, TSettings>): Promise<void> {
+  override async onSendToPlugin(
+    ev: SendToPluginEvent<JsonValue, TSettings>,
+  ): Promise<void> {
     const { action, payload } = ev;
     const extendedAction = action as unknown as ExtendedAction<TSettings>;
-    
+
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
       return;
     }
-    
+
     const data = payload as any;
-    
+
     try {
       // Handle common messages
       switch (data.event) {
         case "validateApiKey":
           await this.handleValidateApiKey(extendedAction, data.apiKey);
           break;
-          
+
         case "getDevices":
           await this.handleGetDevices(extendedAction);
           break;
-          
+
         case "testDevice":
-          await this.handleTestDevice(extendedAction, data.deviceId, data.model);
+          await this.handleTestDevice(
+            extendedAction,
+            data.deviceId,
+            data.model,
+          );
           break;
-          
+
         case "getGroups":
           await this.handleGetGroups(extendedAction);
           break;
-          
+
         default:
           // Let subclass handle custom messages
           await this.onActionSendToPlugin?.(ev);
@@ -195,16 +215,18 @@ export abstract class AbstractStreamDeckAction<
           settings: (ev.payload as any).settings,
           metadata: { event: data.event },
         },
-        (state) => this.setActionState(extendedAction, state)
+        (state) => this.setActionState(extendedAction, state),
       );
     }
   }
-  
+
   /**
    * Optional hook for subclasses to handle custom property inspector messages
    */
-  protected onActionSendToPlugin?(ev: SendToPluginEvent<JsonValue, TSettings>): Promise<void>;
-  
+  protected onActionSendToPlugin?(
+    ev: SendToPluginEvent<JsonValue, TSettings>,
+  ): Promise<void>;
+
   /**
    * Initialize services with API key
    */
@@ -214,48 +236,51 @@ export abstract class AbstractStreamDeckAction<
     this.lightService = new LightControlService(this.lightRepository);
     this.groupService = new GroupControlService(
       this.groupRepository,
-      this.lightService
+      this.lightService,
     );
     this.lightGroupService = new LightGroupService(
       this.groupRepository,
-      this.lightRepository
+      this.lightRepository,
     );
   }
-  
+
   /**
    * Handle initialization with settings
    */
-  private async handleInitialization(action: ExtendedAction<TSettings>, settings: TSettings): Promise<void> {
+  private async handleInitialization(
+    action: ExtendedAction<TSettings>,
+    settings: TSettings,
+  ): Promise<void> {
     // Validate settings
     const validation = ActionValidationService.validateSettings(settings);
     if (!validation.isValid) {
       await this.handleValidationErrors(action, validation);
       return;
     }
-    
+
     // Initialize services if we have an API key
     if (settings.apiKey) {
       this.initializeServices(settings.apiKey);
     }
-    
+
     // Update display
     const state = this.getActionState(action);
     await this.updateDisplay(action, state);
   }
-  
+
   /**
    * Handle validation errors
    */
   private async handleValidationErrors(
     action: ExtendedAction<TSettings>,
-    validation: ValidationResult
+    validation: ValidationResult,
   ): Promise<void> {
     await action.showAlert();
     await this.setActionState(action, {
       isLoading: false,
       errorMessage: validation.errors.join(", "),
     });
-    
+
     // Send validation result to property inspector
     await action.sendToPropertyInspector({
       event: "validationError",
@@ -263,36 +288,40 @@ export abstract class AbstractStreamDeckAction<
       warnings: validation.warnings,
     });
   }
-  
+
   /**
    * Handle API key validation request
    */
-  private async handleValidateApiKey(action: ExtendedAction<TSettings>, apiKey: string): Promise<void> {
+  private async handleValidateApiKey(
+    action: ExtendedAction<TSettings>,
+    apiKey: string,
+  ): Promise<void> {
     // Show loading state
     await this.setActionState(action, { isLoading: true });
-    
+
     try {
       const validation = await ActionValidationService.validateApiKey(apiKey);
-      
+
       await action.sendToPropertyInspector({
         event: "apiKeyValidated",
         isValid: validation.isValid,
         errors: validation.errors,
         warnings: validation.warnings,
       });
-      
+
       if (validation.isValid) {
         // Initialize services with validated key
         this.initializeServices(apiKey);
-        
+
         // Save to global settings
         const streamDeck = getStreamDeck();
-        const globalSettings = await streamDeck?.settings?.getGlobalSettings() || {};
+        const globalSettings =
+          (await streamDeck?.settings?.getGlobalSettings()) || {};
         await streamDeck?.settings?.setGlobalSettings({
           ...globalSettings,
           apiKey: apiKey.trim(),
         });
-        
+
         await action.showOk();
       } else {
         await action.showAlert();
@@ -301,11 +330,13 @@ export abstract class AbstractStreamDeckAction<
       await this.setActionState(action, { isLoading: false });
     }
   }
-  
+
   /**
    * Handle device list request
    */
-  private async handleGetDevices(action: ExtendedAction<TSettings>): Promise<void> {
+  private async handleGetDevices(
+    action: ExtendedAction<TSettings>,
+  ): Promise<void> {
     if (!this.lightRepository) {
       await action.sendToPropertyInspector({
         event: "devicesReceived",
@@ -314,7 +345,7 @@ export abstract class AbstractStreamDeckAction<
       });
       return;
     }
-    
+
     try {
       const lights = await this.lightRepository.getAllLights();
       await action.sendToPropertyInspector({
@@ -335,14 +366,14 @@ export abstract class AbstractStreamDeckAction<
       });
     }
   }
-  
+
   /**
    * Handle device test request
    */
   private async handleTestDevice(
     action: ExtendedAction<TSettings>,
     deviceId: string,
-    model: string
+    model: string,
   ): Promise<void> {
     if (!this.lightService) {
       await action.sendToPropertyInspector({
@@ -352,7 +383,7 @@ export abstract class AbstractStreamDeckAction<
       });
       return;
     }
-    
+
     try {
       // Flash the device to test it
       const light = await this.lightRepository!.findLight(deviceId, model);
@@ -360,12 +391,12 @@ export abstract class AbstractStreamDeckAction<
         throw new Error(`Light not found: ${deviceId}`);
       }
       const currentState = light.isOn;
-      
+
       // Toggle twice to flash
       await this.lightRepository!.setPower(light, !currentState);
       await new Promise((resolve) => setTimeout(resolve, 500));
       await this.lightRepository!.setPower(light, currentState);
-      
+
       await action.sendToPropertyInspector({
         event: "deviceTestResult",
         success: true,
@@ -378,11 +409,13 @@ export abstract class AbstractStreamDeckAction<
       });
     }
   }
-  
+
   /**
    * Handle group list request
    */
-  private async handleGetGroups(action: ExtendedAction<TSettings>): Promise<void> {
+  private async handleGetGroups(
+    action: ExtendedAction<TSettings>,
+  ): Promise<void> {
     if (!this.groupRepository) {
       await action.sendToPropertyInspector({
         event: "groupsReceived",
@@ -391,7 +424,7 @@ export abstract class AbstractStreamDeckAction<
       });
       return;
     }
-    
+
     try {
       const groups = await this.groupRepository.getAllGroups();
       await action.sendToPropertyInspector({
@@ -410,7 +443,7 @@ export abstract class AbstractStreamDeckAction<
       });
     }
   }
-  
+
   /**
    * Get target from settings
    */
@@ -419,7 +452,7 @@ export abstract class AbstractStreamDeckAction<
     if (!validation.isValid) {
       return null;
     }
-    
+
     if (settings.targetType === "light") {
       return {
         type: "light",
@@ -435,7 +468,7 @@ export abstract class AbstractStreamDeckAction<
       };
     }
   }
-  
+
   /**
    * Get action state
    */
@@ -447,13 +480,13 @@ export abstract class AbstractStreamDeckAction<
       }
     );
   }
-  
+
   /**
    * Set action state
    */
   protected async setActionState(
     action: ExtendedAction<TSettings>,
-    state: Partial<ActionState>
+    state: Partial<ActionState>,
   ): Promise<void> {
     const currentState = this.getActionState(action);
     const newState = { ...currentState, ...state, lastUpdate: Date.now() };

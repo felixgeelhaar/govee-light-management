@@ -2,49 +2,62 @@
   <div :class="`${actionType}-action-view action-view`">
     <!-- Feedback System -->
     <FeedbackSystem />
-    
+
     <!-- API Key Configuration -->
-    <ApiKeyConfiguration 
+    <ApiKeyConfiguration
       :connection="{
         isConnected: apiConnection.isConnected.value,
         isConnecting: apiConnection.isConnecting.value,
         hasError: apiConnection.hasError.value,
-        connect: apiConnection.connect
+        connect: apiConnection.connect,
       }"
       @api-key-changed="handleApiKeyChanged"
       @api-key-saved="handleApiKeySaved"
       @testing-connection="handleTestingConnection"
     />
-    
+
     <!-- Light Selection -->
     <LightSelector
       :has-api-key="hasApiKey"
       v-model:selected-light="selectedLight"
       @light-selected="handleLightSelected"
     />
-    
+
     <!-- Action-Specific Configuration -->
     <section class="config-section">
       <h2>{{ configTitle }}</h2>
-      <slot name="action-config" :selectedLight="selectedLight" :lightInfo="selectedLightInfo"></slot>
+      <slot
+        name="action-config"
+        :selectedLight="selectedLight"
+        :lightInfo="selectedLightInfo"
+      ></slot>
     </section>
-    
+
     <!-- Action Summary (Optional) -->
-    <section v-if="showSummary && hasApiKey && selectedLight" class="config-section summary-section">
+    <section
+      v-if="showSummary && hasApiKey && selectedLight"
+      class="config-section summary-section"
+    >
       <h2>Action Summary</h2>
       <div class="summary-card">
         <div class="summary-item">
           <span class="summary-label">Light:</span>
-          <span class="summary-value">{{ selectedLightInfo?.label || 'Unknown' }}</span>
+          <span class="summary-value">{{
+            selectedLightInfo?.label || "Unknown"
+          }}</span>
         </div>
         <div class="summary-item">
           <span class="summary-label">Action:</span>
           <span class="summary-value">{{ actionSummary }}</span>
         </div>
-        <slot name="summary-items" :selectedLight="selectedLight" :lightInfo="selectedLightInfo"></slot>
+        <slot
+          name="summary-items"
+          :selectedLight="selectedLight"
+          :lightInfo="selectedLightInfo"
+        ></slot>
       </div>
     </section>
-    
+
     <!-- Help Section (Optional) -->
     <section v-if="showHelp" class="config-section help-section">
       <details class="help-details">
@@ -54,7 +67,10 @@
         </summary>
         <div class="help-content">
           <slot name="help-content">
-            <p>This action will control your selected Govee light when you press the Stream Deck button.</p>
+            <p>
+              This action will control your selected Govee light when you press
+              the Stream Deck button.
+            </p>
           </slot>
         </div>
       </details>
@@ -63,14 +79,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
-import FeedbackSystem from './FeedbackSystem.vue';
-import ApiKeyConfiguration from './ApiKeyConfiguration.vue';
-import LightSelector from './LightSelector.vue';
-import { useApiConnection } from '../composables/useApiConnection';
-import { useLightDiscovery } from '../composables/useLightDiscovery';
-import { useToastMachine } from '../composables/useToastMachine';
-import { websocketService } from '../services/websocketService';
+import { ref, computed, watch, onMounted } from "vue";
+import FeedbackSystem from "./FeedbackSystem.vue";
+import ApiKeyConfiguration from "./ApiKeyConfiguration.vue";
+import LightSelector from "./LightSelector.vue";
+import { useApiConnection } from "../composables/useApiConnection";
+import { useLightDiscovery } from "../composables/useLightDiscovery";
+import { useToastMachine } from "../composables/useToastMachine";
+import { websocketService } from "../services/websocketService";
 
 // Props
 interface Props {
@@ -82,15 +98,15 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  actionSummary: 'Control Light',
+  actionSummary: "Control Light",
   showSummary: true,
-  showHelp: true
+  showHelp: true,
 });
 
 // Emits
 const emit = defineEmits<{
-  'settings-changed': [settings: any];
-  'light-selected': [lightId: string, lightModel: string, lightName: string];
+  "settings-changed": [settings: any];
+  "light-selected": [lightId: string, lightModel: string, lightName: string];
 }>();
 
 // Composables
@@ -100,14 +116,14 @@ const toast = useToastMachine();
 
 // Local State
 const hasApiKey = ref(false);
-const selectedLight = ref('');
+const selectedLight = ref("");
 const isTestingConnection = ref(false);
 
 // Computed
 const selectedLightInfo = computed(() => {
   if (!selectedLight.value) return null;
   return lightDiscovery.filteredLights.value.find(
-    light => light.value === selectedLight.value
+    (light) => light.value === selectedLight.value,
   );
 });
 
@@ -127,21 +143,25 @@ const handleTestingConnection = (testing: boolean) => {
   isTestingConnection.value = testing;
 };
 
-const handleLightSelected = (lightId: string, lightModel: string, lightName: string) => {
-  emit('light-selected', lightId, lightModel, lightName);
+const handleLightSelected = (
+  lightId: string,
+  lightModel: string,
+  lightName: string,
+) => {
+  emit("light-selected", lightId, lightModel, lightName);
 };
 
 const saveSettings = (settings: any) => {
-  emit('settings-changed', settings);
+  emit("settings-changed", settings);
   websocketService.sendToPlugin({
-    event: 'setSettings',
-    settings
+    event: "setSettings",
+    settings,
   });
 };
 
 const loadSettings = () => {
   websocketService.sendToPlugin({
-    event: 'getSettings'
+    event: "getSettings",
   });
 };
 
@@ -155,7 +175,7 @@ watch(
         lightDiscovery.fetchLights();
       }
     }
-  }
+  },
 );
 
 // Watch for API errors
@@ -165,7 +185,7 @@ watch(
     if (error) {
       toast.showApiConnectionError(error);
     }
-  }
+  },
 );
 
 // Lifecycle
@@ -173,9 +193,9 @@ onMounted(() => {
   const checkConnection = () => {
     if (websocketService.isConnected) {
       // Request global API key and current settings
-      websocketService.sendToPlugin({ event: 'getGlobalApiKey' });
+      websocketService.sendToPlugin({ event: "getGlobalApiKey" });
       loadSettings();
-      
+
       // Set up WebSocket event listeners
       websocketService.on("sendToPropertyInspector", (data: any) => {
         if (data.payload?.event === "globalApiKey") {
@@ -185,7 +205,7 @@ onMounted(() => {
             apiConnection.connect(apiKey);
           }
         }
-        
+
         if (data.payload?.event === "currentSettings") {
           const settings = data.payload.settings;
           // Let parent components handle their specific settings
@@ -194,7 +214,7 @@ onMounted(() => {
           }
           // Check if we need to connect to API
           if (hasApiKey.value && !apiConnection.isConnected.value) {
-            websocketService.sendToPlugin({ event: 'getGlobalApiKey' });
+            websocketService.sendToPlugin({ event: "getGlobalApiKey" });
           }
         }
       });
@@ -213,7 +233,7 @@ defineExpose({
   loadSettings,
   selectedLight,
   selectedLightInfo,
-  hasApiKey
+  hasApiKey,
 });
 </script>
 
@@ -221,7 +241,8 @@ defineExpose({
 .action-view {
   padding: 0;
   max-width: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
 /* Config Sections */
@@ -313,7 +334,7 @@ defineExpose({
 }
 
 .help-summary::before {
-  content: '▶';
+  content: "▶";
   color: var(--sdpi-color-accent, #0099ff);
   transition: transform 0.2s ease;
   font-size: 10px;
@@ -351,18 +372,18 @@ defineExpose({
   .action-view {
     padding: 0;
   }
-  
+
   .config-section {
     margin-bottom: 16px;
     padding: 12px;
   }
-  
+
   .summary-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
   }
-  
+
   .summary-value {
     max-width: 100%;
     text-align: left;

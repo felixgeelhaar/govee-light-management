@@ -5,9 +5,11 @@
         <div class="modal-container" @click.stop>
           <div class="modal-header">
             <h3 class="modal-title">{{ title }}</h3>
-            <button class="modal-close" @click="closeModal" type="button">✕</button>
+            <button class="modal-close" @click="closeModal" type="button">
+              ✕
+            </button>
           </div>
-          
+
           <div class="modal-body">
             <div v-if="type" class="modal-status" :class="type">
               <span class="modal-status-icon">{{ statusIcon }}</span>
@@ -23,7 +25,7 @@
               </slot>
             </div>
           </div>
-          
+
           <div class="modal-footer">
             <slot name="footer">
               <button class="btn btn-primary" @click="closeModal" type="button">
@@ -38,19 +40,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed } from "vue";
 
 interface Props {
   show: boolean;
   title?: string;
   message?: string;
-  type?: 'success' | 'error' | 'warning' | 'info';
+  type?: "success" | "error" | "warning" | "info";
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  title: 'Information',
-  message: '',
-  type: undefined
+  title: "Information",
+  message: "",
+  type: undefined,
 });
 
 const emit = defineEmits<{
@@ -59,16 +61,21 @@ const emit = defineEmits<{
 
 const statusIcon = computed(() => {
   switch (props.type) {
-    case 'success': return '✅';
-    case 'error': return '❌';
-    case 'warning': return '⚠️';
-    case 'info': return 'ℹ️';
-    default: return '';
+    case "success":
+      return "✅";
+    case "error":
+      return "❌";
+    case "warning":
+      return "⚠️";
+    case "info":
+      return "ℹ️";
+    default:
+      return "";
   }
 });
 
 const closeModal = () => {
-  emit('close');
+  emit("close");
 };
 </script>
 

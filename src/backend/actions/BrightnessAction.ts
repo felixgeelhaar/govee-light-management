@@ -481,12 +481,12 @@ export class BrightnessAction extends SingletonAction<BrightnessActionSettings> 
   ): Promise<void> {
     try {
       const globalApiKey = await globalSettingsService.getApiKey();
-      
+
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "globalApiKey",
         apiKey: globalApiKey || null,
       });
-      
+
       streamDeck.logger?.info(
         `BrightnessAction: Sent global API key (exists: ${!!globalApiKey})`,
       );
@@ -508,7 +508,7 @@ export class BrightnessAction extends SingletonAction<BrightnessActionSettings> 
   ): Promise<void> {
     try {
       const apiKey = (ev.payload as any)?.apiKey as string;
-      
+
       if (!apiKey) {
         await streamDeck.ui.current?.sendToPropertyInspector({
           event: "apiConnectionTested",
@@ -521,13 +521,15 @@ export class BrightnessAction extends SingletonAction<BrightnessActionSettings> 
       // Test the API key by trying to fetch lights
       const testRepository = new GoveeLightRepository(apiKey, true);
       const lights = await testRepository.getAllLights();
-      
-      streamDeck.logger?.info(`BrightnessAction: API test successful, found ${lights.length} lights`);
-      
+
+      streamDeck.logger?.info(
+        `BrightnessAction: API test successful, found ${lights.length} lights`,
+      );
+
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "apiConnectionTested",
         success: true,
-        message: `Connection successful! Found ${lights.length} light${lights.length !== 1 ? 's' : ''}`,
+        message: `Connection successful! Found ${lights.length} light${lights.length !== 1 ? "s" : ""}`,
       });
     } catch (error) {
       streamDeck.logger?.error("Failed to test API connection:", error);
@@ -569,9 +571,7 @@ export class BrightnessAction extends SingletonAction<BrightnessActionSettings> 
 
         // Save API key globally on successful validation
         await globalSettingsService.setApiKey(apiKey);
-        streamDeck.logger?.info(
-          "BrightnessAction: Saved API key globally",
-        );
+        streamDeck.logger?.info("BrightnessAction: Saved API key globally");
 
         await streamDeck.ui.current?.sendToPropertyInspector({
           event: "apiKeyValidated",
@@ -599,15 +599,15 @@ export class BrightnessAction extends SingletonAction<BrightnessActionSettings> 
     try {
       // Use cached API key or try to get it from settings/global
       let apiKey = this.apiKey;
-      
+
       if (!apiKey) {
         const settings = ev.payload.settings;
         apiKey = settings?.apiKey;
-        
+
         if (!apiKey) {
           apiKey = await globalSettingsService.getApiKey();
         }
-        
+
         if (!apiKey) {
           await streamDeck.ui.current?.sendToPropertyInspector({
             event: "lightsReceived",
@@ -616,19 +616,19 @@ export class BrightnessAction extends SingletonAction<BrightnessActionSettings> 
           });
           return;
         }
-        
+
         // Cache the API key and initialize services
         this.initializeServices(apiKey);
       }
-      
+
       // Initialize repository if needed
       if (!this.lightRepository) {
         this.initializeServices(apiKey);
       }
-      
+
       // Fetch lights
       const lights = await this.lightRepository!.getAllLights();
-      
+
       // Convert to property inspector format
       const lightItems = lights.map((light) => ({
         value: `${light.deviceId}|${light.model}`,
@@ -636,12 +636,12 @@ export class BrightnessAction extends SingletonAction<BrightnessActionSettings> 
         isOnline: light.isOnline,
         supportsBrightness: light.capabilities?.includes("brightness") ?? true,
       }));
-      
+
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "lightsReceived",
         lights: lightItems,
       });
-      
+
       streamDeck.logger?.info(
         `BrightnessAction: Sent ${lightItems.length} lights to property inspector`,
       );
@@ -650,11 +650,12 @@ export class BrightnessAction extends SingletonAction<BrightnessActionSettings> 
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "lightsReceived",
         lights: [],
-        error: error instanceof Error ? error.message : "Failed to fetch lights",
+        error:
+          error instanceof Error ? error.message : "Failed to fetch lights",
       });
     }
   }
-  
+
   /**
    * Handle get groups request from property inspector
    */
@@ -666,22 +667,22 @@ export class BrightnessAction extends SingletonAction<BrightnessActionSettings> 
       if (!this.groupRepository) {
         this.groupRepository = new StreamDeckLightGroupRepository(streamDeck);
       }
-      
+
       // Fetch groups
       const groups = await this.groupRepository.getAllGroups();
-      
+
       // Convert to property inspector format
       const groupItems = groups.map((group) => ({
         value: group.id,
         label: group.name,
         lightCount: group.lights.length,
       }));
-      
+
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "groupsReceived",
         groups: groupItems,
       });
-      
+
       streamDeck.logger?.info(
         `BrightnessAction: Sent ${groupItems.length} groups to property inspector`,
       );
@@ -690,7 +691,8 @@ export class BrightnessAction extends SingletonAction<BrightnessActionSettings> 
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "groupsReceived",
         groups: [],
-        error: error instanceof Error ? error.message : "Failed to fetch groups",
+        error:
+          error instanceof Error ? error.message : "Failed to fetch groups",
       });
     }
   }

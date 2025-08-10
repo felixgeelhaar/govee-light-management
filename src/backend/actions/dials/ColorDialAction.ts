@@ -45,7 +45,7 @@ export class ColorDialAction extends SingletonAction<ColorDialSettings> {
   // Allow dependency injection for testing
   constructor(
     lightRepository?: GoveeLightRepository,
-    lightControlService?: LightControlService
+    lightControlService?: LightControlService,
   ) {
     super();
     this.lightRepository = lightRepository;
@@ -64,7 +64,7 @@ export class ColorDialAction extends SingletonAction<ColorDialSettings> {
     if (settings.apiKey && !this.lightRepository) {
       this.initializeServices(settings.apiKey);
     }
-    
+
     // Load selected light if we have repository (whether from injection or initialization)
     if (this.lightRepository && settings.selectedDeviceId) {
       await this.loadSelectedLight(settings);

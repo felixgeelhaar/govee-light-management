@@ -9,11 +9,7 @@
     <template #action-config="{ selectedLight }">
       <div class="form-group">
         <label for="operation">When Pressed</label>
-        <select
-          id="operation"
-          v-model="operation"
-          class="form-select"
-        >
+        <select id="operation" v-model="operation" class="form-select">
           <option value="toggle">Toggle On/Off</option>
           <option value="on">Always Turn On</option>
           <option value="off">Always Turn Off</option>
@@ -23,22 +19,36 @@
         </small>
       </div>
     </template>
-    
+
     <template #summary-items>
       <div class="summary-item">
         <span class="summary-label">Operation:</span>
         <span class="summary-value">{{ operationLabel }}</span>
       </div>
     </template>
-    
+
     <template #help-content>
-      <p>This action controls your Govee light when you press the Stream Deck button.</p>
+      <p>
+        This action controls your Govee light when you press the Stream Deck
+        button.
+      </p>
       <ul>
-        <li><strong>Toggle:</strong> Switches the light on/off based on current state</li>
-        <li><strong>Always Turn On:</strong> Ensures the light is always turned on</li>
-        <li><strong>Always Turn Off:</strong> Ensures the light is always turned off</li>
+        <li>
+          <strong>Toggle:</strong> Switches the light on/off based on current
+          state
+        </li>
+        <li>
+          <strong>Always Turn On:</strong> Ensures the light is always turned on
+        </li>
+        <li>
+          <strong>Always Turn Off:</strong> Ensures the light is always turned
+          off
+        </li>
       </ul>
-      <p><em>Note:</em> The light will show a brief flash when tested to confirm connectivity.</p>
+      <p>
+        <em>Note:</em> The light will show a brief flash when tested to confirm
+        connectivity.
+      </p>
     </template>
   </BaseActionView>
 </template>
@@ -56,20 +66,30 @@ const selectedLightName = ref("");
 // Computed properties
 const actionSummary = computed(() => {
   const operationText = operationLabel.value;
-  return selectedLightName.value ? `${operationText} ${selectedLightName.value}` : operationText;
+  return selectedLightName.value
+    ? `${operationText} ${selectedLightName.value}`
+    : operationText;
 });
 
 const operationLabel = computed(() => {
   switch (operation.value) {
-    case 'toggle': return 'Toggle On/Off';
-    case 'on': return 'Always Turn On';
-    case 'off': return 'Always Turn Off';
-    default: return 'Toggle On/Off';
+    case "toggle":
+      return "Toggle On/Off";
+    case "on":
+      return "Always Turn On";
+    case "off":
+      return "Always Turn Off";
+    default:
+      return "Toggle On/Off";
   }
 });
 
 // Event handlers
-const handleLightSelected = (lightId: string, lightModel: string, lightName: string) => {
+const handleLightSelected = (
+  lightId: string,
+  lightModel: string,
+  lightName: string,
+) => {
   selectedLightId.value = lightId;
   selectedLightModel.value = lightModel;
   selectedLightName.value = lightName;
@@ -83,7 +103,7 @@ const handleSettingsChanged = (settings: any) => {
 const saveSettings = () => {
   const settings: any = {
     operation: operation.value,
-    targetType: "light"
+    targetType: "light",
   };
 
   if (selectedLightId.value && selectedLightModel.value) {
@@ -125,7 +145,9 @@ watch([operation], () => {
   border-radius: 6px;
   color: var(--sdpi-color-text, #cccccc);
   font-size: 13px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .form-select:focus {

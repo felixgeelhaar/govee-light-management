@@ -56,7 +56,7 @@ const successMessage = ref("");
 // Sync with toast machine state
 const syncMachineState = () => {
   const machineToasts = toastMachine.activeToasts.value;
-  
+
   toasts.value = machineToasts.map((t: any) => ({
     id: t.id,
     type: t.type || "info",
@@ -67,14 +67,14 @@ const syncMachineState = () => {
     actions: t.actions,
     progress: t.progress,
   }));
-  
+
   // Set up auto-dismiss timers for non-persistent toasts
-  toasts.value.forEach(toast => {
+  toasts.value.forEach((toast) => {
     const dismissDuration = toast.duration || 5000;
-    
+
     if (!toast.persistent && !toastTimeouts.has(toast.id)) {
       setupProgressIndicator(toast.id, dismissDuration);
-      
+
       const timeout = setTimeout(() => {
         if (!pausedToasts.has(toast.id)) {
           dismissToast(toast.id);
@@ -83,10 +83,10 @@ const syncMachineState = () => {
       toastTimeouts.set(toast.id, timeout);
     }
   });
-  
+
   // Clean up timers for dismissed toasts
-  Array.from(toastTimeouts.keys()).forEach(id => {
-    if (!toasts.value.find(t => t.id === id)) {
+  Array.from(toastTimeouts.keys()).forEach((id) => {
+    if (!toasts.value.find((t) => t.id === id)) {
       const timeout = toastTimeouts.get(id);
       if (timeout) {
         clearTimeout(timeout);
@@ -100,10 +100,10 @@ const syncMachineState = () => {
 const showToast = (toast: Omit<Toast, "id">): string => {
   const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const newToast = { ...toast, id };
-  
+
   toastMachine.showToast(toast);
   syncMachineState();
-  
+
   return id;
 };
 
@@ -113,23 +113,23 @@ const dismissToast = (id: string): void => {
     clearInterval(interval);
     progressIntervals.delete(id);
   }
-  
+
   const timeout = toastTimeouts.get(id);
   if (timeout) {
     clearTimeout(timeout);
     toastTimeouts.delete(id);
   }
-  
+
   pausedToasts.delete(id);
   toastMachine.dismissToast(id);
   syncMachineState();
 };
 
-const updateToast = (id: string, updates: Partial<Omit<Toast, 'id'>>): void => {
-  const toast = toasts.value.find(t => t.id === id);
+const updateToast = (id: string, updates: Partial<Omit<Toast, "id">>): void => {
+  const toast = toasts.value.find((t) => t.id === id);
   if (toast) {
     Object.assign(toast, updates);
-    
+
     // Reset timer if duration changed
     if (updates.duration !== undefined && !toast.persistent) {
       const timeout = toastTimeouts.get(id);
@@ -137,7 +137,7 @@ const updateToast = (id: string, updates: Partial<Omit<Toast, 'id'>>): void => {
         clearTimeout(timeout);
         toastTimeouts.delete(id);
       }
-      
+
       const newTimeout = setTimeout(() => {
         if (!pausedToasts.has(id)) {
           dismissToast(id);
@@ -150,13 +150,13 @@ const updateToast = (id: string, updates: Partial<Omit<Toast, 'id'>>): void => {
 
 const pauseToast = (id: string): void => {
   pausedToasts.add(id);
-  
+
   const timeout = toastTimeouts.get(id);
   if (timeout) {
     clearTimeout(timeout);
     toastTimeouts.delete(id);
   }
-  
+
   const interval = progressIntervals.get(id);
   if (interval) {
     clearInterval(interval);
@@ -166,13 +166,14 @@ const pauseToast = (id: string): void => {
 
 const resumeToast = (id: string): void => {
   pausedToasts.delete(id);
-  
-  const toast = toasts.value.find(t => t.id === id);
+
+  const toast = toasts.value.find((t) => t.id === id);
   if (toast && !toast.persistent) {
-    const remainingTime = ((100 - (toast.progress || 0)) / 100) * (toast.duration || 5000);
-    
+    const remainingTime =
+      ((100 - (toast.progress || 0)) / 100) * (toast.duration || 5000);
+
     setupProgressIndicator(id, remainingTime, toast.progress || 0);
-    
+
     const timeout = setTimeout(() => {
       if (!pausedToasts.has(id)) {
         dismissToast(id);
@@ -182,7 +183,10 @@ const resumeToast = (id: string): void => {
   }
 };
 
-const handleToastAction = async (action: ToastAction, id: string): Promise<void> => {
+const handleToastAction = async (
+  action: ToastAction,
+  id: string,
+): Promise<void> => {
   try {
     await action.action();
     dismissToast(id);
@@ -198,26 +202,30 @@ const handleToastClick = (toast: Toast): void => {
 };
 
 // Progress indicator setup
-const setupProgressIndicator = (id: string, duration: number, startProgress = 0): void => {
+const setupProgressIndicator = (
+  id: string,
+  duration: number,
+  startProgress = 0,
+): void => {
   const interval = progressIntervals.get(id);
   if (interval) {
     clearInterval(interval);
   }
-  
+
   const updateInterval = 100; // Update every 100ms
   const progressIncrement = (100 / duration) * updateInterval;
   let currentProgress = startProgress;
-  
+
   const newInterval = setInterval(() => {
     currentProgress += progressIncrement;
-    
+
     if (currentProgress >= 100) {
       clearInterval(newInterval);
       progressIntervals.delete(id);
       return;
     }
-    
-    const toast = toasts.value.find(t => t.id === id);
+
+    const toast = toasts.value.find((t) => t.id === id);
     if (toast) {
       toast.progress = currentProgress;
     } else {
@@ -225,7 +233,7 @@ const setupProgressIndicator = (id: string, duration: number, startProgress = 0)
       progressIntervals.delete(id);
     }
   }, updateInterval);
-  
+
   progressIntervals.set(id, newInterval);
 };
 
@@ -252,7 +260,7 @@ const updateGlobalLoadingProgress = (progress: number, text?: string) => {
 const displaySuccessAnimation = (message: string, duration = 2000) => {
   successMessage.value = message;
   showSuccessAnimation.value = true;
-  
+
   setTimeout(() => {
     showSuccessAnimation.value = false;
   }, duration);
@@ -270,16 +278,16 @@ const showSuccessToast = (title: string, message?: string): string => {
 const showError = (
   error: unknown,
   title = "Error",
-  persistent = false
+  persistent = false,
 ): string => {
   let message = "An unexpected error occurred";
-  
+
   if (error instanceof Error) {
     message = error.message;
   } else if (typeof error === "string") {
     message = error;
   }
-  
+
   return showToast({
     type: "error",
     title,
@@ -311,7 +319,7 @@ const showConfirmation = (
   title: string,
   message: string,
   onConfirm: () => void | Promise<void>,
-  onCancel?: () => void
+  onCancel?: () => void,
 ): string => {
   return showToast({
     type: "warning",
@@ -338,7 +346,7 @@ let unsubscribe: (() => void) | undefined;
 
 onMounted(() => {
   syncMachineState();
-  
+
   // The composable handles subscriptions internally, just sync initial state
   syncMachineState();
 });
@@ -347,10 +355,10 @@ onUnmounted(() => {
   if (unsubscribe) {
     unsubscribe();
   }
-  
+
   // Clean up all timeouts and intervals
-  toastTimeouts.forEach(timeout => clearTimeout(timeout));
-  progressIntervals.forEach(interval => clearInterval(interval));
+  toastTimeouts.forEach((timeout) => clearTimeout(timeout));
+  progressIntervals.forEach((interval) => clearInterval(interval));
   toastTimeouts.clear();
   progressIntervals.clear();
 });

@@ -25,14 +25,10 @@
           Set the brightness level when this action is triggered
         </small>
       </div>
-      
+
       <div class="form-group">
         <label for="operation">Action Type</label>
-        <select
-          id="operation"
-          v-model="operation"
-          class="form-select"
-        >
+        <select id="operation" v-model="operation" class="form-select">
           <option value="set">Set Specific Brightness</option>
           <option value="increase">Increase Brightness</option>
           <option value="decrease">Decrease Brightness</option>
@@ -41,9 +37,14 @@
           Choose how this action affects the light brightness
         </small>
       </div>
-      
+
       <div v-if="operation !== 'set'" class="form-group">
-        <label for="increment">{{ operation === 'increase' ? 'Increase' : 'Decrease' }} Amount</label>
+        <label for="increment"
+          >{{
+            operation === "increase" ? "Increase" : "Decrease"
+          }}
+          Amount</label
+        >
         <div class="slider-container">
           <input
             id="increment"
@@ -57,32 +58,49 @@
           <div class="slider-value">{{ increment }}%</div>
         </div>
         <small class="help-text">
-          How much to {{ operation === 'increase' ? 'increase' : 'decrease' }} brightness by
+          How much to
+          {{ operation === "increase" ? "increase" : "decrease" }} brightness by
         </small>
       </div>
     </template>
-    
+
     <template #summary-items>
       <div class="summary-item">
         <span class="summary-label">Operation:</span>
         <span class="summary-value">{{ operationLabel }}</span>
       </div>
       <div class="summary-item">
-        <span class="summary-label">{{ operation === 'set' ? 'Brightness:' : 'Amount:' }}</span>
-        <span class="summary-value">{{ operation === 'set' ? `${brightness}%` : `${increment}%` }}</span>
+        <span class="summary-label">{{
+          operation === "set" ? "Brightness:" : "Amount:"
+        }}</span>
+        <span class="summary-value">{{
+          operation === "set" ? `${brightness}%` : `${increment}%`
+        }}</span>
       </div>
     </template>
-    
+
     <template #help-content>
       <p>This action controls the brightness of your Govee light.</p>
       <ul>
-        <li><strong>Set Specific:</strong> Sets the light to an exact brightness level</li>
-        <li><strong>Increase:</strong> Makes the light brighter by the specified amount</li>
-        <li><strong>Decrease:</strong> Makes the light dimmer by the specified amount</li>
+        <li>
+          <strong>Set Specific:</strong> Sets the light to an exact brightness
+          level
+        </li>
+        <li>
+          <strong>Increase:</strong> Makes the light brighter by the specified
+          amount
+        </li>
+        <li>
+          <strong>Decrease:</strong> Makes the light dimmer by the specified
+          amount
+        </li>
       </ul>
       <p><em>Tips:</em></p>
       <ul>
-        <li>Brightness values range from 1% (very dim) to 100% (maximum brightness)</li>
+        <li>
+          Brightness values range from 1% (very dim) to 100% (maximum
+          brightness)
+        </li>
         <li>If the light is off, setting brightness will turn it on</li>
         <li>Increase/decrease actions won't exceed the 1-100% range</li>
       </ul>
@@ -116,20 +134,30 @@ const actionSummary = computed(() => {
       action = `Decrease brightness by ${increment.value}%`;
       break;
   }
-  return selectedLightName.value ? `${action} on ${selectedLightName.value}` : action;
+  return selectedLightName.value
+    ? `${action} on ${selectedLightName.value}`
+    : action;
 });
 
 const operationLabel = computed(() => {
   switch (operation.value) {
-    case "set": return "Set Specific Brightness";
-    case "increase": return "Increase Brightness";
-    case "decrease": return "Decrease Brightness";
-    default: return "Set Specific Brightness";
+    case "set":
+      return "Set Specific Brightness";
+    case "increase":
+      return "Increase Brightness";
+    case "decrease":
+      return "Decrease Brightness";
+    default:
+      return "Set Specific Brightness";
   }
 });
 
 // Event handlers
-const handleLightSelected = (lightId: string, lightModel: string, lightName: string) => {
+const handleLightSelected = (
+  lightId: string,
+  lightModel: string,
+  lightName: string,
+) => {
   selectedLightId.value = lightId;
   selectedLightModel.value = lightModel;
   selectedLightName.value = lightName;
@@ -144,7 +172,7 @@ const saveSettings = () => {
   const settings: any = {
     operation: operation.value,
     brightness: brightness.value,
-    increment: increment.value
+    increment: increment.value,
   };
 
   if (selectedLightId.value && selectedLightModel.value) {
@@ -186,7 +214,9 @@ watch([operation, brightness, increment], () => {
   border-radius: 6px;
   color: var(--sdpi-color-text, #cccccc);
   font-size: 13px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .form-select:focus {
@@ -280,7 +310,7 @@ watch([operation, brightness, increment], () => {
   .slider-container {
     gap: 8px;
   }
-  
+
   .slider-value {
     min-width: 40px;
     font-size: 13px;

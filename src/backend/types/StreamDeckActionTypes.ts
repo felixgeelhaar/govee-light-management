@@ -4,7 +4,8 @@
 
 import type { Action, JsonObject } from "@elgato/streamdeck";
 
-export interface ExtendedAction<TSettings extends JsonObject = JsonObject> extends Action<TSettings> {
+export interface ExtendedAction<TSettings extends JsonObject = JsonObject>
+  extends Action<TSettings> {
   sendToPropertyInspector(data: any): Promise<void>;
   showOk(): Promise<void>;
   showAlert(): Promise<void>;

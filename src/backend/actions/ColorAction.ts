@@ -643,12 +643,12 @@ export class ColorAction extends SingletonAction<ColorActionSettings> {
   ): Promise<void> {
     try {
       const globalApiKey = await globalSettingsService.getApiKey();
-      
+
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "globalApiKey",
         apiKey: globalApiKey || null,
       });
-      
+
       streamDeck.logger?.info(
         `ColorAction: Sent global API key (exists: ${!!globalApiKey})`,
       );
@@ -670,7 +670,7 @@ export class ColorAction extends SingletonAction<ColorActionSettings> {
   ): Promise<void> {
     try {
       const apiKey = (ev.payload as any)?.apiKey as string;
-      
+
       if (!apiKey) {
         await streamDeck.ui.current?.sendToPropertyInspector({
           event: "apiConnectionTested",
@@ -683,13 +683,15 @@ export class ColorAction extends SingletonAction<ColorActionSettings> {
       // Test the API key by trying to fetch lights
       const testRepository = new GoveeLightRepository(apiKey, true);
       const lights = await testRepository.getAllLights();
-      
-      streamDeck.logger?.info(`ColorAction: API test successful, found ${lights.length} lights`);
-      
+
+      streamDeck.logger?.info(
+        `ColorAction: API test successful, found ${lights.length} lights`,
+      );
+
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "apiConnectionTested",
         success: true,
-        message: `Connection successful! Found ${lights.length} light${lights.length !== 1 ? 's' : ''}`,
+        message: `Connection successful! Found ${lights.length} light${lights.length !== 1 ? "s" : ""}`,
       });
     } catch (error) {
       streamDeck.logger?.error("Failed to test API connection:", error);
@@ -731,9 +733,7 @@ export class ColorAction extends SingletonAction<ColorActionSettings> {
 
         // Save API key globally on successful validation
         await globalSettingsService.setApiKey(apiKey);
-        streamDeck.logger?.info(
-          "ColorAction: Saved API key globally",
-        );
+        streamDeck.logger?.info("ColorAction: Saved API key globally");
 
         await streamDeck.ui.current?.sendToPropertyInspector({
           event: "apiKeyValidated",
@@ -761,7 +761,7 @@ export class ColorAction extends SingletonAction<ColorActionSettings> {
     try {
       // Always use global API key per Elgato best practices
       const apiKey = await globalSettingsService.getApiKey();
-      
+
       if (!apiKey) {
         await streamDeck.ui.current?.sendToPropertyInspector({
           event: "lightsReceived",
@@ -770,15 +770,15 @@ export class ColorAction extends SingletonAction<ColorActionSettings> {
         });
         return;
       }
-      
+
       // Initialize repository if needed
       if (!this.lightRepository) {
         this.initializeServices(apiKey);
       }
-      
+
       // Fetch lights
       const lights = await this.lightRepository!.getAllLights();
-      
+
       // Convert to property inspector format
       const lightItems = lights.map((light) => ({
         value: `${light.deviceId}|${light.model}`,
@@ -786,12 +786,12 @@ export class ColorAction extends SingletonAction<ColorActionSettings> {
         isOnline: light.isOnline,
         supportsColor: light.capabilities?.includes("color") ?? true,
       }));
-      
+
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "lightsReceived",
         lights: lightItems,
       });
-      
+
       streamDeck.logger?.info(
         `ColorAction: Sent ${lightItems.length} lights to property inspector`,
       );
@@ -800,11 +800,12 @@ export class ColorAction extends SingletonAction<ColorActionSettings> {
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "lightsReceived",
         lights: [],
-        error: error instanceof Error ? error.message : "Failed to fetch lights",
+        error:
+          error instanceof Error ? error.message : "Failed to fetch lights",
       });
     }
   }
-  
+
   /**
    * Handle get groups request from property inspector
    */
@@ -816,22 +817,22 @@ export class ColorAction extends SingletonAction<ColorActionSettings> {
       if (!this.groupRepository) {
         this.groupRepository = new StreamDeckLightGroupRepository(streamDeck);
       }
-      
+
       // Fetch groups
       const groups = await this.groupRepository.getAllGroups();
-      
+
       // Convert to property inspector format
       const groupItems = groups.map((group) => ({
         value: group.id,
         label: group.name,
         lightCount: group.lights.length,
       }));
-      
+
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "groupsReceived",
         groups: groupItems,
       });
-      
+
       streamDeck.logger?.info(
         `ColorAction: Sent ${groupItems.length} groups to property inspector`,
       );
@@ -840,7 +841,8 @@ export class ColorAction extends SingletonAction<ColorActionSettings> {
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "groupsReceived",
         groups: [],
-        error: error instanceof Error ? error.message : "Failed to fetch groups",
+        error:
+          error instanceof Error ? error.message : "Failed to fetch groups",
       });
     }
   }
