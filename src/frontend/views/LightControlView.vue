@@ -300,13 +300,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  ref,
-  computed,
-  watch,
-  onMounted,
-  defineAsyncComponent,
-} from "vue";
+import { ref, computed, watch, onMounted, defineAsyncComponent } from "vue";
 import type { ControlMode } from "@shared/types";
 import { useApiConnection } from "../composables/useApiConnection";
 import { useLightDiscovery } from "../composables/useLightDiscovery";
