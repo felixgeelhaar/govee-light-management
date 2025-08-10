@@ -96,7 +96,7 @@ const handleLightSelected = (
   saveSettings();
 };
 
-const handleSettingsChanged = (settings: any) => {
+const handleSettingsChanged = (_settings: any) => {
   // Settings are automatically saved by BaseActionView
 };
 

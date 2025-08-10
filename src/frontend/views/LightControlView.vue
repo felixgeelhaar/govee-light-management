@@ -305,7 +305,6 @@ import {
   computed,
   watch,
   onMounted,
-  nextTick,
   defineAsyncComponent,
 } from "vue";
 import type { ControlMode } from "@shared/types";
@@ -330,7 +329,7 @@ const settingsManager = useLightControlSettings();
 const searchQuery = ref<string>("");
 const isTestingLight = ref<boolean>(false);
 const showApiKey = ref<boolean>(false);
-const screenReaderStatus = ref<HTMLElement>();
+const screenReaderStatus = ref<Element | undefined>();
 
 // Status field for Stream Deck
 const statusMessage = ref<string>("");
@@ -367,10 +366,6 @@ const showStatus = (
       }
     }, duration);
   }
-};
-
-const clearStatus = () => {
-  statusMessage.value = "";
 };
 
 // Computed values bound to settings

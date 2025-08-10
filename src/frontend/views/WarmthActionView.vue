@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, watch, onMounted } from "vue";
 import type { WarmthActionSettings } from "@shared/types/newActions";
 import { websocketService } from "../services/websocketService";
 import BaseActionView from "../components/BaseActionView.vue";
@@ -85,9 +85,9 @@ const baseActionRef = ref<InstanceType<typeof BaseActionView>>();
 
 // Event handlers for BaseActionView
 const handleLightSelected = (
-  lightId: string,
-  lightModel: string,
-  lightName: string,
+  _lightId: string,
+  _lightModel: string,
+  _lightName: string,
 ) => {
   // BaseActionView handles this, we just need to save settings
   saveSettings();
