@@ -63,7 +63,7 @@
         "@elgato/streamdeck": "^1.0.0",
         "@felixgeelhaar/govee-api-client": "2.0.1",
         "@xstate/vue": "3.1.4",
-        "vue": "3.5.18",
+        "vue": "3.5.20",
         "xstate": "5.20.1",
         "zod": "4.0.14"
     },
