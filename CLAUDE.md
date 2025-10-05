@@ -45,24 +45,31 @@ This is an enterprise-grade Stream Deck plugin for managing Govee smart lights. 
 ```
 src/
 ├── backend/
+│   ├── connectivity/          # Transport layer for device communication
+│   │   ├── ITransport.ts     # Transport interface
+│   │   ├── TransportOrchestrator.ts  # Multi-transport coordinator
+│   │   ├── TransportHealthService.ts # Health monitoring
+│   │   ├── cloud/            # Cloud transport implementation
+│   │   └── types.ts          # Transport types
 │   ├── domain/
-│   │   ├── entities/          # Business entities (Light, LightGroup)
-│   │   ├── repositories/      # Repository interfaces
-│   │   ├── services/          # Domain services
-│   │   └── value-objects/     # LightState and other value objects
+│   │   ├── entities/         # Business entities (Light, LightGroup)
+│   │   ├── repositories/     # Repository interfaces
+│   │   ├── services/         # Domain services (LightControlService, DeviceService)
+│   │   └── value-objects/    # LightState and other value objects
 │   ├── infrastructure/
-│   │   └── repositories/      # Repository implementations
-│   ├── actions/               # Stream Deck action implementations
-│   └── plugin.ts             # Entry point
+│   │   └── repositories/     # Repository implementations
+│   ├── services/             # Backend services (TelemetryService, GlobalSettingsService)
+│   ├── actions/              # Stream Deck action implementations
+│   └── plugin.ts            # Entry point
 ├── frontend/
-│   ├── components/            # Vue components (FeedbackSystem, LoadingSpinner, etc.)
-│   ├── composables/           # Vue composables for state management
-│   ├── machines/              # XState machines for complex workflows
-│   ├── services/              # Frontend services (WebSocket, monitoring, etc.)
-│   ├── views/                 # Property inspector views
-│   └── utils/                 # Error handling and utilities
+│   ├── components/           # Vue components (FeedbackSystem, DiagnosticsPanel, etc.)
+│   ├── composables/          # Vue composables for state management
+│   ├── machines/             # XState machines for complex workflows
+│   ├── services/             # Frontend services (WebSocket, monitoring, etc.)
+│   ├── views/                # Property inspector views
+│   └── utils/                # Error handling and utilities
 └── shared/
-    └── types/                 # Shared TypeScript types
+    └── types/                # Shared TypeScript types
 ```
 
 ### Core Components
@@ -87,6 +94,59 @@ src/
 - **Error Handling**: Comprehensive error hierarchy with specific error types
 - **Performance**: Built-in metrics and monitoring for production environments
 - **Type Safety**: Full TypeScript support with domain-driven value objects
+
+### Transport Layer Architecture
+The plugin implements a pluggable transport abstraction layer that enables multiple connectivity methods with intelligent routing:
+
+**Core Components:**
+- **ITransport Interface** (`connectivity/ITransport.ts`) - Abstract transport protocol defining:
+  - Device discovery with staleness indicators
+  - Device state retrieval
+  - Command execution
+  - Health checking and capability queries
+
+- **TransportOrchestrator** (`connectivity/TransportOrchestrator.ts`) - Coordinates multiple transports:
+  - Health-based transport selection using latency scoring
+  - Automatic failover between transports
+  - Aggregated device discovery from all transports
+  - Event-driven health status updates
+
+- **CloudTransport** (`connectivity/cloud/CloudTransport.ts`) - Production Govee Cloud API implementation:
+  - Integrates with `@felixgeelhaar/govee-api-client`
+  - Health monitoring with latency tracking
+  - Device capability normalization
+  - Secure API key management via GlobalSettingsService
+
+- **TransportHealthService** (`connectivity/TransportHealthService.ts`) - Periodic health monitoring:
+  - Configurable health check intervals (default: 5 minutes)
+  - Automatic start/stop lifecycle management
+  - Health snapshot retrieval for diagnostics
+
+**Device Management:**
+- **DeviceService** (`domain/services/DeviceService.ts`) - High-level device operations:
+  - Intelligent caching with configurable TTL (default: 15s)
+  - Stale data detection and handling
+  - Device capability normalization (power, brightness, color, temperature, scenes)
+  - Integrated telemetry tracking for all operations
+
+**Observability:**
+- **TelemetryService** (`services/TelemetryService.ts`) - In-memory metrics collection:
+  - Discovery performance tracking (duration, count, stale responses)
+  - Command execution metrics (success/failure rates, per-command breakdown)
+  - Transport health monitoring (checks, latency, last failures)
+  - Snapshot capability for real-time diagnostics
+
+- **DiagnosticsPanel** (`frontend/components/DiagnosticsPanel.vue`) - Real-time telemetry visualization:
+  - Discovery average latency and stale response counts
+  - Command success rates with total execution counts
+  - Transport health checks and error details
+  - User-initiated refresh and reset capabilities
+
+**Future Enhancements:**
+- LAN transport for local network connectivity (lower latency)
+- WebSocket transport for real-time device state updates
+- Advanced failover strategies with priority-based routing
+- Transport-specific configuration and optimization
 
 ### Build System
 - **Vite**: Modern build system for both backend and frontend
@@ -115,7 +175,8 @@ src/
 - **Vue 3 Property Inspectors**: Modern component-based UI with Composition API
 - **State Management**: XState machines for complex workflows (`machines/` directory)
 - **Real-time Updates**: WebSocket integration and live data synchronization
-- **Component Library**: Modular components (FeedbackSystem, LoadingSpinner, HealthDashboard)
+- **Component Library**: Modular components (FeedbackSystem, LoadingSpinner, HealthDashboard, DiagnosticsPanel)
+- **Diagnostics Dashboard**: Real-time telemetry visualization with discovery metrics, command success rates, and transport health
 - **Error Handling**: Comprehensive user feedback and error recovery systems
 - **Responsive Design**: Stream Deck optimized with SDPI component integration
 
@@ -195,6 +256,10 @@ Uses Stream Deck logger with INFO level for production, comprehensive error hand
 ### Known Technical Debt
 - **TODO Items**: ✅ Resolved - Fixed all `setTitle` method calls in action implementations
 - **Build Migration**: ✅ Completed - Successfully migrated from Rollup to Vite
+- **TypeScript Errors**: ✅ Resolved - Fixed Light/LightItem type compatibility in GroupControlAction
+- **Security Vulnerabilities**:
+  - ✅ Vite updated to 7.1.9 (fixes 2 low-severity CVEs)
+  - ⚠️ Remaining: axios DoS vulnerability and fast-redact prototype pollution in `@felixgeelhaar/govee-api-client` (requires breaking change to fix)
 
 ### Security & Performance
 - **API Security**: Secure API key handling with validation
@@ -212,9 +277,12 @@ Uses Stream Deck logger with INFO level for production, comprehensive error hand
 
 ### Backend Excellence
 - **Domain-Driven Design**: Clean separation of concerns with entities (`Light.ts:8-89`), repositories, and services
+- **Transport Layer Architecture**: Pluggable transport abstraction with health-based routing and automatic failover
 - **Enterprise API Integration**: Robust Govee API client with rate limiting and circuit breaker patterns
+- **Device Management**: Intelligent caching (15s TTL), capability normalization, and telemetry tracking
 - **Type Safety**: Comprehensive TypeScript implementation with domain value objects
 - **Error Handling**: Robust error handling throughout action implementations
+- **Observability**: In-memory telemetry service with real-time diagnostics panel
 
 ### Frontend Innovation
 - **Modern Vue 3**: Composition API with TypeScript for maintainable UI components
