@@ -28,6 +28,14 @@
 - **Delete** groups with confirmation prompts
 - **Visual indicators** for group states (●/○/◐)
 
+### 🎛️ **Stream Deck+ Encoder Support**
+- **Brightness Dial** - Adjust light brightness (1-100%) with tactile dial control
+- **Color Temperature Dial** - Control warm/cool white (2000K-9000K) with gradient feedback
+- **Color Hue Dial** - Full-spectrum color control (0-360°) with rainbow gradient
+- **Visual Feedback** - Real-time bar indicators with custom gradients
+- **Configurable Steps** - Customize sensitivity for each dial action
+- **Power Toggle** - Press any dial to toggle light power on/off
+
 ### 🎨 **Professional UI**
 - Custom Stream Deck dark theme with SDPI framework
 - Responsive form controls and accessibility compliance
@@ -136,6 +144,57 @@
    - Configure control mode (same options as individual lights)
    - Press button to control all lights in group simultaneously
    - Visual feedback shows combined group state
+
+### Stream Deck+ Encoder Controls
+
+**Note:** Requires Stream Deck+ device with dial/encoder support.
+
+#### Brightness Dial
+
+1. **Setup**
+   - Add "Brightness Dial" action to an encoder slot
+   - Enter API key and discover lights
+   - Select a light with brightness capability
+   - Configure step size (1-25% per tick, default: 5%)
+
+2. **Usage**
+   - **Rotate clockwise**: Increase brightness
+   - **Rotate counter-clockwise**: Decrease brightness
+   - **Press dial**: Toggle light power on/off
+   - **Display**: Shows light name and current brightness percentage
+   - **Feedback bar**: Visual brightness indicator (dimmed when off)
+
+#### Color Temperature Dial
+
+1. **Setup**
+   - Add "Color Temperature Dial" action to an encoder slot
+   - Enter API key and discover lights
+   - Select a light with color temperature capability
+   - Configure step size (50-500K per tick, default: 100K)
+
+2. **Usage**
+   - **Rotate clockwise**: Cooler white (towards 9000K)
+   - **Rotate counter-clockwise**: Warmer white (towards 2000K)
+   - **Press dial**: Toggle light power on/off
+   - **Display**: Shows light name and current temperature in Kelvin
+   - **Feedback bar**: Gradient indicator (warm to cool)
+
+#### Color Hue Dial
+
+1. **Setup**
+   - Add "Color Hue Dial" action to an encoder slot
+   - Enter API key and discover lights
+   - Select a light with color control capability
+   - Configure step size (1-90° per tick, default: 15°)
+   - Configure saturation (0-100%, default: 100%)
+
+2. **Usage**
+   - **Rotate clockwise**: Cycle through color spectrum
+   - **Rotate counter-clockwise**: Cycle backward through spectrum
+   - **Press dial**: Toggle light power on/off
+   - **Display**: Shows light name and current hue in degrees
+   - **Feedback bar**: Rainbow gradient indicator
+   - **Color wheel**: 0° Red → 120° Green → 240° Blue → 360° Red
 
 ### Advanced Features
 
@@ -331,17 +390,26 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## Roadmap
 
+### v1.0.0 (Current)
+- [x] Individual light control with multiple modes
+- [x] Advanced group management
+- [x] Stream Deck+ encoder support (Brightness, Color Temp, Color Hue)
+- [x] Real-time state synchronization
+- [x] Enterprise-grade architecture (DDD)
+
 ### v1.1.0 (Next Release)
 - [ ] Scene management and automation
 - [ ] Scheduled actions and timers
 - [ ] Integration with Stream Deck Multi Actions
 - [ ] Enhanced color picker with presets
+- [ ] Additional encoder actions (Saturation, Effect Speed)
 
 ### v1.2.0 (Future)
 - [ ] Support for Govee DIY lights
 - [ ] Music sync integration
 - [ ] Custom effect creation
 - [ ] Cloud sync for group configurations
+- [ ] Multi-encoder synchronization
 
 ### v2.0.0 (Long-term)
 - [ ] Multi-platform support (Windows/macOS/Linux)

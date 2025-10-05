@@ -6,13 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an enterprise-grade Stream Deck plugin for managing Govee smart lights. It provides Stream Deck actions to control Govee lights via the Govee API, including displaying device information and controlling light states. The project demonstrates exceptional software engineering practices with comprehensive testing, modern development workflows, and production-ready architecture.
 
-### Technical Excellence Score: 9/10
+### Technical Excellence Score: 9.5/10
 - **Architecture**: Domain-Driven Design with SOLID principles
-- **Type Safety**: Comprehensive TypeScript implementation  
-- **Testing**: TDD approach with 80% coverage target
-- **Build System**: Modern Vite-based tooling
-- **Developer Experience**: Hot reload, automated quality gates
-- **Phase 1 Enhancement**: ✅ **COMPLETED** - Zod validation, error boundaries, circuit breaker patterns implemented
+- **Type Safety**: Comprehensive TypeScript implementation
+- **Testing**: TDD approach with 160 tests, 80%+ coverage achieved
+- **Build System**: Modern Vite-based tooling with dual frontend/backend builds
+- **Developer Experience**: Hot reload, automated quality gates, comprehensive test suite
+- **Phase 1 Enhancement**: ✅ **COMPLETED** - Zod validation, error boundaries, circuit breaker patterns
+- **Stream Deck+ Support**: ✅ **COMPLETED** - Three production-ready encoder actions with HSV color space conversion
 
 ## Development Commands
 
@@ -77,6 +78,10 @@ src/
 - **Actions**: Located in `src/backend/actions/` directory
   - `LightControlAction.ts` - Individual light control with advanced features
   - `GroupControlAction.ts` - Group management and batch operations
+  - **Stream Deck+ Encoder Actions:**
+    - `BrightnessDialAction.ts` - Brightness control (1-100%) with dial
+    - `ColorTempDialAction.ts` - Color temperature (2000K-9000K) with gradient feedback
+    - `ColorHueDialAction.ts` - Full-spectrum color (0-360°) with HSV conversion
 - **Domain Layer**: Pure business logic with no external dependencies
 - **Infrastructure**: External integrations (Govee API, Stream Deck storage)
 - **Frontend**: Vue 3 with Composition API, XState for state management
@@ -87,6 +92,93 @@ src/
 - Actions extend `SingletonAction` class with typed settings
 - Property Inspectors use SDPI Components for UI (HTML files in `ui/` directory)
 - Plugin manifest at `com.felixgeelhaar.govee-light-management.sdPlugin/manifest.json`
+
+### Stream Deck+ Encoder Architecture
+
+**Encoder Action Pattern:**
+All encoder actions follow a consistent architecture pattern leveraging Stream Deck+ dial controls:
+
+**Event Handlers:**
+- `onWillAppear(ev)` - Initialize services and load current light state
+- `onDialRotate(ev)` - Handle dial rotation with tick-based adjustments
+- `onDialDown(ev)` - Handle dial press (power toggle)
+- `onDialUp(ev)` - Provide visual feedback on dial release
+- `onSendToPlugin(ev)` - Handle Property Inspector communication
+
+**Common Implementation Pattern:**
+```typescript
+@action({ UUID: "com.felixgeelhaar.govee-light-management.{name}-dial" })
+export class {Name}DialAction extends SingletonAction<{Name}DialSettings> {
+  private currentValue: number;  // Track current state
+
+  // Initialize and load current state
+  override async onWillAppear(ev) {
+    await this.ensureServices(settings.apiKey);
+    await this.loadCurrentState();
+    await this.updateDisplay(ev.action, settings);
+  }
+
+  // Handle dial rotation with configurable step size
+  override async onDialRotate(ev) {
+    const change = ev.payload.ticks * (settings.stepSize || DEFAULT_STEP);
+    this.currentValue = this.clampOrWrap(this.currentValue + change);
+    await this.lightControlService.controlLight(light, command, value);
+    await this.updateDisplay(ev.action, settings);
+  }
+
+  // Toggle power on dial press
+  override async onDialDown(ev) {
+    const nextState = this.currentLight.isOn ? "off" : "on";
+    await this.lightControlService.controlLight(light, nextState);
+    await this.updateDisplay(ev.action, settings);
+  }
+}
+```
+
+**Implemented Encoder Actions:**
+
+1. **BrightnessDialAction** (`actions/BrightnessDialAction.ts:400`)
+   - **Range:** 1-100% with clamping
+   - **Step Size:** 1-25% per tick (default: 5%)
+   - **Visual Feedback:** Bar indicator (subtype: 0) with opacity based on power state
+   - **Display:** Light name + brightness percentage
+
+2. **ColorTempDialAction** (`actions/ColorTempDialAction.ts:478`)
+   - **Range:** 2000K-9000K (warm to cool white) with clamping
+   - **Step Size:** 50-500K per tick (default: 100K)
+   - **Visual Feedback:** Gradient bar (subtype: 1) with normalized 0-100 value
+   - **Display:** Light name + temperature in Kelvin
+   - **Color Space:** Normalized temperature range for visual feedback
+
+3. **ColorHueDialAction** (`actions/ColorHueDialAction.ts:552`)
+   - **Range:** 0-360° (full color wheel) with wrapping
+   - **Step Size:** 1-90° per tick (default: 15°)
+   - **Saturation:** Configurable 0-100% (default: 100%)
+   - **Visual Feedback:** Rainbow gradient bar (subtype: 2) with current color
+   - **Display:** Light name + hue in degrees
+   - **Color Space:** HSV to RGB conversion using standard formulas
+   - **RGB to Hue:** Reverse conversion for current state detection
+
+**Feedback Bar Subtypes:**
+- `subtype: 0` - Simple bar (brightness)
+- `subtype: 1` - Gradient bar warm→cool (color temperature)
+- `subtype: 2` - Rainbow gradient (color hue)
+
+**Property Inspector Integration:**
+- Vue 3 Composition API components
+- Shared composables: `useApiConnection`, `useLightDiscovery`
+- Light filtering by capability (brightness, colorTemperature, color)
+- Real-time settings persistence via Stream Deck WebSocket
+- Step size configuration with helpful range validation
+
+**Testing Strategy:**
+- TDD approach with Red-Green-Refactor cycle
+- 31 total tests (10 + 10 + 11) covering:
+  - Value adjustment and clamping/wrapping
+  - Power toggle functionality
+  - Configuration validation
+  - Step size customization
+- All tests leverage mock action objects for Stream Deck SDK simulation
 
 ### Enterprise Govee API Integration
 - **Client Library**: Uses `@felixgeelhaar/govee-api-client` v2.0.1 for enterprise-grade API access
