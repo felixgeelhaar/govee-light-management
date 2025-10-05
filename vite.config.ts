@@ -14,6 +14,7 @@ export default defineConfig({
       input: {
         'light-control': resolve(__dirname, 'src/frontend/light-control.html'),
         'group-control': resolve(__dirname, 'src/frontend/group-control.html'),
+        'brightness-dial': resolve(__dirname, 'src/frontend/brightness-dial.html'),
       },
       output: {
         entryFileNames: '[name].js',

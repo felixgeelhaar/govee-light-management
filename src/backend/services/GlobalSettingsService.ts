@@ -1,4 +1,4 @@
-import { streamDeck } from "../plugin";
+import { streamDeck } from "@elgato/streamdeck";
 
 export interface GlobalPluginSettings {
   apiKey?: string;

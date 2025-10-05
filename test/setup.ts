@@ -32,7 +32,8 @@ vi.mock('@elgato/streamdeck', () => ({
       info: vi.fn(),
       warn: vi.fn(),
       error: vi.fn(),
-      debug: vi.fn()
+      debug: vi.fn(),
+      setLevel: vi.fn()
     },
     settings: {
       getGlobalSettings: vi.fn().mockResolvedValue({}),
@@ -40,12 +41,22 @@ vi.mock('@elgato/streamdeck', () => ({
     },
     ui: {
       current: null
+    },
+    actions: {
+      registerAction: vi.fn()
     }
   },
   SingletonAction: class SingletonAction {
     constructor() {}
   },
-  action: () => (target: any) => target
+  action: () => (target: any) => target,
+  LogLevel: {
+    TRACE: 0,
+    DEBUG: 1,
+    INFO: 2,
+    WARN: 3,
+    ERROR: 4
+  }
 }));
 
 // Mock Govee API client base class to avoid network calls in unit tests
@@ -54,19 +65,24 @@ vi.mock('@felixgeelhaar/govee-api-client', () => {
   const MockBrightness = function(this: any, value: number) {
     this.level = value;
   };
-  
+
   const MockColorTemperature = function(this: any, kelvin: number) {
     this.kelvin = kelvin;
   };
-  
+
   const MockColorRgb = function(this: any, hex: string) {
     this.hex = hex;
   };
-  
+
   MockColorRgb.fromHex = (hex: string) => new (MockColorRgb as any)(hex);
-  
+
   return {
     GoveeApiClient: vi.fn().mockImplementation(() => ({
+      getDevices: vi.fn().mockResolvedValue([]),
+      getDeviceState: vi.fn().mockResolvedValue(null),
+      controlDevice: vi.fn().mockResolvedValue(true)
+    })),
+    GoveeClient: vi.fn().mockImplementation(() => ({
       getDevices: vi.fn().mockResolvedValue([]),
       getDeviceState: vi.fn().mockResolvedValue(null),
       controlDevice: vi.fn().mockResolvedValue(true)
