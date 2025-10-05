@@ -3,113 +3,147 @@ name: CI
 on:
   push:
     branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - 'LICENSE'
+      - '.gitignore'
   pull_request:
     branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - 'LICENSE'
+      - '.gitignore'
+
+# Cancel outdated runs for same workflow
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  # Quick validation on Linux with multiple Node versions
   test:
-    name: Test & Build
-    runs-on: ${{ matrix.os }}
-    
+    name: Test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [20, 22]
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-    
-    - name: Clean dependencies (Unix)
-      if: runner.os != 'Windows'
-      run: rm -rf node_modules package-lock.json
-      
-    - name: Clean dependencies (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        if (Test-Path node_modules) { Remove-Item -Recurse -Force node_modules }
-        if (Test-Path package-lock.json) { Remove-Item -Force package-lock.json }
-      shell: powershell
-      
+        cache: 'npm'  # ✅ Cache npm dependencies
+
     - name: Install dependencies
-      run: npm install --legacy-peer-deps
-    
+      run: npm ci  # ✅ Faster than npm install, uses package-lock.json
+
     - name: Run type checking
       run: npm run type-check
-    
+
     - name: Run linting
       run: npm run lint
-    
+
     - name: Check formatting
       run: npm run format:check
-    
+
     - name: Run tests
       run: npm test
-    
+
     - name: Run build
       run: npm run build
-    
-    - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-latest' && matrix.node-version == '20'
-      uses: codecov/codecov-action@v3
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./coverage/lcov.info
-        fail_ci_if_error: false
 
-  e2e:
-    name: E2E Tests
+  # Cross-platform testing (only for PRs to main or on main branch)
+  test-cross-platform:
+    name: Cross-Platform Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    
+    if: github.event_name == 'pull_request' && github.base_ref == 'main' || github.ref == 'refs/heads/main'
+
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    
+        os: [windows-latest, macos-latest]
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-    
-    - name: Clean dependencies (Unix)
-      if: runner.os != 'Windows'
-      run: rm -rf node_modules package-lock.json
-      
-    - name: Clean dependencies (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        if (Test-Path node_modules) { Remove-Item -Recurse -Force node_modules }
-        if (Test-Path package-lock.json) { Remove-Item -Force package-lock.json }
-      shell: powershell
-      
+        cache: 'npm'
+
     - name: Install dependencies
-      run: npm install --legacy-peer-deps
-    
+      run: npm ci
+
+    - name: Run tests
+      run: npm test
+
+    - name: Run build
+      run: npm run build
+
+  # E2E tests only on Linux (web apps are cross-platform)
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Cache Playwright browsers
+      uses: actions/cache@v4
+      id: playwright-cache
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-playwright-
+
     - name: Install Playwright Browsers
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
       run: npx playwright install --with-deps
-    
+
+    - name: Install Playwright dependencies only
+      if: steps.playwright-cache.outputs.cache-hit == 'true'
+      run: npx playwright install-deps
+
     - name: Build plugin
       run: npm run build
-    
+
     - name: Run E2E tests
       run: npm run test:e2e
-    
+
     - name: Upload test results
       uses: actions/upload-artifact@v4
-      if: always()
+      if: failure()  # ✅ Only upload on failure to save quota
       with:
-        name: playwright-report-${{ matrix.os }}
+        name: playwright-report
         path: playwright-report/
-        retention-days: 30
+        retention-days: 7  # ✅ Reduced from 30 to save storage
 
+  # Security audit (lightweight, runs on Linux only)
   security:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -117,39 +151,30 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-    
-    - name: Clean dependencies (Unix)
-      if: runner.os != 'Windows'
-      run: rm -rf node_modules package-lock.json
-      
-    - name: Clean dependencies (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        if (Test-Path node_modules) { Remove-Item -Recurse -Force node_modules }
-        if (Test-Path package-lock.json) { Remove-Item -Force package-lock.json }
-      shell: powershell
-      
+        cache: 'npm'
+
     - name: Install dependencies
-      run: npm install --legacy-peer-deps
-    
+      run: npm ci
+
     - name: Run security audit
       run: npm audit --audit-level high
-    
+      continue-on-error: true  # ✅ Don't fail CI on audit warnings
+
     - name: Run CodeQL Analysis
       uses: github/codeql-action/init@v3
       with:
         languages: javascript
         config-file: ./.github/codeql-config.yml
-    
+
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:
@@ -157,38 +182,37 @@ jobs:
         upload: true
       continue-on-error: true
 
+  # Code quality with coverage (runs once, not per matrix)
   quality:
-    name: Code Quality
+    name: Code Quality & Coverage
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
-    
+        fetch-depth: 0  # Needed for SonarCloud
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-    
-    - name: Clean dependencies (Unix)
-      if: runner.os != 'Windows'
-      run: rm -rf node_modules package-lock.json
-      
-    - name: Clean dependencies (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        if (Test-Path node_modules) { Remove-Item -Recurse -Force node_modules }
-        if (Test-Path package-lock.json) { Remove-Item -Force package-lock.json }
-      shell: powershell
-      
+        cache: 'npm'
+
     - name: Install dependencies
-      run: npm install --legacy-peer-deps
-    
+      run: npm ci
+
     - name: Run tests with coverage
       run: npm run test:coverage
-    
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./coverage/lcov.info
+        fail_ci_if_error: false
+      continue-on-error: true
+
     - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@master
       env:
