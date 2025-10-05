@@ -54,6 +54,26 @@
 				},
 				"layout": "$B1"
 			}
+		},
+		{
+			"Name": "Color Temperature Dial",
+			"UUID": "com.felixgeelhaar.govee-light-management.colortemp-dial",
+			"Icon": "imgs/actions/colortemp-dial/icon",
+			"Tooltip": "Control color temperature with Stream Deck+ dial (rotate to adjust warm/cool, press to toggle power)",
+			"PropertyInspectorPath": "ui/colortemp-dial.html",
+			"Controllers": [
+				"Encoder"
+			],
+			"Encoder": {
+				"Icon": "imgs/actions/colortemp-dial/icon",
+				"background": "imgs/actions/colortemp-dial/background",
+				"TriggerDescription": {
+					"Rotate": "Adjust color temperature (±100K per tick)",
+					"Push": "Toggle power on/off",
+					"Touch": "N/A"
+				},
+				"layout": "$B1"
+			}
 		}
 	],
 	"Category": "Govee Light Management",
