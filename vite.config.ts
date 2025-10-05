@@ -16,6 +16,7 @@ export default defineConfig({
         'group-control': resolve(__dirname, 'src/frontend/group-control.html'),
         'brightness-dial': resolve(__dirname, 'src/frontend/brightness-dial.html'),
         'colortemp-dial': resolve(__dirname, 'src/frontend/colortemp-dial.html'),
+        'colorhue-dial': resolve(__dirname, 'src/frontend/colorhue-dial.html'),
       },
       output: {
         entryFileNames: '[name].js',

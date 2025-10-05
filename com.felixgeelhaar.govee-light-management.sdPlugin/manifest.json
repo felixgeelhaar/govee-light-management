@@ -74,6 +74,26 @@
 				},
 				"layout": "$B1"
 			}
+		},
+		{
+			"Name": "Color Hue Dial",
+			"UUID": "com.felixgeelhaar.govee-light-management.colorhue-dial",
+			"Icon": "imgs/actions/colorhue-dial/icon",
+			"Tooltip": "Control color hue with Stream Deck+ dial (rotate to change color, press to toggle power)",
+			"PropertyInspectorPath": "ui/colorhue-dial.html",
+			"Controllers": [
+				"Encoder"
+			],
+			"Encoder": {
+				"Icon": "imgs/actions/colorhue-dial/icon",
+				"background": "imgs/actions/colorhue-dial/background",
+				"TriggerDescription": {
+					"Rotate": "Adjust color hue (±15° per tick)",
+					"Push": "Toggle power on/off",
+					"Touch": "N/A"
+				},
+				"layout": "$B1"
+			}
 		}
 	],
 	"Category": "Govee Light Management",

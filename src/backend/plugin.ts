@@ -5,6 +5,7 @@ import {
   GroupControlAction,
   BrightnessDialAction,
   ColorTempDialAction,
+  ColorHueDialAction,
 } from "./actions";
 
 // Set appropriate logging level for production
@@ -17,6 +18,7 @@ streamDeck.actions.registerAction(new GroupControlAction());
 // Register Stream Deck+ encoder actions
 streamDeck.actions.registerAction(new BrightnessDialAction());
 streamDeck.actions.registerAction(new ColorTempDialAction());
+streamDeck.actions.registerAction(new ColorHueDialAction());
 
 // Connect to Stream Deck
 streamDeck.connect();
