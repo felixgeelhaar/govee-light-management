@@ -113,7 +113,7 @@ export class ColorHueDialAction extends SingletonAction<ColorHueDialSettings> {
     }
 
     // Check if light supports color
-    if (!this.currentLight.capabilities.color) {
+    if (!(this.currentLight.capabilities?.color ?? false)) {
       await ev.action.showAlert();
       streamDeck.logger.warn(
         "Selected light does not support color control",
@@ -239,8 +239,8 @@ export class ColorHueDialAction extends SingletonAction<ColorHueDialSettings> {
   override async onDialUp(
     ev: DialUpEvent<ColorHueDialSettings>,
   ): Promise<void> {
-    // Provide visual feedback that operation completed
-    await ev.action.showOk();
+    // Visual feedback is handled through the dial's rainbow gradient bar display
+    // No additional action needed - the updated hue value is shown automatically
   }
 
   /**
@@ -349,9 +349,9 @@ export class ColorHueDialAction extends SingletonAction<ColorHueDialSettings> {
    * Convert RGB to Hue (in degrees)
    */
   private rgbToHue(color: ColorRgb): number {
-    const r = color.red / 255;
-    const g = color.green / 255;
-    const b = color.blue / 255;
+    const r = color.r / 255;
+    const g = color.g / 255;
+    const b = color.b / 255;
 
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
@@ -495,7 +495,7 @@ export class ColorHueDialAction extends SingletonAction<ColorHueDialSettings> {
 
       const lights = await this.deviceService.discover(true);
       const lightItems = lights
-        .filter((light) => light.capabilities.color) // Only show lights with color control
+        .filter((light) => light.capabilities?.color ?? false) // Only show lights with color control
         .map((light) => ({
           label: `${light.label ?? light.name} (${light.model})`,
           value: `${light.deviceId}|${light.model}`,

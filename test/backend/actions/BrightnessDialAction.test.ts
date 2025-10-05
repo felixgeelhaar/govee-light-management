@@ -15,7 +15,6 @@ const createMockAction = () => ({
   getSettings: vi.fn(),
   setSettings: vi.fn(),
   showAlert: vi.fn(),
-  showOk: vi.fn(),
 });
 
 const createMockLightControlService = () => ({

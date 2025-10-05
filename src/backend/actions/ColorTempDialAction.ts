@@ -229,8 +229,8 @@ export class ColorTempDialAction extends SingletonAction<ColorTempDialSettings> 
   override async onDialUp(
     ev: DialUpEvent<ColorTempDialSettings>,
   ): Promise<void> {
-    // Provide visual feedback that operation completed
-    await ev.action.showOk();
+    // Visual feedback is handled through the dial's temperature gradient bar display
+    // No additional action needed - the updated temperature value is shown automatically
   }
 
   /**
@@ -403,7 +403,7 @@ export class ColorTempDialAction extends SingletonAction<ColorTempDialSettings> 
 
       const lights = await this.deviceService.discover(true);
       const lightItems = lights
-        .filter((light) => light.capabilities.colorTemperature) // Only show lights with color temp control
+        .filter((light) => light.capabilities?.colorTemperature ?? false) // Only show lights with color temp control
         .map((light) => ({
           label: `${light.label ?? light.name} (${light.model})`,
           value: `${light.deviceId}|${light.model}`,

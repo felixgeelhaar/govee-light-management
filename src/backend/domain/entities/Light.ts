@@ -5,12 +5,23 @@ import {
 } from "@felixgeelhaar/govee-api-client";
 import { LightState } from "../value-objects/LightState";
 
+export interface LightCapabilities {
+  brightness: boolean;
+  color: boolean;
+  colorTemperature: boolean;
+}
+
 export class Light {
   private constructor(
     private readonly _deviceId: string,
     private readonly _model: string,
     private readonly _name: string,
     private _state: LightState,
+    private readonly _capabilities: LightCapabilities = {
+      brightness: true,
+      color: true,
+      colorTemperature: true,
+    },
   ) {}
 
   static create(
@@ -18,6 +29,7 @@ export class Light {
     model: string,
     name: string,
     initialState: LightState,
+    capabilities?: LightCapabilities,
   ): Light {
     if (!deviceId?.trim()) {
       throw new Error("Device ID is required");
@@ -29,7 +41,7 @@ export class Light {
       throw new Error("Name is required");
     }
 
-    return new Light(deviceId, model, name, initialState);
+    return new Light(deviceId, model, name, initialState, capabilities);
   }
 
   get deviceId(): string {
@@ -66,6 +78,10 @@ export class Light {
 
   get colorTemperature(): ColorTemperature | undefined {
     return this._state.colorTemperature;
+  }
+
+  get capabilities(): LightCapabilities {
+    return { ...this._capabilities };
   }
 
   updateState(newState: Partial<LightState>): void {

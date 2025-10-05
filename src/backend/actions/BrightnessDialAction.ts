@@ -220,8 +220,8 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
   override async onDialUp(
     ev: DialUpEvent<BrightnessDialSettings>,
   ): Promise<void> {
-    // Provide visual feedback that operation completed
-    await ev.action.showOk();
+    // Visual feedback is handled through the dial's brightness bar display
+    // No additional action needed - the updated brightness value is shown automatically
   }
 
   /**
@@ -387,7 +387,7 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
 
       const lights = await this.deviceService.discover(true);
       const lightItems = lights
-        .filter((light) => light.capabilities.brightness) // Only show lights with brightness control
+        .filter((light) => light.capabilities?.brightness ?? false) // Only show lights with brightness control
         .map((light) => ({
           label: `${light.label ?? light.name} (${light.model})`,
           value: `${light.deviceId}|${light.model}`,
