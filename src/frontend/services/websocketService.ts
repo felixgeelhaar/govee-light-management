@@ -206,6 +206,36 @@ export class WebSocketService {
     });
   }
 
+  requestTransportHealth(): void {
+    this.sendMessage({
+      event: "sendToPlugin",
+      context: this.uuid || "",
+      payload: {
+        event: "getTransportHealth",
+      },
+    });
+  }
+
+  requestTelemetrySnapshot(): void {
+    this.sendMessage({
+      event: "sendToPlugin",
+      context: this.uuid || "",
+      payload: {
+        event: "getTelemetrySnapshot",
+      },
+    });
+  }
+
+  resetTelemetry(): void {
+    this.sendMessage({
+      event: "sendToPlugin",
+      context: this.uuid || "",
+      payload: {
+        event: "resetTelemetry",
+      },
+    });
+  }
+
   /**
    * Save group via plugin
    */

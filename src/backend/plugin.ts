@@ -16,3 +16,5 @@ streamDeck.connect();
 streamDeck.logger.info(
   "Govee Light Management plugin initialized successfully",
 );
+
+export { streamDeck };

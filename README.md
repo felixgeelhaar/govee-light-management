@@ -187,6 +187,33 @@ npm run type-check
 npm run format
 ```
 
+#### Stream Deck CLI Workflow
+
+The project ships with helper scripts that wrap the official Stream Deck CLI so you can exercise the plugin directly inside Stream Deck while developing:
+
+```bash
+# Enable developer mode in the Stream Deck desktop app (run once)
+npm run streamdeck:dev
+
+# Link the local plugin bundle into Stream Deck's plugins directory
+npm run streamdeck:link
+
+# Rebuild and restart the plugin after code changes
+npm run build:backend
+npm run streamdeck:restart
+
+# Stop the plugin when you no longer need it running
+npm run streamdeck:stop
+
+# Validate the plugin bundle before packaging/distribution
+npm run streamdeck:validate
+
+# Create a .streamDeckPlugin package for installation
+npm run streamdeck:pack
+```
+
+> ℹ️ The `link` command creates a symlink from `com.felixgeelhaar.govee-light-management.sdPlugin` into Stream Deck's plugin directory. After linking, you only need to call `streamdeck:restart` each time you rebuild the backend or property inspector.
+
 ### Project Structure
 
 ```

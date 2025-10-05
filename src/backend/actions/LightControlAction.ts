@@ -15,6 +15,15 @@ import {
   ColorRgb,
   ColorTemperature,
 } from "@felixgeelhaar/govee-api-client";
+import { DeviceService } from "../domain/services/DeviceService";
+import {
+  TransportOrchestrator,
+  TransportKind,
+  TransportHealthService,
+  CloudTransport,
+} from "../connectivity";
+import { telemetryService } from "../services/TelemetryService";
+import { globalSettingsService } from "../services/GlobalSettingsService";
 
 type LightControlSettings = {
   apiKey?: string;
@@ -35,6 +44,10 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
   private lightRepository?: GoveeLightRepository;
   private lightControlService?: LightControlService;
   private currentLight?: Light;
+  private currentApiKey?: string;
+  private transportOrchestrator?: TransportOrchestrator;
+  private healthService?: TransportHealthService;
+  private deviceService?: DeviceService;
 
   /**
    * Initialize services when action appears
@@ -44,9 +57,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
   ): Promise<void> {
     const { settings } = ev.payload;
 
-    if (settings.apiKey) {
-      this.initializeServices(settings.apiKey);
-    }
+    await this.ensureServices(settings.apiKey);
 
     // Set initial title based on configuration
     const title = this.getActionTitle(settings);
@@ -127,6 +138,15 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       case "getLights":
         await this.handleGetLights(ev, settings);
         break;
+      case "getTransportHealth":
+        await this.handleGetTransportHealth();
+        break;
+      case "getTelemetrySnapshot":
+        await this.handleGetTelemetrySnapshot();
+        break;
+      case "resetTelemetry":
+        await this.handleResetTelemetry();
+        break;
       case "getLightStates":
         await this.handleGetLightStates(ev, settings);
         break;
@@ -145,9 +165,31 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
   /**
    * Initialize repositories and services
    */
-  private initializeServices(apiKey: string): void {
-    this.lightRepository = new GoveeLightRepository(apiKey, true);
-    this.lightControlService = new LightControlService(this.lightRepository);
+  private async ensureServices(apiKey?: string): Promise<void> {
+    if (apiKey && apiKey !== this.currentApiKey) {
+      this.lightRepository = new GoveeLightRepository(apiKey, true);
+      this.lightControlService = new LightControlService(this.lightRepository);
+      this.currentApiKey = apiKey;
+      try {
+        await globalSettingsService.setApiKey(apiKey);
+      } catch (error) {
+        streamDeck.logger?.warn("Failed to persist API key globally", error);
+      }
+    }
+
+    if (!this.transportOrchestrator) {
+      const cloudTransport = new CloudTransport();
+      this.transportOrchestrator = new TransportOrchestrator({
+        [TransportKind.Cloud]: cloudTransport,
+      });
+      this.healthService = new TransportHealthService(
+        this.transportOrchestrator,
+        streamDeck.logger,
+      );
+      this.deviceService = new DeviceService(this.transportOrchestrator, {
+        logger: streamDeck.logger,
+      });
+    }
   }
 
   /**
@@ -173,63 +215,102 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     }
 
     const mode = settings.controlMode || "toggle";
+    const started = Date.now();
+    let commandName: string = mode;
 
-    switch (mode) {
-      case "toggle":
-        await this.lightControlService.controlLight(
-          light,
-          light.isOn ? "off" : "on",
-        );
-        break;
-
-      case "on":
-        if (
-          settings.brightnessValue ||
-          settings.colorValue ||
-          settings.colorTempValue
-        ) {
-          const controlSettings = this.parseControlSettings(settings);
-          await this.lightControlService.turnOnLightWithSettings(
-            light,
-            controlSettings,
-          );
-        } else {
-          await this.lightControlService.controlLight(light, "on");
+    try {
+      switch (mode) {
+        case "toggle": {
+          const next = light.isOn ? "off" : "on";
+          commandName = next === "on" ? "power.on" : "power.off";
+          await this.lightControlService.controlLight(light, next);
+          break;
         }
-        break;
 
-      case "off":
-        await this.lightControlService.controlLight(light, "off");
-        break;
+        case "on": {
+          commandName = "power.on";
+          if (
+            settings.brightnessValue !== undefined ||
+            settings.colorValue ||
+            settings.colorTempValue
+          ) {
+            const controlSettings = this.parseControlSettings(settings);
+            await this.lightControlService.turnOnLightWithSettings(
+              light,
+              controlSettings,
+            );
+          } else {
+            await this.lightControlService.controlLight(light, "on");
+          }
+          break;
+        }
 
-      case "brightness":
-        if (settings.brightnessValue !== undefined) {
+        case "off": {
+          commandName = "power.off";
+          await this.lightControlService.controlLight(light, "off");
+          break;
+        }
+
+        case "brightness": {
+          if (settings.brightnessValue === undefined) {
+            throw new Error("Brightness value required");
+          }
+          commandName = "brightness";
           const brightness = new Brightness(settings.brightnessValue);
           await this.lightControlService.controlLight(
             light,
             "brightness",
             brightness,
           );
+          break;
         }
-        break;
 
-      case "color":
-        if (settings.colorValue) {
+        case "color": {
+          if (!settings.colorValue) {
+            throw new Error("Color value required");
+          }
+          commandName = "color";
           const color = ColorRgb.fromHex(settings.colorValue);
           await this.lightControlService.controlLight(light, "color", color);
+          break;
         }
-        break;
 
-      case "colorTemp":
-        if (settings.colorTempValue) {
+        case "colorTemp": {
+          if (!settings.colorTempValue) {
+            throw new Error("Color temperature value required");
+          }
+          commandName = "colorTemperature";
           const colorTemp = new ColorTemperature(settings.colorTempValue);
           await this.lightControlService.controlLight(
             light,
             "colorTemperature",
             colorTemp,
           );
+          break;
         }
-        break;
+
+        default:
+          throw new Error(`Unknown control mode: ${mode}`);
+      }
+
+      telemetryService.recordCommand({
+        command: commandName,
+        durationMs: Date.now() - started,
+        success: true,
+      });
+    } catch (error) {
+      const failure = error instanceof Error
+        ? { name: error.name, message: error.message }
+        : { name: "UnknownError", message: String(error) };
+
+      telemetryService.recordCommand({
+        command: commandName,
+        durationMs: Date.now() - started,
+        success: false,
+        error: failure,
+      });
+
+      throw error;
     }
   }
 
@@ -311,6 +392,14 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       const testRepository = new GoveeLightRepository(apiKey, true);
       await testRepository.getAllLights();
 
+      try {
+        await globalSettingsService.setApiKey(apiKey);
+      } catch (error) {
+        streamDeck.logger.warn("Failed to persist API key globally", error);
+      }
+
+      await this.ensureServices(apiKey);
+
       // If successful, API key is valid
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "apiKeyValidated",
@@ -344,16 +433,15 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     }
 
     try {
-      if (!this.lightRepository) {
-        this.initializeServices(settings.apiKey);
+      await this.ensureServices(settings.apiKey);
+
+      if (!this.deviceService) {
+        throw new Error("Device service unavailable");
       }
 
-      if (!this.lightRepository) {
-        return;
-      }
-      const lights = await this.lightRepository.getAllLights();
+      const lights = await this.deviceService.discover(true);
       const lightItems = lights.map((light) => ({
-        label: `${light.name} (${light.model})`,
+        label: `${light.label ?? light.name} (${light.model})`,
         value: `${light.deviceId}|${light.model}`,
       }));
 
@@ -401,11 +489,10 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     }
 
     try {
-      if (!this.lightRepository) {
-        this.initializeServices(settings.apiKey);
-      }
+      await this.ensureServices(settings.apiKey);
 
       if (!this.lightRepository) {
+        streamDeck.logger.warn("Light repository not initialized");
         return;
       }
       const allLights = await this.lightRepository.getAllLights();
@@ -496,12 +583,8 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       // Update action settings
       await ev.action.setSettings(newSettings);
 
-      // Re-initialize services if API key changed
-      if (
-        newSettings.apiKey &&
-        newSettings.apiKey !== (await ev.action.getSettings()).apiKey
-      ) {
-        this.initializeServices(newSettings.apiKey);
+      if (newSettings.apiKey) {
+        await this.ensureServices(newSettings.apiKey);
       }
 
       // Update current light if selection changed
@@ -546,11 +629,25 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     ev: SendToPluginEvent<JsonValue, LightControlSettings>,
     settings: LightControlSettings,
   ): Promise<void> {
+    const started = Date.now();
+    let success = false;
+
     if (
       !settings.selectedDeviceId ||
       !settings.selectedModel ||
       !this.lightRepository
     ) {
+      await streamDeck.ui.current?.sendToPropertyInspector({
+        event: "testResult",
+        success: false,
+        message: "Select a light before testing",
+      });
+      telemetryService.recordCommand({
+        command: "testLight",
+        durationMs: Date.now() - started,
+        success: false,
+        error: { name: "InvalidConfiguration", message: "Light not selected" },
+      });
       return;
     }
 
@@ -561,17 +658,18 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       );
 
       if (light && this.lightControlService) {
-        // Quick blink test
-        await this.lightControlService.controlLight(
-          light,
-          light.isOn ? "off" : "on",
-        );
+        const nextState = light.isOn ? "off" : "on";
+        await this.lightControlService.controlLight(light, nextState);
         setTimeout(async () => {
-          if (this.lightControlService && light) {
-            await this.lightControlService.controlLight(
-              light,
-              light.isOn ? "off" : "on",
-            );
+          try {
+            if (this.lightControlService && light) {
+              await this.lightControlService.controlLight(
+                light,
+                nextState,
+              );
+            }
+          } catch (error) {
+            streamDeck.logger.error("Light reset after test failed", error);
           }
         }, 1000);
 
@@ -580,6 +678,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
           success: true,
           message: "Light test successful!",
         });
+        success = true;
       }
     } catch (error) {
       streamDeck.logger.error("Light test failed:", error);
@@ -587,6 +686,17 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
         event: "testResult",
         success: false,
         message: "Light test failed. Check connection.",
+      });
+    } finally {
+      const failure = success
+        ? undefined
+        : { name: "TestFailed", message: "Light test failed" };
+
+      telemetryService.recordCommand({
+        command: "testLight",
+        durationMs: Date.now() - started,
+        success,
+        error: failure,
       });
     }
   }
@@ -609,5 +719,42 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
         streamDeck.logger.error("Failed to refresh light state:", error);
       }
     }
+  }
+
+  private async handleGetTransportHealth(): Promise<void> {
+    await this.ensureServices(this.currentApiKey);
+
+    if (!this.healthService) {
+      await streamDeck.ui.current?.sendToPropertyInspector({
+        event: "transportHealth",
+        transports: [],
+      });
+      return;
+    }
+
+    const snapshot = await this.healthService.getHealth(true);
+    await streamDeck.ui.current?.sendToPropertyInspector({
+      event: "transportHealth",
+      transports: snapshot.map((health) => ({
+        kind: health.descriptor.kind,
+        label: health.descriptor.label,
+        isHealthy: health.isHealthy,
+        latencyMs: health.latencyMs,
+        lastChecked: health.lastChecked,
+      })),
+    });
+  }
+
+  private async handleGetTelemetrySnapshot(): Promise<void> {
+    const snapshot = telemetryService.getSnapshot();
+    await streamDeck.ui.current?.sendToPropertyInspector({
+      event: "telemetrySnapshot",
+      snapshot: JSON.parse(JSON.stringify(snapshot)),
+    });
+  }
+
+  private async handleResetTelemetry(): Promise<void> {
+    telemetryService.reset();
+    await this.handleGetTelemetrySnapshot();
   }
 }

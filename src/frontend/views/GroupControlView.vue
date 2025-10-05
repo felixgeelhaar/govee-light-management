@@ -65,6 +65,33 @@
       </div>
     </section>
 
+    <section class="config-section diagnostics-section">
+      <h2>Connectivity Diagnostics</h2>
+
+      <div v-if="transportHealth.length" class="transport-health">
+        <ul>
+          <li v-for="health in transportHealth" :key="health.kind">
+            <span class="transport-label">{{ health.label }}</span>
+            <span
+              class="transport-indicator"
+              :class="{ healthy: health.isHealthy, unhealthy: !health.isHealthy }"
+            >
+              {{ health.isHealthy ? "Available" : "Unavailable" }}
+              <span v-if="health.latencyMs !== undefined">
+                • {{ health.latencyMs }} ms
+              </span>
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      <DiagnosticsPanel
+        :snapshot="telemetrySnapshot"
+        @refresh="refreshDiagnostics"
+        @reset="resetTelemetry"
+      />
+    </section>
+
     <!-- Group Management Section -->
     <section class="config-section" data-testid="group-management-section">
       <h2>Group Management</h2>
@@ -337,12 +364,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import type { ControlMode } from "@shared/types";
 import { useApiConnection } from "../composables/useApiConnection";
 import { useLightDiscovery } from "../composables/useLightDiscovery";
 import { useGroupManagement } from "../composables/useGroupManagement";
 import { useGroupControlSettings } from "../composables/useSettings";
+import { useFeedbackHelpers } from "../composables/useFeedback";
+import { websocketService } from "../services/websocketService";
+import DiagnosticsPanel from "../components/DiagnosticsPanel.vue";
 
 // XState composables
 const apiConnection = useApiConnection();
@@ -351,6 +381,34 @@ const groupManagement = useGroupManagement();
 
 // Settings composable with persistence
 const settingsManager = useGroupControlSettings();
+const feedback = useFeedbackHelpers();
+
+const transportHealth = ref<Array<{
+  kind: string;
+  label: string;
+  isHealthy: boolean;
+  latencyMs?: number;
+  lastChecked?: number;
+}>>([]);
+
+const telemetrySnapshot = ref<any | null>(null);
+
+const refreshTransportHealth = () => {
+  websocketService.requestTransportHealth();
+};
+
+const refreshTelemetry = () => {
+  websocketService.requestTelemetrySnapshot();
+};
+
+const resetTelemetry = () => {
+  websocketService.resetTelemetry();
+};
+
+const refreshDiagnostics = () => {
+  refreshTransportHealth();
+  refreshTelemetry();
+};
 
 // Group form state
 const groupName = ref<string>("");
@@ -410,6 +468,7 @@ const colorTempValue = computed({
 // Actions
 const connectToApi = () => {
   if (localApiKey.value) {
+    feedback.showInfo("Connecting to API", "Validating your API key...");
     apiConnection.connect(localApiKey.value);
   }
 };
@@ -465,14 +524,21 @@ const isLightSelected = (lightId: string) => {
 // Watch for API connection changes to load groups and lights
 watch(
   () => apiConnection.isConnected.value,
-  (isConnected) => {
-    if (isConnected) {
+  (isConnected, wasConnected) => {
+    if (isConnected && !wasConnected) {
+      feedback.showSuccessToast(
+        "API Connected",
+        "Successfully connected to Govee API",
+      );
       if (lightDiscovery.isIdle.value) {
         lightDiscovery.fetchLights();
+      } else {
+        lightDiscovery.refreshLights();
       }
       if (groupManagement.isIdle.value) {
         groupManagement.loadGroups();
       }
+      refreshDiagnostics();
     }
   },
 );
@@ -483,6 +549,119 @@ watch(
   (newApiKey) => {
     if (newApiKey && !apiConnection.isConnected.value) {
       apiConnection.connect(newApiKey);
+    }
+  },
+);
+
+watch(
+  () => apiConnection.error.value,
+  (error) => {
+    if (error) {
+      feedback.showApiError({ message: error }, "API Connection Failed");
+    }
+  },
+);
+
+watch(
+  () => lightDiscovery.isReady.value,
+  (isReady, wasReady) => {
+    if (isReady && !wasReady && lightDiscovery.hasLights.value) {
+      const count = lightDiscovery.lights.value.length;
+      feedback.showSuccessToast(
+        "Lights Discovered",
+        `Found ${count} light${count === 1 ? "" : "s"}`,
+      );
+    }
+  },
+);
+
+watch(
+  () => lightDiscovery.error.value,
+  (error) => {
+    if (error) {
+      feedback.showApiError({ message: error }, "Light Discovery Failed");
+    }
+  },
+);
+
+watch(
+  () => groupManagement.isReady.value,
+  (isReady, wasReady) => {
+    if (isReady && !wasReady) {
+      const count = groupManagement.groups.value.length;
+      feedback.showSuccessToast(
+        "Groups Loaded",
+        count
+          ? `Loaded ${count} group${count === 1 ? "" : "s"}`
+          : "No groups configured yet",
+      );
+    }
+  },
+);
+
+watch(
+  () => groupManagement.error.value,
+  (error) => {
+    if (error) {
+      feedback.showApiError({ message: error }, "Group Operation Failed");
+    }
+  },
+);
+
+watch(
+  () => groupManagement.isSaving.value,
+  (isSaving, wasSaving) => {
+    if (!isSaving && wasSaving && !groupManagement.hasError.value) {
+      feedback.showSuccessToast("Group Saved", "Group changes saved successfully");
+      refreshDiagnostics();
+    }
+  },
+);
+
+watch(
+  () => groupManagement.isDeleting.value,
+  (isDeleting, wasDeleting) => {
+    if (!isDeleting && wasDeleting && !groupManagement.hasError.value) {
+      feedback.showSuccessToast("Group Deleted", "Group removed successfully");
+      refreshDiagnostics();
+    }
+  },
+);
+
+watch(
+  () => groupManagement.groups.value,
+  (groups) => {
+    if (selectedGroup.value) {
+      const match = groups.find((group) => group.id === selectedGroup.value);
+      const resolvedName = match?.name || undefined;
+      if (settingsManager.settings.selectedGroupName !== resolvedName) {
+        settingsManager.updateSetting("selectedGroupName", resolvedName);
+      }
+
+      if (!match) {
+        selectedGroup.value = "";
+      }
+    }
+  },
+  { deep: true },
+);
+
+watch(
+  () => groupManagement.currentGroup.value,
+  (group) => {
+    if (group) {
+      groupName.value = group.name;
+    } else if (!groupManagement.isEditing.value) {
+      groupName.value = "";
+    }
+  },
+);
+
+watch(
+  () => groupManagement.isEditing.value,
+  (isEditing) => {
+    if (isEditing && lightDiscovery.isIdle.value) {
+      lightDiscovery.fetchLights();
     }
   },
 );
@@ -505,7 +684,23 @@ onMounted(() => {
     if (groupManagement.isIdle.value) {
       groupManagement.loadGroups();
     }
+    refreshDiagnostics();
   }
+
+  const piHandler = (message: any) => {
+    if (message.payload?.event === "transportHealth") {
+      transportHealth.value = message.payload.transports ?? [];
+    }
+    if (message.payload?.event === "telemetrySnapshot") {
+      telemetrySnapshot.value = message.payload.snapshot ?? null;
+    }
+  };
+
+  websocketService.on("sendToPropertyInspector", piHandler);
+
+  onUnmounted(() => {
+    websocketService.off("sendToPropertyInspector", piHandler);
+  });
 });
 </script>
 
@@ -770,5 +965,36 @@ onMounted(() => {
 .status-icon {
   font-size: 16px;
   flex-shrink: 0;
+}
+
+.diagnostics-section {
+  display: grid;
+  gap: 12px;
+}
+
+.transport-health ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.transport-label {
+  font-weight: 600;
+  color: var(--sdpi-color-text, #cccccc);
+}
+
+.transport-indicator {
+  font-size: 13px;
+  margin-left: 8px;
+}
+
+.transport-indicator.healthy {
+  color: var(--sdpi-color-success, #6dd400);
+}
+
+.transport-indicator.unhealthy {
+  color: var(--sdpi-color-danger, #ff4d4f);
 }
 </style>

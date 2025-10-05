@@ -20,6 +20,11 @@ describe("GroupControlView", () => {
     ).toBe(true);
   });
 
+  it("renders connectivity diagnostics section", () => {
+    const wrapper = mount(GroupControlView);
+    expect(wrapper.find(".diagnostics-section").exists()).toBe(true);
+  });
+
   it("displays control mode section", () => {
     const wrapper = mount(GroupControlView);
     expect(wrapper.find('[data-testid="control-mode-section"]').exists()).toBe(

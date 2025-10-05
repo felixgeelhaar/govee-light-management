@@ -2,9 +2,14 @@
  * Shared light-related types for the Govee Light Management plugin
  */
 
-/**
- * Represents a light item with its basic properties
- */
+export interface LightCapabilities {
+  power: boolean;
+  brightness: boolean;
+  color: boolean;
+  colorTemperature: boolean;
+  scenes: boolean;
+}
+
 export interface LightItem {
   deviceId: string;
   model: string;
@@ -22,6 +27,7 @@ export interface LightItem {
       };
     };
   };
+  capabilities?: LightCapabilities;
 }
 
 /**

@@ -17,6 +17,15 @@ import {
   ColorRgb,
   ColorTemperature,
 } from "@felixgeelhaar/govee-api-client";
+import {
+  TransportOrchestrator,
+  TransportKind,
+  CloudTransport,
+  TransportHealthService,
+} from "../connectivity";
+import { DeviceService } from "../domain/services/DeviceService";
+import { globalSettingsService } from "../services/GlobalSettingsService";
+import { telemetryService } from "../services/TelemetryService";
 
 type GroupControlSettings = {
   apiKey?: string;
@@ -38,6 +47,10 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
   private lightControlService?: LightControlService;
   private groupService?: LightGroupService;
   private currentGroup?: LightGroup;
+  private currentApiKey?: string;
+  private transportOrchestrator?: TransportOrchestrator;
+  private deviceService?: DeviceService;
+  private healthService?: TransportHealthService;
 
   /**
    * Initialize services when action appears
@@ -47,9 +60,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
   ): Promise<void> {
     const { settings } = ev.payload;
 
-    if (settings.apiKey) {
-      this.initializeServices(settings.apiKey);
-    }
+    await this.ensureServices(settings.apiKey);
 
     // Set initial title based on configuration
     const title = this.getActionTitle(settings);
@@ -82,6 +93,8 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     ev: KeyDownEvent<GroupControlSettings>,
   ): Promise<void> {
     const { settings } = ev.payload;
+
+    await this.ensureServices(settings.apiKey);
 
     if (!this.isConfigured(settings)) {
       await ev.action.showAlert();
@@ -127,6 +140,10 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 
     const settings = await ev.action.getSettings();
 
+    if (ev.payload.event !== "validateApiKey") {
+      await this.ensureServices(settings.apiKey);
+    }
+
     switch (ev.payload.event) {
       case "validateApiKey":
         await this.handleValidateApiKey(ev);
@@ -143,8 +160,17 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       case "deleteGroup":
         await this.handleDeleteGroup(ev, settings);
         break;
+      case "getTransportHealth":
+        await this.handleGetTransportHealth();
+        break;
+      case "getTelemetrySnapshot":
+        await this.handleGetTelemetrySnapshot();
+        break;
+      case "resetTelemetry":
+        await this.handleResetTelemetry();
+        break;
       case "setSettings":
-        await this.handleSetSettings(ev);
+        await this.handleSetSettings(ev, settings);
         break;
       case "testGroup":
         await this.handleTestGroup(ev, settings);
@@ -156,16 +182,74 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
   }
 
   /**
-   * Initialize repositories and services
+   * Ensure repositories and services are ready for the requested API key
    */
-  private initializeServices(apiKey: string): void {
-    this.lightRepository = new GoveeLightRepository(apiKey, true);
-    this.groupRepository = new StreamDeckLightGroupRepository();
-    this.lightControlService = new LightControlService(this.lightRepository);
-    this.groupService = new LightGroupService(
-      this.groupRepository,
-      this.lightRepository,
-    );
+  private async ensureServices(apiKey?: string): Promise<void> {
+    if (!this.groupRepository) {
+      this.groupRepository = new StreamDeckLightGroupRepository();
+    }
+
+    if (apiKey && apiKey !== this.currentApiKey) {
+      this.lightRepository = new GoveeLightRepository(apiKey, true);
+      this.lightControlService = new LightControlService(this.lightRepository);
+      this.groupService = new LightGroupService(
+        this.groupRepository,
+        this.lightRepository,
+      );
+      this.currentApiKey = apiKey;
+
+      try {
+        await globalSettingsService.setApiKey(apiKey);
+      } catch (error) {
+        streamDeck.logger?.warn(
+          "Failed to persist API key globally",
+          error,
+        );
+      }
+    }
+
+    if (this.lightRepository && !this.lightControlService) {
+      this.lightControlService = new LightControlService(this.lightRepository);
+    }
+
+    if (
+      this.groupRepository &&
+      this.lightRepository &&
+      !this.groupService
+    ) {
+      this.groupService = new LightGroupService(
+        this.groupRepository,
+        this.lightRepository,
+      );
+    }
+
+    if (!this.transportOrchestrator) {
+      const cloudTransport = new CloudTransport();
+      this.transportOrchestrator = new TransportOrchestrator({
+        [TransportKind.Cloud]: cloudTransport,
+      });
+      this.healthService = new TransportHealthService(
+        this.transportOrchestrator,
+        streamDeck.logger,
+      );
+    }
+
+    if (this.transportOrchestrator && !this.deviceService) {
+      this.deviceService = new DeviceService(this.transportOrchestrator, {
+        logger: streamDeck.logger,
+      });
+    }
+  }
+
+  private clearApiServices(): void {
+    this.lightRepository = undefined;
+    this.lightControlService = undefined;
+    this.groupService = undefined;
+    this.transportOrchestrator = undefined;
+    this.deviceService = undefined;
+    this.healthService = undefined;
+    this.currentApiKey = undefined;
+    this.currentGroup = undefined;
   }
 
   /**
@@ -188,63 +272,93 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 
     const mode = settings.controlMode || "toggle";
     const stateSummary = group.getStateSummary();
+    const started = Date.now();
+    let commandName = `group.${mode}`;
 
-    switch (mode) {
-      case "toggle": {
-        // If all lights are on, turn them off. Otherwise, turn them on.
-        const targetState = stateSummary.allOn ? "off" : "on";
-        await this.lightControlService.controlGroup(group, targetState);
-        break;
+    try {
+      switch (mode) {
+        case "toggle": {
+          const targetState = stateSummary.allOn ? "off" : "on";
+          commandName = targetState === "on"
+            ? "group.power.on"
+            : "group.power.off";
+          await this.lightControlService.controlGroup(group, targetState);
+          break;
+        }
+
+        case "on":
+          commandName = "group.power.on";
+          if (
+            settings.brightnessValue !== undefined ||
+            settings.colorValue ||
+            settings.colorTempValue
+          ) {
+            const controlSettings = this.parseControlSettings(settings);
+            await this.lightControlService.turnOnGroupWithSettings(
+              group,
+              controlSettings,
+            );
+          } else {
+            await this.lightControlService.controlGroup(group, "on");
+          }
+          break;
+
+        case "off":
+          commandName = "group.power.off";
+          await this.lightControlService.controlGroup(group, "off");
+          break;
+
+        case "brightness":
+          if (settings.brightnessValue !== undefined) {
+            commandName = "group.brightness";
+            const brightness = new Brightness(settings.brightnessValue);
+            await this.lightControlService.controlGroup(
+              group,
+              "brightness",
+              brightness,
+            );
+          }
+          break;
+
+        case "color":
+          if (settings.colorValue) {
+            commandName = "group.color";
+            const color = ColorRgb.fromHex(settings.colorValue);
+            await this.lightControlService.controlGroup(group, "color", color);
+          }
+          break;
+
+        case "colorTemp":
+          if (settings.colorTempValue) {
+            commandName = "group.colorTemperature";
+            const colorTemp = new ColorTemperature(settings.colorTempValue);
+            await this.lightControlService.controlGroup(
+              group,
+              "colorTemperature",
+              colorTemp,
+            );
+          }
+          break;
       }
 
-      case "on":
-        if (
-          settings.brightnessValue ||
-          settings.colorValue ||
-          settings.colorTempValue
-        ) {
-          const controlSettings = this.parseControlSettings(settings);
-          await this.lightControlService.turnOnGroupWithSettings(
-            group,
-            controlSettings,
-          );
-        } else {
-          await this.lightControlService.controlGroup(group, "on");
-        }
-        break;
+      telemetryService.recordCommand({
+        command: commandName,
+        durationMs: Date.now() - started,
+        success: true,
+      });
+    } catch (error) {
+      const failure = error instanceof Error
+        ? { name: error.name, message: error.message }
+        : { name: "UnknownError", message: String(error) };
 
-      case "off":
-        await this.lightControlService.controlGroup(group, "off");
-        break;
+      telemetryService.recordCommand({
+        command: commandName,
+        durationMs: Date.now() - started,
+        success: false,
+        error: failure,
+      });
 
-      case "brightness":
-        if (settings.brightnessValue !== undefined) {
-          const brightness = new Brightness(settings.brightnessValue);
-          await this.lightControlService.controlGroup(
-            group,
-            "brightness",
-            brightness,
-          );
-        }
-        break;
-
-      case "color":
-        if (settings.colorValue) {
-          const color = ColorRgb.fromHex(settings.colorValue);
-          await this.lightControlService.controlGroup(group, "color", color);
-        }
-        break;
-
-      case "colorTemp":
-        if (settings.colorTempValue) {
-          const colorTemp = new ColorTemperature(settings.colorTempValue);
-          await this.lightControlService.controlGroup(
-            group,
-            "colorTemperature",
-            colorTemp,
-          );
-        }
-        break;
+      throw error;
     }
   }
 
@@ -325,6 +439,29 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     await Promise.all(refreshPromises);
   }
 
+  private mapGroupForInspector(group: LightGroup) {
+    const lights = group.lights.map((light) => ({
+      deviceId: light.deviceId,
+      model: light.model,
+      name: light.name,
+      label: light.name,
+      value: `${light.deviceId}|${light.model}`,
+      controllable: light.canBeControlled(),
+      retrievable: light.isOnline,
+      supportedCommands: [],
+    }));
+
+    return {
+      id: group.id,
+      name: group.name,
+      lightIds: group.lights.map(
+        (light) => `${light.deviceId}|${light.model}`,
+      ),
+      lightCount: group.size,
+      lights,
+    };
+  }
+
   /**
    * Handle request for available groups from property inspector
    */
@@ -341,26 +478,20 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     }
 
     try {
-      if (!this.groupService) {
-        this.initializeServices(settings.apiKey);
-      }
-
+      await this.ensureServices(settings.apiKey);
       if (!this.groupService) {
         return;
       }
       const groups = await this.groupService.getAllGroups();
-      const groupItems = groups.map((group) => ({
-        label: `${group.name} (${group.size} lights)`,
-        value: group.id,
-      }));
+      const serialized = groups.map((group) => this.mapGroupForInspector(group));
 
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "groupsReceived",
-        groups: groupItems,
+        groups: serialized,
       });
 
       streamDeck.logger.info(
-        `Sent ${groupItems.length} groups to property inspector`,
+        `Sent ${serialized.length} groups to property inspector`,
       );
     } catch (error) {
       streamDeck.logger.error("Failed to fetch groups:", error);
@@ -387,18 +518,23 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     }
 
     try {
-      if (!this.lightRepository) {
-        this.initializeServices(settings.apiKey);
+      await this.ensureServices(settings.apiKey);
+
+      const lights = this.deviceService
+        ? await this.deviceService.discover(true)
+        : await this.lightRepository?.getAllLights();
+
+      if (!lights) {
+        throw new Error("Light discovery service unavailable");
       }
 
-      if (!this.lightRepository) {
-        return;
-      }
-      const lights = await this.lightRepository.getAllLights();
-      const lightItems = lights.map((light) => ({
-        label: `${light.name} (${light.model})`,
-        value: `${light.deviceId}|${light.model}`,
-      }));
+      const lightItems = lights.map((light) => {
+        const isLightItem = "label" in light && "value" in light;
+        return {
+          label: isLightItem ? light.label : `${light.name} (${light.model})`,
+          value: isLightItem ? light.value : `${light.deviceId}|${light.model}`,
+        };
+      });
 
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "lightsReceived",
@@ -424,7 +560,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
     settings: GroupControlSettings,
   ): Promise<void> {
-    if (!settings.apiKey || !this.groupService) {
+    if (!settings.apiKey) {
       return;
     }
 
@@ -437,6 +573,12 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     }
 
     try {
+      await this.ensureServices(settings.apiKey);
+
+      if (!this.groupService) {
+        throw new Error("Group service unavailable");
+      }
+
       // Parse light IDs from the format "deviceId|model"
       const lightIds = payload.selectedLightIds.map((id: string) => {
         const [deviceId, model] = id.split("|");
@@ -451,11 +593,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "groupCreated",
         success: true,
-        group: {
-          id: group.id,
-          name: group.name,
-          lightCount: group.size,
-        },
+        group: this.mapGroupForInspector(group),
       });
 
       // Refresh the groups list
@@ -479,25 +617,22 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     _settings: GroupControlSettings,
   ): Promise<void> {
     const payload = ev.payload as { groupId?: string };
-    if (!payload.groupId || !this.groupService) {
+    if (!payload.groupId) {
       return;
     }
 
     try {
+      await this.ensureServices(this.currentApiKey);
+
+      if (!this.groupService) {
+        throw new Error("Group service unavailable");
+      }
+
       const group = await this.groupService.findGroupById(payload.groupId);
       if (group) {
-        const lightIds = group.lights.map(
-          (light) => `${light.deviceId}|${light.model}`,
-        );
-
         await streamDeck.ui.current?.sendToPropertyInspector({
           event: "groupDetails",
-          group: {
-            id: group.id,
-            name: group.name,
-            lightIds,
-            lightCount: group.size,
-          },
+          group: this.mapGroupForInspector(group),
         });
       } else {
         await streamDeck.ui.current?.sendToPropertyInspector({
@@ -521,7 +656,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
     settings: GroupControlSettings,
   ): Promise<void> {
-    if (!settings.apiKey || !this.groupService) {
+    if (!settings.apiKey) {
       return;
     }
 
@@ -535,6 +670,12 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     }
 
     try {
+      await this.ensureServices(settings.apiKey);
+
+      if (!this.groupService) {
+        throw new Error("Group service unavailable");
+      }
+
       // Parse light IDs from the format "deviceId|model"
       const lightIds = payload.selectedLightIds.map((id: string) => {
         const [deviceId, model] = id.split("|");
@@ -551,11 +692,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "groupEdited",
         success: true,
-        group: {
-          id: updatedGroup.id,
-          name: updatedGroup.name,
-          lightCount: updatedGroup.size,
-        },
+        group: this.mapGroupForInspector(updatedGroup),
       });
 
       // Refresh the groups list
@@ -578,22 +715,25 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
     settings: GroupControlSettings,
   ): Promise<void> {
-    if (!this.groupService) {
-      return;
-    }
-
     const payload = ev.payload as { groupId?: string };
     if (!payload.groupId) {
       return;
     }
 
     try {
+      await this.ensureServices(settings.apiKey);
+
+      if (!this.groupService) {
+        throw new Error("Group service unavailable");
+      }
+
       await this.groupService.deleteGroup(payload.groupId);
 
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "groupDeleted",
         success: true,
         message: "Group deleted successfully",
+        groupId: payload.groupId,
       });
 
       // Refresh the groups list
@@ -605,6 +745,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
         success: false,
         message:
           error instanceof Error ? error.message : "Failed to delete group",
+        groupId: payload.groupId,
       });
     }
   }
@@ -616,13 +757,18 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
     settings: GroupControlSettings,
   ): Promise<void> {
-    if (
-      !settings.selectedGroupId ||
-      !this.groupService ||
-      !this.lightControlService
-    ) {
+    if (!settings.selectedGroupId) {
       return;
     }
+
+    await this.ensureServices(settings.apiKey);
+
+    if (!this.groupService || !this.lightControlService) {
+      return;
+    }
+
+    const started = Date.now();
+    let recorded = false;
 
     try {
       const group = await this.groupService.findGroupById(
@@ -642,6 +788,13 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
           }
         }, 1500);
 
+        telemetryService.recordCommand({
+          command: "group.test",
+          durationMs: Date.now() - started,
+          success: true,
+        });
+        recorded = true;
+
         await streamDeck.ui.current?.sendToPropertyInspector({
           event: "testResult",
           success: true,
@@ -650,6 +803,16 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       }
     } catch (error) {
       streamDeck.logger.error("Group test failed:", error);
+      if (!recorded) {
+        telemetryService.recordCommand({
+          command: "group.test",
+          durationMs: Date.now() - started,
+          success: false,
+          error: error instanceof Error
+            ? { name: error.name, message: error.message }
+            : { name: "UnknownError", message: String(error) },
+        });
+      }
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "testResult",
         success: false,
@@ -678,6 +841,43 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     }
   }
 
+  private async handleGetTransportHealth(): Promise<void> {
+    await this.ensureServices(this.currentApiKey);
+
+    if (!this.healthService) {
+      await streamDeck.ui.current?.sendToPropertyInspector({
+        event: "transportHealth",
+        transports: [],
+      });
+      return;
+    }
+
+    const snapshot = await this.healthService.getHealth(true);
+    await streamDeck.ui.current?.sendToPropertyInspector({
+      event: "transportHealth",
+      transports: snapshot.map((health) => ({
+        kind: health.descriptor.kind,
+        label: health.descriptor.label,
+        isHealthy: health.isHealthy,
+        latencyMs: health.latencyMs,
+        lastChecked: health.lastChecked,
+      })),
+    });
+  }
+
+  private async handleGetTelemetrySnapshot(): Promise<void> {
+    const snapshot = telemetryService.getSnapshot();
+    await streamDeck.ui.current?.sendToPropertyInspector({
+      event: "telemetrySnapshot",
+      snapshot: JSON.parse(JSON.stringify(snapshot)),
+    });
+  }
+
+  private async handleResetTelemetry(): Promise<void> {
+    telemetryService.reset();
+    await this.handleGetTelemetrySnapshot();
+  }
+
   /**
    * Handle API key validation from property inspector
    */
@@ -700,6 +900,14 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       // Test API key by attempting to create repository and fetch lights
       const testRepository = new GoveeLightRepository(apiKey, true);
       await testRepository.getAllLights();
+
+      try {
+        await globalSettingsService.setApiKey(apiKey);
+      } catch (error) {
+        streamDeck.logger.warn("Failed to persist API key globally", error);
+      }
+
+      await this.ensureServices(apiKey);
 
       // If successful, API key is valid
       await streamDeck.ui.current?.sendToPropertyInspector({
@@ -749,9 +957,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     }
 
     try {
-      if (!this.groupService) {
-        this.initializeServices(settings.apiKey);
-      }
+      await this.ensureServices(settings.apiKey);
 
       // Parse light IDs from the format "deviceId|model"
       const lightIds = group.lightIds.map((id: string) => {
@@ -760,8 +966,9 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       });
 
       if (!this.groupService) {
-        return;
+        throw new Error("Group service unavailable");
       }
+
       const savedGroup = await this.groupService.createGroup(
         group.name,
         lightIds,
@@ -770,11 +977,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       await streamDeck.ui.current?.sendToPropertyInspector({
         event: "groupSaved",
         success: true,
-        group: {
-          id: savedGroup.id,
-          name: savedGroup.name,
-          lightCount: savedGroup.size,
-        },
+        group: this.mapGroupForInspector(savedGroup),
       });
 
       streamDeck.logger.info(`Group "${group.name}" saved successfully`);
@@ -793,6 +996,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
    */
   private async handleSetSettings(
     ev: SendToPluginEvent<JsonValue, GroupControlSettings>,
+    previousSettings: GroupControlSettings,
   ): Promise<void> {
     const payload = ev.payload as { settings?: GroupControlSettings };
     const newSettings = payload.settings;
@@ -805,12 +1009,17 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       // Update action settings
       await ev.action.setSettings(newSettings);
 
-      // Re-initialize services if API key changed
-      if (
-        newSettings.apiKey &&
-        newSettings.apiKey !== (await ev.action.getSettings()).apiKey
-      ) {
-        this.initializeServices(newSettings.apiKey);
+      if (newSettings.apiKey && newSettings.apiKey !== previousSettings.apiKey) {
+        await this.ensureServices(newSettings.apiKey);
+      } else if (!newSettings.apiKey && previousSettings.apiKey) {
+        try {
+          await globalSettingsService.clearApiKey();
+        } catch (error) {
+          streamDeck.logger?.warn("Failed to clear API key globally", error);
+        }
+        this.clearApiServices();
+      } else {
+        await this.ensureServices(newSettings.apiKey ?? this.currentApiKey);
       }
 
       // Update current group if selection changed

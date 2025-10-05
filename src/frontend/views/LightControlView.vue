@@ -65,6 +65,33 @@
       </div>
     </section>
 
+    <section class="config-section diagnostics-section">
+      <h2>Connectivity Diagnostics</h2>
+
+      <div v-if="transportHealth.length" class="transport-health">
+        <ul>
+          <li v-for="health in transportHealth" :key="health.kind">
+            <span class="transport-label">{{ health.label }}</span>
+            <span
+              class="transport-indicator"
+              :class="{ healthy: health.isHealthy, unhealthy: !health.isHealthy }"
+            >
+              {{ health.isHealthy ? "Available" : "Unavailable" }}
+              <span v-if="health.latencyMs !== undefined">
+                • {{ health.latencyMs }} ms
+              </span>
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      <DiagnosticsPanel
+        :snapshot="telemetrySnapshot"
+        @refresh="refreshDiagnostics"
+        @reset="resetTelemetry"
+      />
+    </section>
+
     <!-- Light Selection Section -->
     <section class="config-section" data-testid="light-selection-section">
       <h2>Light Selection</h2>
@@ -217,12 +244,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import type { ControlMode } from "@shared/types";
 import { useApiConnection } from "../composables/useApiConnection";
 import { useLightDiscovery } from "../composables/useLightDiscovery";
 import { useLightControlSettings } from "../composables/useSettings";
 import { useFeedbackHelpers } from "../composables/useFeedback";
+import { websocketService } from "../services/websocketService";
+import DiagnosticsPanel from "../components/DiagnosticsPanel.vue";
 
 // XState composables
 const apiConnection = useApiConnection();
@@ -294,6 +323,16 @@ const colorTempValue = computed({
     settingsManager.updateSetting("colorTempValue", value),
 });
 
+const transportHealth = ref<Array<{
+  kind: string;
+  label: string;
+  isHealthy: boolean;
+  latencyMs?: number;
+  lastChecked?: number;
+}>>([]);
+
+const telemetrySnapshot = ref<any | null>(null);
+
 // Actions
 const connectToApi = () => {
   if (localApiKey.value) {
@@ -305,6 +344,23 @@ const connectToApi = () => {
 const clearSearch = () => {
   searchQuery.value = "";
   lightDiscovery.clearSearch();
+};
+
+const refreshTransportHealth = () => {
+  websocketService.requestTransportHealth();
+};
+
+const refreshTelemetry = () => {
+  websocketService.requestTelemetrySnapshot();
+};
+
+const resetTelemetry = () => {
+  websocketService.resetTelemetry();
+};
+
+const refreshDiagnostics = () => {
+  refreshTransportHealth();
+  refreshTelemetry();
 };
 
 // Watch for API connection changes to automatically fetch lights
@@ -319,6 +375,8 @@ watch(
       if (lightDiscovery.isIdle.value) {
         lightDiscovery.fetchLights();
       }
+      refreshTransportHealth();
+      refreshTelemetry();
     }
   },
 );
@@ -392,6 +450,21 @@ onMounted(() => {
   if (settingsManager.settings.apiKey) {
     apiConnection.connect(settingsManager.settings.apiKey);
   }
+
+  const piHandler = (message: any) => {
+    if (message.payload?.event === "transportHealth") {
+      transportHealth.value = message.payload.transports ?? [];
+    }
+    if (message.payload?.event === "telemetrySnapshot") {
+      telemetrySnapshot.value = message.payload.snapshot ?? null;
+    }
+  };
+
+  websocketService.on("sendToPropertyInspector", piHandler);
+
+  onUnmounted(() => {
+    websocketService.off("sendToPropertyInspector", piHandler);
+  });
 });
 </script>
 
@@ -594,5 +667,36 @@ onMounted(() => {
 .status-icon {
   font-size: 16px;
   flex-shrink: 0;
+}
+
+.diagnostics-section {
+  display: grid;
+  gap: 12px;
+}
+
+.transport-health ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.transport-label {
+  font-weight: 600;
+  color: var(--sdpi-color-text, #cccccc);
+}
+
+.transport-indicator {
+  font-size: 13px;
+  margin-left: 8px;
+}
+
+.transport-indicator.healthy {
+  color: var(--sdpi-color-success, #6dd400);
+}
+
+.transport-indicator.unhealthy {
+  color: var(--sdpi-color-danger, #ff4d4f);
 }
 </style>

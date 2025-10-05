@@ -18,7 +18,8 @@ export default defineConfig({
       // External dependencies that should not be bundled
       external: [
         '@elgato/streamdeck',
-        '@felixgeelhaar/govee-api-client'
+        '@felixgeelhaar/govee-api-client',
+        'node:events'
       ],
       
       output: {
