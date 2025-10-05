@@ -26,7 +26,8 @@
     }
   },
   "include": [
-    "src/frontend/**/*.ts", 
+    "src/frontend/**/*.ts",
+    "src/frontend/**/*.d.ts",
     "src/frontend/**/*.vue",
     "src/shared/**/*.ts"
   ],

@@ -115,7 +115,7 @@
         >
           <option value="">-- Select a light --</option>
           <option
-            v-for="light in lightDiscovery.lights"
+            v-for="light in lightsArray"
             :key="light.value"
             :value="light.value"
           >
@@ -161,7 +161,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useApiConnection } from "../composables/useApiConnection";
 import { useLightDiscovery } from "../composables/useLightDiscovery";
 
@@ -173,6 +173,9 @@ const localApiKey = ref("");
 const lightDiscovery = useLightDiscovery();
 const selectedLight = ref("");
 const searchQuery = ref("");
+
+// Explicitly extract lights array for template (helps TypeScript)
+const lightsArray = computed(() => lightDiscovery.lights.value);
 
 // Dial configuration
 const stepSize = ref(5);
@@ -186,7 +189,7 @@ async function connectToApi() {
 // Handle light selection
 function onLightSelected() {
   const [deviceId, model] = selectedLight.value.split("|");
-  const light = lightDiscovery.lights.find((l) => l.value === selectedLight.value);
+  const light = lightDiscovery.lights.value.find((l) => l.value === selectedLight.value);
 
   if (light) {
     saveSettings({
