@@ -1,69 +1,7 @@
 <template>
   <div class="colortemp-dial-view">
     <!-- API Configuration Section -->
-    <section class="config-section" data-testid="api-key-section">
-      <h2>API Configuration</h2>
-      <div class="form-group">
-        <label for="apiKey">API Key</label>
-        <div class="input-group">
-          <input
-            id="apiKey"
-            v-model="localApiKey"
-            type="password"
-            class="form-input"
-            placeholder="Enter your Govee API key"
-            autocomplete="off"
-            :disabled="apiConnection.isConnecting.value"
-            @keyup.enter="connectToApi"
-          />
-          <button
-            v-if="apiConnection.isDisconnected || apiConnection.hasError"
-            class="btn btn-primary"
-            :disabled="!localApiKey || apiConnection.isConnecting.value"
-            @click="connectToApi"
-          >
-            <span v-if="apiConnection.isConnecting">Connecting...</span>
-            <span v-else>Connect</span>
-          </button>
-          <button
-            v-else-if="apiConnection.isConnected"
-            class="btn btn-secondary"
-            @click="apiConnection.disconnect"
-          >
-            Disconnect
-          </button>
-        </div>
-
-        <!-- Connection Status -->
-        <div
-          v-if="apiConnection.isConnecting"
-          class="status-message status-loading"
-        >
-          <span class="status-icon">⏳</span>
-          Validating API key...
-        </div>
-        <div
-          v-else-if="apiConnection.isConnected"
-          class="status-message status-success"
-        >
-          <span class="status-icon">✅</span>
-          API key validated successfully
-        </div>
-        <div
-          v-else-if="apiConnection.hasError"
-          class="status-message status-error"
-        >
-          <span class="status-icon">❌</span>
-          {{ apiConnection.error }}
-          <button class="btn-link" @click="apiConnection.retry">Retry</button>
-        </div>
-
-        <small class="help-text">
-          Get your API key from the Govee Home app → Settings → About Us → Apply
-          for API Key
-        </small>
-      </div>
-    </section>
+    <ApiConfigSection v-model="localApiKey" />
 
     <!-- Light Selection Section -->
     <section class="config-section" data-testid="light-selection-section">
@@ -165,6 +103,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useApiConnection } from "../composables/useApiConnection";
 import { useLightDiscovery } from "../composables/useLightDiscovery";
+import ApiConfigSection from "../components/ApiConfigSection.vue";
 
 // API Connection composable
 const apiConnection = useApiConnection();
@@ -179,12 +118,6 @@ const lightsArray = computed(() => lightDiscovery.lights.value);
 
 // Dial configuration
 const stepSize = ref(100);
-
-// Connect to API
-async function connectToApi() {
-  if (!localApiKey.value) return;
-  await apiConnection.connect(localApiKey.value);
-}
 
 // Handle light selection
 function onLightSelected() {
