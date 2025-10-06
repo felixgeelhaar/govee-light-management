@@ -158,21 +158,17 @@
         </small>
       </div>
 
-      <div class="form-group">
-        <label for="stepSize">Dial Step Size (° per tick)</label>
-        <input
-          id="stepSize"
-          v-model.number="stepSize"
-          type="number"
-          min="1"
-          max="90"
-          class="form-input"
-          @change="saveSettings"
-        />
-        <small class="help-text">
-          Each rotation tick will adjust hue by this amount (1-90°)
-        </small>
-      </div>
+      <FormInput
+        id="stepSize"
+        v-model="stepSize"
+        label="Dial Step Size (° per tick)"
+        type="number"
+        :min="1"
+        :max="90"
+        :required="true"
+        help-text="Each rotation tick will adjust hue by this amount (1-90°)"
+        @update:model-value="() => saveSettings()"
+      />
 
       <div class="help-section">
         <h3>How to Use:</h3>
@@ -192,6 +188,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useApiConnection } from "../composables/useApiConnection";
 import { useLightDiscovery } from "../composables/useLightDiscovery";
 import ApiConfigSection from "../components/ApiConfigSection.vue";
+import FormInput from "../components/FormInput.vue";
 
 // API Connection composable
 const apiConnection = useApiConnection();

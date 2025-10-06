@@ -70,21 +70,17 @@
     <section v-if="selectedLight" class="config-section">
       <h2>Dial Configuration</h2>
 
-      <div class="form-group">
-        <label for="stepSize">Brightness Step Size (% per tick)</label>
-        <input
-          id="stepSize"
-          v-model.number="stepSize"
-          type="number"
-          min="1"
-          max="25"
-          class="form-input"
-          @change="saveSettings"
-        />
-        <small class="help-text">
-          Each rotation tick will adjust brightness by this amount (1-25%)
-        </small>
-      </div>
+      <FormInput
+        id="stepSize"
+        v-model="stepSize"
+        label="Brightness Step Size (% per tick)"
+        type="number"
+        :min="1"
+        :max="25"
+        :required="true"
+        help-text="Each rotation tick will adjust brightness by this amount (1-25%). Range: 1-100%"
+        @update:model-value="() => saveSettings()"
+      />
 
       <div class="help-section">
         <h3>How to Use:</h3>
@@ -103,6 +99,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useApiConnection } from "../composables/useApiConnection";
 import { useLightDiscovery } from "../composables/useLightDiscovery";
 import ApiConfigSection from "../components/ApiConfigSection.vue";
+import FormInput from "../components/FormInput.vue";
 
 // API Connection composable
 const apiConnection = useApiConnection();

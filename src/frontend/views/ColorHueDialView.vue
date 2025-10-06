@@ -70,37 +70,29 @@
     <section v-if="selectedLight" class="config-section">
       <h2>Dial Configuration</h2>
 
-      <div class="form-group">
-        <label for="stepSize">Hue Step Size (degrees per tick)</label>
-        <input
-          id="stepSize"
-          v-model.number="stepSize"
-          type="number"
-          min="1"
-          max="90"
-          class="form-input"
-          @change="saveSettings"
-        />
-        <small class="help-text">
-          Each rotation tick will change hue by this amount (1-90°). Full color wheel: 0-360°
-        </small>
-      </div>
+      <FormInput
+        id="stepSize"
+        v-model="stepSize"
+        label="Hue Step Size (degrees per tick)"
+        type="number"
+        :min="1"
+        :max="90"
+        :required="true"
+        help-text="Each rotation tick will change hue by this amount (1-90°). Full color wheel: 0-360°"
+        @update:model-value="() => saveSettings()"
+      />
 
-      <div class="form-group">
-        <label for="saturation">Color Saturation (%)</label>
-        <input
-          id="saturation"
-          v-model.number="saturation"
-          type="number"
-          min="0"
-          max="100"
-          class="form-input"
-          @change="saveSettings"
-        />
-        <small class="help-text">
-          Color intensity: 0% = white, 100% = fully saturated color
-        </small>
-      </div>
+      <FormInput
+        id="saturation"
+        v-model="saturation"
+        label="Color Saturation (%)"
+        type="number"
+        :min="0"
+        :max="100"
+        :required="true"
+        help-text="Color intensity: 0% = white, 100% = fully saturated color"
+        @update:model-value="() => saveSettings()"
+      />
 
       <div class="help-section">
         <h3>How to Use:</h3>
@@ -120,6 +112,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useApiConnection } from "../composables/useApiConnection";
 import { useLightDiscovery } from "../composables/useLightDiscovery";
 import ApiConfigSection from "../components/ApiConfigSection.vue";
+import FormInput from "../components/FormInput.vue";
 
 // API Connection composable
 const apiConnection = useApiConnection();

@@ -70,21 +70,17 @@
     <section v-if="selectedLight" class="config-section">
       <h2>Dial Configuration</h2>
 
-      <div class="form-group">
-        <label for="stepSize">Temperature Step Size (Kelvin per tick)</label>
-        <input
-          id="stepSize"
-          v-model.number="stepSize"
-          type="number"
-          min="50"
-          max="500"
-          class="form-input"
-          @change="saveSettings"
-        />
-        <small class="help-text">
-          Each rotation tick will adjust color temperature by this amount (50-500K). Range: 2000K (warm) to 9000K (cool)
-        </small>
-      </div>
+      <FormInput
+        id="stepSize"
+        v-model="stepSize"
+        label="Temperature Step Size (Kelvin per tick)"
+        type="number"
+        :min="50"
+        :max="500"
+        :required="true"
+        help-text="Each rotation tick will adjust color temperature by this amount (50-500K). Range: 2000K (warm) to 9000K (cool)"
+        @update:model-value="() => saveSettings()"
+      />
 
       <div class="help-section">
         <h3>How to Use:</h3>
@@ -104,6 +100,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useApiConnection } from "../composables/useApiConnection";
 import { useLightDiscovery } from "../composables/useLightDiscovery";
 import ApiConfigSection from "../components/ApiConfigSection.vue";
+import FormInput from "../components/FormInput.vue";
 
 // API Connection composable
 const apiConnection = useApiConnection();
