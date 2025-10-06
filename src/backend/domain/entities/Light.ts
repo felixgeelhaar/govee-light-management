@@ -5,10 +5,21 @@ import {
 } from "@felixgeelhaar/govee-api-client";
 import { LightState } from "../value-objects/LightState";
 
+/**
+ * Capabilities supported by a Govee light device
+ */
 export interface LightCapabilities {
+  // Basic control
   brightness: boolean;
   color: boolean;
   colorTemperature: boolean;
+
+  // Advanced features (v1.1.0+)
+  scenes: boolean; // Dynamic scene support (Sunrise, Sunset, Rainbow, etc.)
+  segmentedColor: boolean; // RGB IC lights with per-segment control
+  musicMode: boolean; // Music-reactive lighting
+  nightlight: boolean; // Nightlight mode toggle
+  gradient: boolean; // Gradient effect toggle
 }
 
 export class Light {
@@ -18,9 +29,16 @@ export class Light {
     private readonly _name: string,
     private _state: LightState,
     private readonly _capabilities: LightCapabilities = {
+      // Basic capabilities (most lights support these)
       brightness: true,
       color: true,
       colorTemperature: true,
+      // Advanced capabilities (default to false, detected from API)
+      scenes: false,
+      segmentedColor: false,
+      musicMode: false,
+      nightlight: false,
+      gradient: false,
     },
   ) {}
 
@@ -93,6 +111,29 @@ export class Light {
 
   canBeControlled(): boolean {
     return this._state.isOnline;
+  }
+
+  /**
+   * Advanced capability checks (v1.1.0+)
+   */
+  supportsScenes(): boolean {
+    return this._capabilities.scenes;
+  }
+
+  supportsSegmentedColor(): boolean {
+    return this._capabilities.segmentedColor;
+  }
+
+  supportsMusicMode(): boolean {
+    return this._capabilities.musicMode;
+  }
+
+  supportsNightlight(): boolean {
+    return this._capabilities.nightlight;
+  }
+
+  supportsGradient(): boolean {
+    return this._capabilities.gradient;
   }
 
   equals(other: Light): boolean {

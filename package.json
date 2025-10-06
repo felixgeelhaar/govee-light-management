@@ -67,7 +67,7 @@
     },
     "dependencies": {
         "@elgato/streamdeck": "^1.0.0",
-        "@felixgeelhaar/govee-api-client": "^3.0.0",
+        "@felixgeelhaar/govee-api-client": "3.0.1",
         "@xstate/vue": "^5.0.0",
         "vue": "^3.5.22",
         "xstate": "^5.22.1",

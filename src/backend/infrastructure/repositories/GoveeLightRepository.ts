@@ -7,6 +7,9 @@ import {
 } from "@felixgeelhaar/govee-api-client";
 import { ILightRepository } from "../../domain/repositories/ILightRepository";
 import { Light, LightState } from "../../domain/entities";
+import { Scene } from "../../domain/value-objects/Scene";
+import { SegmentColor } from "../../domain/value-objects/SegmentColor";
+import { MusicModeConfig } from "../../domain/value-objects/MusicModeConfig";
 import streamDeck from "@elgato/streamdeck";
 
 export class GoveeLightRepository implements ILightRepository {
@@ -282,6 +285,41 @@ export class GoveeLightRepository implements ILightRepository {
         `Failed to get light state: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
+  }
+
+  async applyScene(light: Light, scene: Scene): Promise<void> {
+    // TODO: Implement when @felixgeelhaar/govee-api-client v3.1.0+ adds applyScene method
+    throw new Error(
+      `Scene control not yet supported by govee-api-client. Scene: ${scene.name} (${scene.type})`,
+    );
+  }
+
+  async setSegmentColors(light: Light, segments: SegmentColor[]): Promise<void> {
+    // TODO: Implement when @felixgeelhaar/govee-api-client v3.1.0+ adds setSegmentColors method
+    throw new Error(
+      `Segment color control not yet supported by govee-api-client. Attempted to set ${segments.length} segments.`,
+    );
+  }
+
+  async setMusicMode(light: Light, config: MusicModeConfig): Promise<void> {
+    // TODO: Implement when @felixgeelhaar/govee-api-client v3.1.0+ adds setMusicMode method
+    throw new Error(
+      `Music mode not yet supported by govee-api-client. Mode: ${config.mode} (sensitivity: ${config.sensitivity}%)`,
+    );
+  }
+
+  async toggleNightlight(light: Light, enabled: boolean): Promise<void> {
+    // TODO: Implement when @felixgeelhaar/govee-api-client v3.1.0+ adds toggleNightlight method
+    throw new Error(
+      `Nightlight toggle not yet supported by govee-api-client. Attempted to ${enabled ? "enable" : "disable"}.`,
+    );
+  }
+
+  async toggleGradient(light: Light, enabled: boolean): Promise<void> {
+    // TODO: Implement when @felixgeelhaar/govee-api-client v3.1.0+ adds toggleGradient method
+    throw new Error(
+      `Gradient toggle not yet supported by govee-api-client. Attempted to ${enabled ? "enable" : "disable"}.`,
+    );
   }
 
   /**

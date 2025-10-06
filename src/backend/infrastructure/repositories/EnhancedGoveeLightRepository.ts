@@ -7,6 +7,9 @@ import {
 } from "@felixgeelhaar/govee-api-client";
 import { ILightRepository } from "../../domain/repositories/ILightRepository";
 import { Light, LightState } from "../../domain/entities";
+import { Scene } from "../../domain/value-objects/Scene";
+import { SegmentColor } from "../../domain/value-objects/SegmentColor";
+import { MusicModeConfig } from "../../domain/value-objects/MusicModeConfig";
 import streamDeck from "@elgato/streamdeck";
 import { ErrorBoundaries } from "../errors/ErrorBoundaries";
 import { ApiResponseValidator } from "../validation/ApiResponseValidator";
@@ -15,6 +18,7 @@ import {
   CircuitBreaker,
   CircuitBreakerFactory,
 } from "../resilience/CircuitBreaker";
+import { SceneMapper, MusicModeMapper, SegmentColorMapper } from "../mappers";
 
 /**
  * Enhanced Govee Light Repository with comprehensive error handling,
@@ -364,6 +368,141 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
       light.deviceId,
       light.name,
       "Get Light State",
+    );
+  }
+
+  async applyScene(light: Light, scene: Scene): Promise<void> {
+    // Validate scene is supported before attempting to apply
+    if (!SceneMapper.isSupported(scene)) {
+      throw new Error(
+        `Scene "${scene.name}" is not supported by Govee API. ` +
+        `Supported scenes: ${SceneMapper.getSupportedSceneCodes().join(', ')}`
+      );
+    }
+
+    return ErrorBoundaries.wrapDeviceControl(
+      async () => {
+        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(
+          light.deviceId,
+        );
+
+        return deviceCircuitBreaker.execute(async () => {
+          const apiScene = SceneMapper.toApiLightScene(scene);
+          await this.client.setLightScene(
+            light.deviceId,
+            light.model,
+            apiScene,
+          );
+          streamDeck.logger.info(
+            `Light ${light.name} scene set to ${scene.name}`,
+          );
+        });
+      },
+      light.deviceId,
+      light.name,
+      "Apply Scene",
+    );
+  }
+
+  async setSegmentColors(light: Light, segments: SegmentColor[]): Promise<void> {
+    if (segments.length === 0) {
+      throw new Error('At least one segment color must be provided');
+    }
+
+    return ErrorBoundaries.wrapDeviceControl(
+      async () => {
+        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(
+          light.deviceId,
+        );
+
+        return deviceCircuitBreaker.execute(async () => {
+          const apiSegments = SegmentColorMapper.toApiSegmentColors(segments);
+          await this.client.setSegmentColors(
+            light.deviceId,
+            light.model,
+            apiSegments,
+          );
+          streamDeck.logger.info(
+            `Light ${light.name} segment colors set (${segments.length} segments)`,
+          );
+        });
+      },
+      light.deviceId,
+      light.name,
+      "Set Segment Colors",
+    );
+  }
+
+  async setMusicMode(light: Light, config: MusicModeConfig): Promise<void> {
+    return ErrorBoundaries.wrapDeviceControl(
+      async () => {
+        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(
+          light.deviceId,
+        );
+
+        return deviceCircuitBreaker.execute(async () => {
+          const apiMusicMode = MusicModeMapper.toApiMusicMode(config);
+          await this.client.setMusicMode(
+            light.deviceId,
+            light.model,
+            apiMusicMode,
+          );
+          streamDeck.logger.info(
+            `Light ${light.name} music mode set to ${config.mode} (sensitivity: ${config.sensitivity}%)`,
+          );
+        });
+      },
+      light.deviceId,
+      light.name,
+      "Set Music Mode",
+    );
+  }
+
+  async toggleNightlight(light: Light, enabled: boolean): Promise<void> {
+    return ErrorBoundaries.wrapDeviceControl(
+      async () => {
+        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(
+          light.deviceId,
+        );
+
+        return deviceCircuitBreaker.execute(async () => {
+          await this.client.setNightlightToggle(
+            light.deviceId,
+            light.model,
+            enabled,
+          );
+          streamDeck.logger.info(
+            `Light ${light.name} nightlight ${enabled ? 'enabled' : 'disabled'}`,
+          );
+        });
+      },
+      light.deviceId,
+      light.name,
+      "Toggle Nightlight",
+    );
+  }
+
+  async toggleGradient(light: Light, enabled: boolean): Promise<void> {
+    return ErrorBoundaries.wrapDeviceControl(
+      async () => {
+        const deviceCircuitBreaker = this.getDeviceCircuitBreaker(
+          light.deviceId,
+        );
+
+        return deviceCircuitBreaker.execute(async () => {
+          await this.client.setGradientToggle(
+            light.deviceId,
+            light.model,
+            enabled,
+          );
+          streamDeck.logger.info(
+            `Light ${light.name} gradient ${enabled ? 'enabled' : 'disabled'}`,
+          );
+        });
+      },
+      light.deviceId,
+      light.name,
+      "Toggle Gradient",
     );
   }
 

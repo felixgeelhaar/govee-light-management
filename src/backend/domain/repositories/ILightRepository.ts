@@ -4,6 +4,9 @@ import {
   ColorTemperature,
   Brightness,
 } from "@felixgeelhaar/govee-api-client";
+import { Scene } from "../value-objects/Scene";
+import { SegmentColor } from "../value-objects/SegmentColor";
+import { MusicModeConfig } from "../value-objects/MusicModeConfig";
 
 export interface ILightRepository {
   /**
@@ -71,4 +74,29 @@ export interface ILightRepository {
    * Get current state of a light
    */
   getLightState(light: Light): Promise<void>;
+
+  /**
+   * Apply a scene to a light (dynamic, preset, or custom)
+   */
+  applyScene(light: Light, scene: Scene): Promise<void>;
+
+  /**
+   * Set colors for individual segments on RGB IC lights
+   */
+  setSegmentColors(light: Light, segments: SegmentColor[]): Promise<void>;
+
+  /**
+   * Configure music mode for a light
+   */
+  setMusicMode(light: Light, config: MusicModeConfig): Promise<void>;
+
+  /**
+   * Toggle nightlight mode
+   */
+  toggleNightlight(light: Light, enabled: boolean): Promise<void>;
+
+  /**
+   * Toggle gradient effect
+   */
+  toggleGradient(light: Light, enabled: boolean): Promise<void>;
 }

@@ -6,6 +6,9 @@ import {
   BrightnessDialAction,
   ColorTempDialAction,
   ColorHueDialAction,
+  SceneControlAction,
+  MusicModeAction,
+  SegmentColorDialAction,
 } from "./actions";
 
 // Set appropriate logging level for production
@@ -19,6 +22,11 @@ streamDeck.actions.registerAction(new GroupControlAction());
 streamDeck.actions.registerAction(new BrightnessDialAction());
 streamDeck.actions.registerAction(new ColorTempDialAction());
 streamDeck.actions.registerAction(new ColorHueDialAction());
+
+// Register advanced feature actions (v1.1.0+)
+streamDeck.actions.registerAction(new SceneControlAction());
+streamDeck.actions.registerAction(new MusicModeAction());
+streamDeck.actions.registerAction(new SegmentColorDialAction());
 
 // Connect to Stream Deck
 streamDeck.connect();

@@ -17,6 +17,9 @@ export default defineConfig({
         'brightness-dial': resolve(__dirname, 'src/frontend/brightness-dial.html'),
         'colortemp-dial': resolve(__dirname, 'src/frontend/colortemp-dial.html'),
         'colorhue-dial': resolve(__dirname, 'src/frontend/colorhue-dial.html'),
+        'scene-control': resolve(__dirname, 'src/frontend/scene-control.html'),
+        'music-mode': resolve(__dirname, 'src/frontend/music-mode.html'),
+        'segment-color-dial': resolve(__dirname, 'src/frontend/segment-color-dial.html'),
       },
       output: {
         entryFileNames: '[name].js',

@@ -30,7 +30,17 @@ type LightControlSettings = {
   selectedDeviceId?: string;
   selectedModel?: string;
   selectedLightName?: string;
-  controlMode?: "toggle" | "on" | "off" | "brightness" | "color" | "colorTemp";
+  controlMode?:
+    | "toggle"
+    | "on"
+    | "off"
+    | "brightness"
+    | "color"
+    | "colorTemp"
+    | "nightlight-on"
+    | "nightlight-off"
+    | "gradient-on"
+    | "gradient-off";
   brightnessValue?: number;
   colorValue?: string; // hex color
   colorTempValue?: number; // Kelvin
@@ -214,6 +224,10 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       throw new Error("Light control service not initialized");
     }
 
+    if (!this.lightRepository) {
+      throw new Error("Light repository not initialized");
+    }
+
     const mode = settings.controlMode || "toggle";
     const started = Date.now();
     let commandName: string = mode;
@@ -286,6 +300,30 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
             "colorTemperature",
             colorTemp,
           );
+          break;
+        }
+
+        case "nightlight-on": {
+          commandName = "nightlight.on";
+          await this.lightRepository.toggleNightlight(light, true);
+          break;
+        }
+
+        case "nightlight-off": {
+          commandName = "nightlight.off";
+          await this.lightRepository.toggleNightlight(light, false);
+          break;
+        }
+
+        case "gradient-on": {
+          commandName = "gradient.on";
+          await this.lightRepository.toggleGradient(light, true);
+          break;
+        }
+
+        case "gradient-off": {
+          commandName = "gradient.off";
+          await this.lightRepository.toggleGradient(light, false);
           break;
         }
 
@@ -364,6 +402,14 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
         return `Color\n${lightName}`;
       case "colorTemp":
         return `Temp\n${lightName}`;
+      case "nightlight-on":
+        return `Night On\n${lightName}`;
+      case "nightlight-off":
+        return `Night Off\n${lightName}`;
+      case "gradient-on":
+        return `Grad On\n${lightName}`;
+      case "gradient-off":
+        return `Grad Off\n${lightName}`;
       default:
         return lightName;
     }

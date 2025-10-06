@@ -1,6 +1,6 @@
 {
 	"Name": "Govee Light Management",
-	"Version": "1.0.0.0",
+	"Version": "1.1.0.0",
 	"Author": "Felix Geelhaar",
 	"Actions": [
 		{
@@ -90,6 +90,58 @@
 				"TriggerDescription": {
 					"Rotate": "Adjust color hue (±15° per tick)",
 					"Push": "Toggle power on/off",
+					"Touch": "N/A"
+				},
+				"layout": "$B1"
+			}
+		},
+		{
+			"Name": "Scene Control",
+			"UUID": "com.felixgeelhaar.govee-light-management.scene-control",
+			"Icon": "imgs/actions/scene/icon",
+			"Tooltip": "Apply predefined scenes to your lights (sunrise, sunset, rainbow, etc.)",
+			"PropertyInspectorPath": "ui/dist/src/frontend/scene-control.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/scene/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Music Mode",
+			"UUID": "com.felixgeelhaar.govee-light-management.music-mode",
+			"Icon": "imgs/actions/music/icon",
+			"Tooltip": "Activate music visualization mode with customizable sensitivity",
+			"PropertyInspectorPath": "ui/dist/src/frontend/music-mode.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/music/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Segment Color Dial",
+			"UUID": "com.felixgeelhaar.govee-light-management.segment-color-dial",
+			"Icon": "imgs/actions/segment-color-dial/icon",
+			"Tooltip": "Control individual segment colors on RGB IC lights (rotate to select color, press to apply)",
+			"PropertyInspectorPath": "ui/dist/src/frontend/segment-color-dial.html",
+			"Controllers": [
+				"Encoder"
+			],
+			"Encoder": {
+				"Icon": "imgs/actions/segment-color-dial/icon",
+				"background": "imgs/actions/segment-color-dial/background",
+				"TriggerDescription": {
+					"Rotate": "Adjust segment color hue (±15° per tick)",
+					"Push": "Apply color to selected segment",
 					"Touch": "N/A"
 				},
 				"layout": "$B1"
