@@ -70,7 +70,7 @@
         "@felixgeelhaar/govee-api-client": "3.0.2",
         "@xstate/vue": "^5.0.0",
         "vue": "^3.5.22",
-        "xstate": "^5.22.1",
+        "xstate": "^5.23.0",
         "zod": "^4.1.11"
     },
     "engines": {
