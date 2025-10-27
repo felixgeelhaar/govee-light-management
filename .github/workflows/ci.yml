@@ -136,7 +136,7 @@ jobs:
       run: npm run test:e2e
 
     - name: Upload test results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: failure()  # ✅ Only upload on failure to save quota
       with:
         name: playwright-report
