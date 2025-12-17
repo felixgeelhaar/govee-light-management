@@ -4,9 +4,9 @@ import {
   SingletonAction,
   WillAppearEvent,
   type SendToPluginEvent,
-  type JsonValue,
   streamDeck,
 } from "@elgato/streamdeck";
+import type { JsonValue } from "@elgato/utils";
 import { GoveeLightRepository } from "../infrastructure/repositories/GoveeLightRepository";
 import { SceneService } from "../domain/services/SceneService";
 import { Light } from "../domain/entities/Light";
@@ -283,7 +283,7 @@ export class SceneControlAction extends SingletonAction<SceneControlSettings> {
       !("apiKey" in ev.payload) ||
       typeof ev.payload.apiKey !== "string"
     ) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         valid: false,
         error: "Invalid API key format",
@@ -296,12 +296,12 @@ export class SceneControlAction extends SingletonAction<SceneControlSettings> {
       if (this.lightRepository) {
         await this.lightRepository.getAllLights();
       }
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         valid: true,
       });
     } catch (error) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         valid: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -319,7 +319,7 @@ export class SceneControlAction extends SingletonAction<SceneControlSettings> {
     await this.ensureServices(settings.apiKey);
 
     if (!this.lightRepository) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lights",
         lights: [],
         error: "API key not configured",
@@ -332,7 +332,7 @@ export class SceneControlAction extends SingletonAction<SceneControlSettings> {
       // Only return lights that support scenes
       const sceneLights = allLights.filter((light) => light.supportsScenes());
 
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lights",
         lights: sceneLights.map((light) => ({
           deviceId: light.deviceId,
@@ -342,7 +342,7 @@ export class SceneControlAction extends SingletonAction<SceneControlSettings> {
         })),
       });
     } catch (error) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lights",
         lights: [],
         error: error instanceof Error ? error.message : "Failed to get lights",
@@ -360,7 +360,7 @@ export class SceneControlAction extends SingletonAction<SceneControlSettings> {
     await this.ensureServices(settings.apiKey);
 
     if (!this.sceneService || !this.lightRepository) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "scenes",
         scenes: [],
         error: "Service not initialized",
@@ -376,7 +376,7 @@ export class SceneControlAction extends SingletonAction<SceneControlSettings> {
       typeof ev.payload.deviceId !== "string" ||
       typeof ev.payload.model !== "string"
     ) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "scenes",
         scenes: [],
         error: "Invalid device information",
@@ -391,7 +391,7 @@ export class SceneControlAction extends SingletonAction<SceneControlSettings> {
       );
 
       if (!light) {
-        await streamDeck.ui.current?.sendToPropertyInspector({
+        await streamDeck.ui.sendToPropertyInspector({
           event: "scenes",
           scenes: [],
           error: "Light not found",
@@ -401,7 +401,7 @@ export class SceneControlAction extends SingletonAction<SceneControlSettings> {
 
       const scenes = this.sceneService.getAvailableScenes(light);
 
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "scenes",
         scenes: scenes.map((scene) => ({
           id: scene.id,
@@ -410,7 +410,7 @@ export class SceneControlAction extends SingletonAction<SceneControlSettings> {
         })),
       });
     } catch (error) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "scenes",
         scenes: [],
         error: error instanceof Error ? error.message : "Failed to get scenes",

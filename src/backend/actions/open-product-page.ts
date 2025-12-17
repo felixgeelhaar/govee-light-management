@@ -1,10 +1,10 @@
 import streamDeck, {
   action,
   SingletonAction,
-  type JsonValue,
   type KeyDownEvent,
   type SendToPluginEvent,
 } from "@elgato/streamdeck";
+import type { JsonValue } from "@elgato/utils";
 import type { DataSourcePayload, DataSourceResult } from "../sdpi";
 
 /**
@@ -38,7 +38,7 @@ export class OpenProductPage extends SingletonAction<Settings> {
       ev.payload.event === "getProducts"
     ) {
       // Send the product ranges to the property inspector.
-      streamDeck.ui.current?.sendToPropertyInspector({
+      streamDeck.ui.sendToPropertyInspector({
         event: "getProducts",
         items: this.#getStreamDeckProducts(),
       } satisfies DataSourcePayload);

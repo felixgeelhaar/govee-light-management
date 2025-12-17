@@ -4,9 +4,9 @@ import {
   SingletonAction,
   WillAppearEvent,
   type SendToPluginEvent,
-  type JsonValue,
   streamDeck,
 } from "@elgato/streamdeck";
+import type { JsonValue } from "@elgato/utils";
 import { GoveeLightRepository } from "../infrastructure/repositories/GoveeLightRepository";
 import { Light } from "../domain/entities/Light";
 import { MusicModeConfig, MusicModeType } from "../domain/value-objects/MusicModeConfig";
@@ -240,7 +240,7 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
       !("apiKey" in ev.payload) ||
       typeof ev.payload.apiKey !== "string"
     ) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         valid: false,
         error: "Invalid API key format",
@@ -253,12 +253,12 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
       if (this.lightRepository) {
         await this.lightRepository.getAllLights();
       }
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         valid: true,
       });
     } catch (error) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         valid: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -276,7 +276,7 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
     await this.ensureServices(settings.apiKey);
 
     if (!this.lightRepository) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lights",
         lights: [],
         error: "API key not configured",
@@ -289,7 +289,7 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
       // Only return lights that support music mode
       const musicLights = allLights.filter((light) => light.supportsMusicMode());
 
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lights",
         lights: musicLights.map((light) => ({
           deviceId: light.deviceId,
@@ -299,7 +299,7 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
         })),
       });
     } catch (error) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lights",
         lights: [],
         error: error instanceof Error ? error.message : "Failed to get lights",
@@ -321,7 +321,7 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
       { id: "rolling", name: "Rolling" },
     ];
 
-    await streamDeck.ui.current?.sendToPropertyInspector({
+    await streamDeck.ui.sendToPropertyInspector({
       event: "musicModes",
       modes,
     });

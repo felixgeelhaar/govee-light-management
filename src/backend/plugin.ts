@@ -1,4 +1,4 @@
-import streamDeck, { LogLevel } from "@elgato/streamdeck";
+import streamDeck from "@elgato/streamdeck";
 
 import {
   LightControlAction,
@@ -12,7 +12,7 @@ import {
 } from "./actions";
 
 // Set appropriate logging level for production
-streamDeck.logger.setLevel(LogLevel.INFO);
+streamDeck.logger.setLevel("info");
 
 // Register the enterprise-grade light control actions
 streamDeck.actions.registerAction(new LightControlAction());

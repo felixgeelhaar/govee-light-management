@@ -40,7 +40,7 @@ vi.mock('@elgato/streamdeck', () => ({
       setGlobalSettings: vi.fn().mockResolvedValue(undefined)
     },
     ui: {
-      current: null
+      sendToPropertyInspector: vi.fn().mockResolvedValue(undefined)
     },
     actions: {
       registerAction: vi.fn()

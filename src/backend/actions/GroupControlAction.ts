@@ -4,9 +4,9 @@ import {
   SingletonAction,
   WillAppearEvent,
   type SendToPluginEvent,
-  type JsonValue,
   streamDeck,
 } from "@elgato/streamdeck";
+import type { JsonValue } from "@elgato/utils";
 import { GoveeLightRepository } from "../infrastructure/repositories/GoveeLightRepository";
 import { StreamDeckLightGroupRepository } from "../infrastructure/repositories/StreamDeckLightGroupRepository";
 import { LightControlService } from "../domain/services/LightControlService";
@@ -470,7 +470,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     settings: GroupControlSettings,
   ): Promise<void> {
     if (!settings.apiKey) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "groupsReceived",
         error: "API key required to fetch groups",
       });
@@ -485,7 +485,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       const groups = await this.groupService.getAllGroups();
       const serialized = groups.map((group) => this.mapGroupForInspector(group));
 
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "groupsReceived",
         groups: serialized,
       });
@@ -495,7 +495,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       );
     } catch (error) {
       streamDeck.logger.error("Failed to fetch groups:", error);
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "groupsReceived",
         error: "Failed to fetch groups. Check your API key and connection.",
       });
@@ -510,7 +510,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     settings: GroupControlSettings,
   ): Promise<void> {
     if (!settings.apiKey) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lightsReceived",
         error: "API key required to fetch lights",
       });
@@ -536,7 +536,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
         };
       });
 
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lightsReceived",
         lights: lightItems,
       });
@@ -546,7 +546,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       );
     } catch (error) {
       streamDeck.logger.error("Failed to fetch lights:", error);
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lightsReceived",
         error: "Failed to fetch lights. Check your API key and connection.",
       });
@@ -590,7 +590,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
         lightIds,
       );
 
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "groupCreated",
         success: true,
         group: this.mapGroupForInspector(group),
@@ -600,7 +600,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       await this.handleGetGroups(ev, settings);
     } catch (error) {
       streamDeck.logger.error("Failed to create group:", error);
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "groupCreated",
         success: false,
         message:
@@ -630,19 +630,19 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 
       const group = await this.groupService.findGroupById(payload.groupId);
       if (group) {
-        await streamDeck.ui.current?.sendToPropertyInspector({
+        await streamDeck.ui.sendToPropertyInspector({
           event: "groupDetails",
           group: this.mapGroupForInspector(group),
         });
       } else {
-        await streamDeck.ui.current?.sendToPropertyInspector({
+        await streamDeck.ui.sendToPropertyInspector({
           event: "error",
           message: "Group not found",
         });
       }
     } catch (error) {
       streamDeck.logger.error("Failed to get group details:", error);
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "error",
         message: "Failed to get group details",
       });
@@ -689,7 +689,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
         lightIds,
       );
 
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "groupEdited",
         success: true,
         group: this.mapGroupForInspector(updatedGroup),
@@ -699,7 +699,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       await this.handleGetGroups(ev, settings);
     } catch (error) {
       streamDeck.logger.error("Failed to edit group:", error);
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "groupEdited",
         success: false,
         message:
@@ -729,7 +729,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 
       await this.groupService.deleteGroup(payload.groupId);
 
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "groupDeleted",
         success: true,
         message: "Group deleted successfully",
@@ -740,7 +740,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       await this.handleGetGroups(ev, settings);
     } catch (error) {
       streamDeck.logger.error("Failed to delete group:", error);
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "groupDeleted",
         success: false,
         message:
@@ -795,7 +795,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
         });
         recorded = true;
 
-        await streamDeck.ui.current?.sendToPropertyInspector({
+        await streamDeck.ui.sendToPropertyInspector({
           event: "testResult",
           success: true,
           message: `Group test successful! Controlled ${group.getControllableLights().length} lights.`,
@@ -813,7 +813,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
             : { name: "UnknownError", message: String(error) },
         });
       }
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "testResult",
         success: false,
         message: "Group test failed. Check connections.",
@@ -845,7 +845,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     await this.ensureServices(this.currentApiKey);
 
     if (!this.healthService) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "transportHealth",
         transports: [],
       });
@@ -853,7 +853,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     }
 
     const snapshot = await this.healthService.getHealth(true);
-    await streamDeck.ui.current?.sendToPropertyInspector({
+    await streamDeck.ui.sendToPropertyInspector({
       event: "transportHealth",
       transports: snapshot.map((health) => ({
         kind: health.descriptor.kind,
@@ -867,7 +867,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
 
   private async handleGetTelemetrySnapshot(): Promise<void> {
     const snapshot = telemetryService.getSnapshot();
-    await streamDeck.ui.current?.sendToPropertyInspector({
+    await streamDeck.ui.sendToPropertyInspector({
       event: "telemetrySnapshot",
       snapshot: JSON.parse(JSON.stringify(snapshot)),
     });
@@ -888,7 +888,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     const apiKey = payload.apiKey;
 
     if (!apiKey) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         isValid: false,
         error: "API key is required",
@@ -910,7 +910,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       await this.ensureServices(apiKey);
 
       // If successful, API key is valid
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         isValid: true,
       });
@@ -918,7 +918,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       streamDeck.logger.info("API key validated successfully");
     } catch (error) {
       streamDeck.logger.error("API key validation failed:", error);
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         isValid: false,
         error: "Invalid API key or network error",
@@ -934,7 +934,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     settings: GroupControlSettings,
   ): Promise<void> {
     if (!settings.apiKey) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "groupSaved",
         success: false,
         error: "API key required to save group",
@@ -948,7 +948,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     const group = payload.group;
 
     if (!group || !group.name || !group.lightIds) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "groupSaved",
         success: false,
         error: "Invalid group data",
@@ -974,7 +974,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
         lightIds,
       );
 
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "groupSaved",
         success: true,
         group: this.mapGroupForInspector(savedGroup),
@@ -983,7 +983,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       streamDeck.logger.info(`Group "${group.name}" saved successfully`);
     } catch (error) {
       streamDeck.logger.error("Failed to save group:", error);
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "groupSaved",
         success: false,
         error: "Failed to save group. Please try again.",

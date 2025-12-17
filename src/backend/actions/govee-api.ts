@@ -4,9 +4,9 @@ import {
   SingletonAction,
   WillAppearEvent,
   type SendToPluginEvent,
-  type JsonValue,
   streamDeck,
 } from "@elgato/streamdeck";
+import type { JsonValue } from "@elgato/utils";
 
 /**
  * An example action class that displays a count that increments by one each time the button is pressed.
@@ -61,7 +61,7 @@ export class GoveeLightManagement extends SingletonAction<GoveeSettings> {
           }
           streamDeck.logger.info("SENDING TO PROPERTY INSPECTOR");
 
-          return streamDeck.ui.current?.sendToPropertyInspector({
+          return streamDeck.ui.sendToPropertyInspector({
             event: "getLights",
             items: response.data.map((light) => ({
               label: light.device,

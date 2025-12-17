@@ -6,9 +6,9 @@ import {
   SingletonAction,
   WillAppearEvent,
   type SendToPluginEvent,
-  type JsonValue,
   streamDeck,
 } from "@elgato/streamdeck";
+import type { JsonValue } from "@elgato/utils";
 import { GoveeLightRepository } from "../infrastructure/repositories/GoveeLightRepository";
 import { LightControlService } from "../domain/services/LightControlService";
 import { Light } from "../domain/entities/Light";
@@ -327,7 +327,7 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
     const apiKey = payload.apiKey;
 
     if (!apiKey) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         isValid: false,
         error: "API key is required",
@@ -347,7 +347,7 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
 
       await this.ensureServices(apiKey);
 
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         isValid: true,
       });
@@ -355,7 +355,7 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
       streamDeck.logger.info("API key validated successfully");
     } catch (error) {
       streamDeck.logger.error("API key validation failed:", error);
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         isValid: false,
         error: "Invalid API key or network error",
@@ -371,7 +371,7 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
     settings: BrightnessDialSettings,
   ): Promise<void> {
     if (!settings.apiKey) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lightsReceived",
         error: "API key required to fetch lights",
       });
@@ -393,7 +393,7 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
           value: `${light.deviceId}|${light.model}`,
         }));
 
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lightsReceived",
         lights: lightItems,
       });
@@ -403,7 +403,7 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
       );
     } catch (error) {
       streamDeck.logger.error("Failed to fetch lights:", error);
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lightsReceived",
         error: "Failed to fetch lights. Check your API key and connection.",
       });

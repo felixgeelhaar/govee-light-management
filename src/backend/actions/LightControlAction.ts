@@ -4,9 +4,9 @@ import {
   SingletonAction,
   WillAppearEvent,
   type SendToPluginEvent,
-  type JsonValue,
   streamDeck,
 } from "@elgato/streamdeck";
+import type { JsonValue } from "@elgato/utils";
 import { GoveeLightRepository } from "../infrastructure/repositories/GoveeLightRepository";
 import { LightControlService } from "../domain/services/LightControlService";
 import { Light } from "../domain/entities/Light";
@@ -425,7 +425,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     const apiKey = payload.apiKey;
 
     if (!apiKey) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         isValid: false,
         error: "API key is required",
@@ -447,7 +447,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       await this.ensureServices(apiKey);
 
       // If successful, API key is valid
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         isValid: true,
       });
@@ -455,7 +455,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       streamDeck.logger.info("API key validated successfully");
     } catch (error) {
       streamDeck.logger.error("API key validation failed:", error);
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         isValid: false,
         error: "Invalid API key or network error",
@@ -471,7 +471,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     settings: LightControlSettings,
   ): Promise<void> {
     if (!settings.apiKey) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lightsReceived",
         error: "API key required to fetch lights",
       });
@@ -491,7 +491,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
         value: `${light.deviceId}|${light.model}`,
       }));
 
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lightsReceived",
         lights: lightItems,
       });
@@ -501,7 +501,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       );
     } catch (error) {
       streamDeck.logger.error("Failed to fetch lights:", error);
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lightsReceived",
         error: "Failed to fetch lights. Check your API key and connection.",
       });
@@ -519,7 +519,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     const deviceIds = payload.deviceIds;
 
     if (!settings.apiKey) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lightStatesReceived",
         error: "API key required to fetch light states",
       });
@@ -527,7 +527,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     }
 
     if (!deviceIds || !Array.isArray(deviceIds) || deviceIds.length === 0) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lightStatesReceived",
         error: "Device IDs are required",
       });
@@ -594,7 +594,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
         }),
       );
 
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lightStatesReceived",
         states,
       });
@@ -604,7 +604,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       );
     } catch (error) {
       streamDeck.logger.error("Failed to fetch light states:", error);
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lightStatesReceived",
         error:
           "Failed to fetch light states. Check your API key and connection.",
@@ -683,7 +683,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       !settings.selectedModel ||
       !this.lightRepository
     ) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "testResult",
         success: false,
         message: "Select a light before testing",
@@ -719,7 +719,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
           }
         }, 1000);
 
-        await streamDeck.ui.current?.sendToPropertyInspector({
+        await streamDeck.ui.sendToPropertyInspector({
           event: "testResult",
           success: true,
           message: "Light test successful!",
@@ -728,7 +728,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
       }
     } catch (error) {
       streamDeck.logger.error("Light test failed:", error);
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "testResult",
         success: false,
         message: "Light test failed. Check connection.",
@@ -771,7 +771,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     await this.ensureServices(this.currentApiKey);
 
     if (!this.healthService) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "transportHealth",
         transports: [],
       });
@@ -779,7 +779,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
     }
 
     const snapshot = await this.healthService.getHealth(true);
-    await streamDeck.ui.current?.sendToPropertyInspector({
+    await streamDeck.ui.sendToPropertyInspector({
       event: "transportHealth",
       transports: snapshot.map((health) => ({
         kind: health.descriptor.kind,
@@ -793,7 +793,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
 
   private async handleGetTelemetrySnapshot(): Promise<void> {
     const snapshot = telemetryService.getSnapshot();
-    await streamDeck.ui.current?.sendToPropertyInspector({
+    await streamDeck.ui.sendToPropertyInspector({
       event: "telemetrySnapshot",
       snapshot: JSON.parse(JSON.stringify(snapshot)),
     });

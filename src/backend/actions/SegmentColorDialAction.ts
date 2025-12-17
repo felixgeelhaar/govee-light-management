@@ -5,9 +5,9 @@ import {
   SingletonAction,
   WillAppearEvent,
   type SendToPluginEvent,
-  type JsonValue,
   streamDeck,
 } from "@elgato/streamdeck";
+import type { JsonValue } from "@elgato/utils";
 import { GoveeLightRepository } from "../infrastructure/repositories/GoveeLightRepository";
 import { Light } from "../domain/entities/Light";
 import { SegmentColor } from "../domain/value-objects/SegmentColor";
@@ -324,7 +324,7 @@ export class SegmentColorDialAction extends SingletonAction<SegmentColorDialSett
       !("apiKey" in ev.payload) ||
       typeof ev.payload.apiKey !== "string"
     ) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         valid: false,
         error: "Invalid API key format",
@@ -337,12 +337,12 @@ export class SegmentColorDialAction extends SingletonAction<SegmentColorDialSett
       if (this.lightRepository) {
         await this.lightRepository.getAllLights();
       }
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         valid: true,
       });
     } catch (error) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "apiKeyValidated",
         valid: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -360,7 +360,7 @@ export class SegmentColorDialAction extends SingletonAction<SegmentColorDialSett
     await this.ensureServices(settings.apiKey);
 
     if (!this.lightRepository) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lights",
         lights: [],
         error: "API key not configured",
@@ -375,7 +375,7 @@ export class SegmentColorDialAction extends SingletonAction<SegmentColorDialSett
         light.supportsSegmentedColor(),
       );
 
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lights",
         lights: segmentLights.map((light) => ({
           deviceId: light.deviceId,
@@ -385,7 +385,7 @@ export class SegmentColorDialAction extends SingletonAction<SegmentColorDialSett
         })),
       });
     } catch (error) {
-      await streamDeck.ui.current?.sendToPropertyInspector({
+      await streamDeck.ui.sendToPropertyInspector({
         event: "lights",
         lights: [],
         error: error instanceof Error ? error.message : "Failed to get lights",
