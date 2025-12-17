@@ -77,7 +77,8 @@ export class WebSocketService {
    * Handle WebSocket connection open
    */
   private handleOpen(): void {
-    console.log("WebSocket connected to Stream Deck");
+    console.log("[WebSocket] Connected to Stream Deck");
+    console.log("[WebSocket] Port:", this.port, "UUID:", this.uuid);
 
     // Register with Stream Deck
     if (this.websocket && this.uuid && this.registerEvent) {
@@ -85,6 +86,7 @@ export class WebSocketService {
         event: this.registerEvent,
         uuid: this.uuid,
       };
+      console.log("[WebSocket] Registering with Stream Deck:", registerMessage);
       this.websocket.send(JSON.stringify(registerMessage));
     }
 
@@ -98,6 +100,7 @@ export class WebSocketService {
   private handleMessage(event: MessageEvent): void {
     try {
       const message = JSON.parse(event.data);
+      console.log("[WebSocket] Received message:", message);
 
       // Handle settings updates specifically
       if (message.event === "didReceiveSettings" && message.payload?.settings) {
@@ -112,9 +115,13 @@ export class WebSocketService {
 
       // Handle different message types
       if (message.event) {
+        console.log("[WebSocket] Message event:", message.event);
         const handlers = this.messageHandlers.get(message.event);
         if (handlers) {
+          console.log("[WebSocket] Found", handlers.length, "handlers for event:", message.event);
           handlers.forEach((handler) => handler(message));
+        } else {
+          console.log("[WebSocket] No handlers registered for event:", message.event);
         }
 
         // Also trigger generic message handlers
@@ -124,7 +131,7 @@ export class WebSocketService {
         }
       }
     } catch (error) {
-      console.error("Failed to parse WebSocket message:", error);
+      console.error("[WebSocket] Failed to parse message:", error);
     }
   }
 
@@ -159,10 +166,25 @@ export class WebSocketService {
    * Send message to Stream Deck plugin
    */
   sendMessage(message: BaseMessage): void {
+    console.log("[WebSocket] sendMessage called:", {
+      event: message.event,
+      connected: this.websocket?.readyState === WebSocket.OPEN,
+      readyState: this.websocket?.readyState,
+      message
+    });
     if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
       this.websocket.send(JSON.stringify(message));
+      console.log("[WebSocket] Message sent successfully");
     } else {
-      console.warn("WebSocket not connected, cannot send message:", message);
+      console.warn("[WebSocket] Cannot send - not connected:", message);
+      console.warn("[WebSocket] WebSocket state:", {
+        exists: !!this.websocket,
+        readyState: this.websocket?.readyState,
+        CONNECTING: WebSocket.CONNECTING,
+        OPEN: WebSocket.OPEN,
+        CLOSING: WebSocket.CLOSING,
+        CLOSED: WebSocket.CLOSED
+      });
     }
   }
 
@@ -268,6 +290,7 @@ export class WebSocketService {
    * Validate API key via plugin
    */
   validateApiKey(apiKey: string): void {
+    console.log("[WebSocket] validateApiKey called with key:", apiKey.substring(0, 10) + "...");
     this.sendMessage({
       event: "sendToPlugin",
       context: this.uuid || "",

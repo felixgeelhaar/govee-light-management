@@ -1,5 +1,5 @@
 <template>
-  <div class="light-control-view">
+  <div class="pi-view">
     <!-- API Configuration Section -->
     <ApiConfigSection v-model="localApiKey" />
 
@@ -191,6 +191,7 @@ import { useFeedbackHelpers } from "../composables/useFeedback";
 import { websocketService } from "../services/websocketService";
 import DiagnosticsPanel from "../components/DiagnosticsPanel.vue";
 import ApiConfigSection from "../components/ApiConfigSection.vue";
+import "../styles/property-inspector.css";
 
 // XState composables
 const apiConnection = useApiConnection();
@@ -408,234 +409,14 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.light-control-view {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
+/* All common styles moved to src/frontend/styles/property-inspector.css */
 
-.config-section {
-  padding: 16px;
-  border: 1px solid var(--sdpi-color-border, #333);
-  border-radius: 8px;
-  background-color: var(--sdpi-color-bg-secondary, #2d2d30);
-}
-
-.config-section h2 {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--sdpi-color-accent, #0099ff);
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.form-group:last-child {
-  margin-bottom: 0;
-}
-
-.form-group label {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--sdpi-color-text, #cccccc);
-}
-
-.form-input,
-.form-select {
-  padding: 8px 12px;
-  border: 1px solid var(--sdpi-color-border, #333);
-  border-radius: 4px;
-  background-color: var(--sdpi-color-bg, #1e1e1e);
-  color: var(--sdpi-color-text, #cccccc);
-  font-size: 14px;
-}
-
-.form-input:focus,
-.form-select:focus {
-  outline: none;
-  border-color: var(--sdpi-color-accent, #0099ff);
-}
-
-.form-range {
-  width: 100%;
-  margin: 8px 0;
-}
-
+/* LightControlView-specific styles */
 .form-color {
   width: 60px;
   height: 40px;
   border: 1px solid var(--sdpi-color-border, #333);
   border-radius: 4px;
   cursor: pointer;
-}
-
-.range-value {
-  font-size: 12px;
-  color: var(--sdpi-color-text-secondary, #999);
-  align-self: flex-end;
-}
-
-.help-text {
-  font-size: 12px;
-  color: var(--sdpi-color-text-secondary, #999);
-  line-height: 1.4;
-}
-
-/* Button Styles */
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background-color: var(--sdpi-color-accent, #0099ff);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: var(--sdpi-color-accent-hover, #0077cc);
-}
-
-.btn-secondary {
-  background-color: var(--sdpi-color-bg-tertiary, #404040);
-  color: var(--sdpi-color-text, #cccccc);
-  border: 1px solid var(--sdpi-color-border, #333);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background-color: var(--sdpi-color-bg-hover, #505050);
-}
-
-.btn-link {
-  background: none;
-  border: none;
-  color: var(--sdpi-color-accent, #0099ff);
-  cursor: pointer;
-  font-size: 12px;
-  text-decoration: underline;
-  padding: 0;
-  margin-left: 8px;
-}
-
-.btn-link:hover {
-  color: var(--sdpi-color-accent-hover, #0077cc);
-}
-
-/* Input Group */
-.input-group {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.input-group .form-input {
-  flex: 1;
-}
-
-/* Search Group */
-.search-group {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.btn-clear {
-  position: absolute;
-  right: 8px;
-  background: none;
-  border: none;
-  color: var(--sdpi-color-text-secondary, #999);
-  cursor: pointer;
-  font-size: 14px;
-  padding: 0;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-clear:hover {
-  color: var(--sdpi-color-text, #cccccc);
-}
-
-/* Status Messages */
-.status-message {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 14px;
-  margin: 8px 0;
-}
-
-.status-loading {
-  background-color: var(--sdpi-color-bg-info, #1a3b5c);
-  color: var(--sdpi-color-text-info, #79c7ff);
-  border: 1px solid var(--sdpi-color-border-info, #0099ff);
-}
-
-.status-success {
-  background-color: var(--sdpi-color-bg-success, #1a3b1a);
-  color: var(--sdpi-color-text-success, #7dd87d);
-  border: 1px solid var(--sdpi-color-border-success, #28a745);
-}
-
-.status-error {
-  background-color: var(--sdpi-color-bg-error, #3b1a1a);
-  color: var(--sdpi-color-text-error, #ff7979);
-  border: 1px solid var(--sdpi-color-border-error, #dc3545);
-}
-
-.status-icon {
-  font-size: 16px;
-  flex-shrink: 0;
-}
-
-.diagnostics-section {
-  display: grid;
-  gap: 12px;
-}
-
-.transport-health ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 8px;
-}
-
-.transport-label {
-  font-weight: 600;
-  color: var(--sdpi-color-text, #cccccc);
-}
-
-.transport-indicator {
-  font-size: 13px;
-  margin-left: 8px;
-}
-
-.transport-indicator.healthy {
-  color: var(--sdpi-color-success, #6dd400);
-}
-
-.transport-indicator.unhealthy {
-  color: var(--sdpi-color-danger, #ff4d4f);
 }
 </style>

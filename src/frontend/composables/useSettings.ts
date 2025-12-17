@@ -7,11 +7,19 @@ import { ref, reactive, watch, nextTick } from "vue";
 import type {
   LightControlSettings,
   GroupControlSettings,
+  SceneControlSettings,
+  MusicModeSettings,
+  SegmentColorDialSettings,
 } from "@shared/types/settings";
 import { websocketService } from "../services/websocketService";
 import { createAppError, ErrorCodes, logError } from "../utils/errorHandling";
 
-export type ActionSettings = LightControlSettings | GroupControlSettings;
+export type ActionSettings =
+  | LightControlSettings
+  | GroupControlSettings
+  | SceneControlSettings
+  | MusicModeSettings
+  | SegmentColorDialSettings;
 
 /**
  * Settings state interface
@@ -412,6 +420,58 @@ export function useGroupControlSettings() {
     brightnessValue: 100,
     colorValue: "#ffffff",
     colorTempValue: 6500,
+  };
+
+  return useSettings(defaultSettings);
+}
+
+/**
+ * Specialized composable for Scene Control settings
+ */
+export function useSceneControlSettings() {
+  const defaultSettings: SceneControlSettings = {
+    apiKey: undefined,
+    selectedDeviceId: undefined,
+    selectedModel: undefined,
+    selectedLightName: undefined,
+    selectedSceneId: undefined,
+    selectedSceneName: undefined,
+  };
+
+  return useSettings(defaultSettings);
+}
+
+/**
+ * Specialized composable for Music Mode settings
+ */
+export function useMusicModeSettings() {
+  const defaultSettings: MusicModeSettings = {
+    apiKey: undefined,
+    selectedDeviceId: undefined,
+    selectedModel: undefined,
+    selectedLightName: undefined,
+    musicMode: undefined,
+    sensitivity: 50,
+    autoColor: true,
+  };
+
+  return useSettings(defaultSettings);
+}
+
+/**
+ * Specialized composable for Segment Color Dial settings
+ */
+export function useSegmentColorDialSettings() {
+  const defaultSettings: SegmentColorDialSettings = {
+    apiKey: undefined,
+    selectedDeviceId: undefined,
+    selectedModel: undefined,
+    selectedLightName: undefined,
+    segmentIndex: 0,
+    hue: 0,
+    saturation: 100,
+    brightness: 100,
+    stepSize: 15,
   };
 
   return useSettings(defaultSettings);

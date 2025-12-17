@@ -1,4 +1,4 @@
-import { createApp } from "vue";
+import { createApp, h } from "vue";
 import App from "./App.vue";
 import MusicModeView from "./views/MusicModeView.vue";
 import { initializePropertyInspector } from "./utils/propertyInspectorInit";
@@ -6,11 +6,12 @@ import { initializePropertyInspector } from "./utils/propertyInspectorInit";
 // Initialize Property Inspector WebSocket connection
 initializePropertyInspector();
 
-// Create and mount the Vue application for Music Mode Property Inspector
-const app = createApp(App);
+// Create and mount the Vue application with App wrapper
+const app = createApp({
+  render: () => h(App, null, {
+    default: () => h(MusicModeView)
+  })
+});
 
-// Add the music mode view as the main content
-app.component("main-view", MusicModeView);
-
-// Mount the app with the specific view
+// Mount the app
 app.mount("#app");

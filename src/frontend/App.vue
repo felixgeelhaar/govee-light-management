@@ -1,57 +1,25 @@
 <template>
   <div class="govee-light-manager">
-    <header class="app-header">
-      <h1>Govee Light Management</h1>
-    </header>
-
-    <main class="app-content">
-      <slot>
-        <!-- Content will be injected here -->
-      </slot>
-    </main>
-
-    <!-- Global feedback system -->
-    <FeedbackSystem ref="feedbackSystem" />
+    <slot>
+      <!-- View content will be injected here -->
+    </slot>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, provide } from "vue";
-import FeedbackSystem from "./components/FeedbackSystem.vue";
-
-// Main application component for Govee Light Management Property Inspector
-const feedbackSystem = ref<InstanceType<typeof FeedbackSystem>>();
-
-// Provide feedback system to all child components
-provide("feedbackSystem", feedbackSystem);
+// Main application wrapper for consistent UI across all Property Inspectors
+// Stream Deck provides its own header, so we just provide the container
 </script>
 
 <style scoped>
 .govee-light-manager {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--sdpi-color-bg, #1e1e1e);
   color: var(--sdpi-color-text, #cccccc);
-}
-
-.app-header {
-  padding: 16px;
-  border-bottom: 1px solid var(--sdpi-color-border, #333);
-}
-
-.app-header h1 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--sdpi-color-accent, #0099ff);
-}
-
-.app-content {
-  flex: 1;
-  overflow-y: auto;
   padding: 16px;
 }
 </style>

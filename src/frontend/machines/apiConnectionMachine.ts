@@ -92,12 +92,18 @@ export const apiConnectionMachine = setup({
             }
 
             // Production-ready WebSocket-based API key validation
+            console.log("[API Validation] Checking WebSocket connection...");
+            console.log("[API Validation] WebSocket connected:", websocketService.isConnected);
+
             if (!websocketService.isConnected) {
+              console.error("[API Validation] WebSocket not connected!");
               throw new Error("WebSocket not connected to Stream Deck");
             }
 
+            console.log("[API Validation] Starting validation for API key");
             return new Promise<boolean>((resolve, reject) => {
               const timeout = setTimeout(() => {
+                console.error("[API Validation] Timeout after 10 seconds");
                 websocketService.off(
                   "sendToPropertyInspector",
                   responseHandler,
@@ -106,7 +112,9 @@ export const apiConnectionMachine = setup({
               }, 10000); // 10 second timeout for network operations
 
               const responseHandler = (message: any) => {
+                console.log("[API Validation] Received message:", message);
                 if (message.payload?.event === "apiKeyValidated") {
+                  console.log("[API Validation] Got apiKeyValidated event");
                   clearTimeout(timeout);
                   websocketService.off(
                     "sendToPropertyInspector",
@@ -114,10 +122,12 @@ export const apiConnectionMachine = setup({
                   );
 
                   if (message.payload.isValid) {
+                    console.log("[API Validation] API key is valid");
                     // Cache successful validation
                     apiCacheService.cacheApiKeyValidation(input.apiKey, true);
                     resolve(true);
                   } else {
+                    console.error("[API Validation] API key is invalid:", message.payload.error);
                     // Don't cache failures as they might be temporary network issues
                     reject(
                       new Error(message.payload.error || "Invalid API key"),
@@ -127,10 +137,13 @@ export const apiConnectionMachine = setup({
               };
 
               // Listen for response
+              console.log("[API Validation] Registering response handler");
               websocketService.on("sendToPropertyInspector", responseHandler);
 
               // Send validation request
+              console.log("[API Validation] Sending validateApiKey request");
               websocketService.validateApiKey(input.apiKey);
+              console.log("[API Validation] Request sent, waiting for response...");
             });
           },
           { operation: "api-validation" },

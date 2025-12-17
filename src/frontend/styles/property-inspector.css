@@ -1,0 +1,305 @@
+/**
+ * Shared Property Inspector Styles
+ * Common styles used across all Stream Deck Property Inspector views
+ */
+
+/* View Container - Common layout for all Property Inspector views */
+.pi-view {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  /* Padding removed - handled by App.vue .app-content */
+}
+
+/* Configuration Sections */
+.config-section {
+  padding: 16px;
+  border: 1px solid var(--sdpi-color-border, #333);
+  border-radius: 8px;
+  background-color: var(--sdpi-color-bg-secondary, #2d2d30);
+}
+
+.config-section h2 {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--sdpi-color-accent, #0099ff);
+}
+
+.config-section h3 {
+  margin: 12px 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sdpi-color-text, #cccccc);
+}
+
+/* Form Elements */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--sdpi-color-text, #cccccc);
+}
+
+.form-input,
+.form-select {
+  padding: 8px 12px;
+  border: 1px solid var(--sdpi-color-border, #333);
+  border-radius: 4px;
+  background-color: var(--sdpi-color-bg, #1e1e1e);
+  color: var(--sdpi-color-text, #cccccc);
+  font-size: 14px;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--sdpi-color-accent, #0099ff);
+}
+
+.input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.input-group .form-input {
+  flex: 1;
+}
+
+/* Range Inputs */
+.form-range {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background-color: var(--sdpi-color-bg, #1e1e1e);
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.form-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--sdpi-color-accent, #0099ff);
+  cursor: pointer;
+}
+
+.form-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--sdpi-color-accent, #0099ff);
+  cursor: pointer;
+  border: none;
+}
+
+/* Checkbox Inputs */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--sdpi-color-text, #cccccc);
+}
+
+.form-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--sdpi-color-accent, #0099ff);
+}
+
+/* Buttons */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--sdpi-color-accent, #0099ff);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--sdpi-color-accent-hover, #0077cc);
+}
+
+.btn-secondary {
+  background-color: var(--sdpi-color-bg-tertiary, #404040);
+  color: var(--sdpi-color-text, #cccccc);
+  border: 1px solid var(--sdpi-color-border, #333);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--sdpi-color-bg-hover, #505050);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--sdpi-color-accent, #0099ff);
+  cursor: pointer;
+  font-size: 12px;
+  text-decoration: underline;
+  padding: 0;
+  margin-left: 8px;
+}
+
+.btn-link:hover {
+  color: var(--sdpi-color-accent-hover, #0077cc);
+}
+
+/* Status Messages */
+.status-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin: 8px 0;
+}
+
+.status-loading {
+  background-color: var(--sdpi-color-bg-info, #1a3b5c);
+  color: var(--sdpi-color-text-info, #79c7ff);
+  border: 1px solid var(--sdpi-color-border-info, #0099ff);
+}
+
+.status-success {
+  background-color: var(--sdpi-color-bg-success, #1a3b1a);
+  color: var(--sdpi-color-text-success, #7dd87d);
+  border: 1px solid var(--sdpi-color-border-success, #28a745);
+}
+
+.status-error {
+  background-color: var(--sdpi-color-bg-error, #3b1a1a);
+  color: var(--sdpi-color-text-error, #ff7979);
+  border: 1px solid var(--sdpi-color-border-error, #dc3545);
+}
+
+.status-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* Help Text and Sections */
+.help-text {
+  font-size: 12px;
+  color: var(--sdpi-color-text-secondary, #999);
+  line-height: 1.4;
+}
+
+.help-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--sdpi-color-border, #333);
+}
+
+.help-list {
+  margin: 8px 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--sdpi-color-text-secondary, #999);
+  line-height: 1.6;
+}
+
+.help-list li {
+  margin-bottom: 4px;
+}
+
+.help-list strong {
+  color: var(--sdpi-color-text, #cccccc);
+  font-weight: 600;
+}
+
+/* Search Group (LightControlView specific) */
+.search-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.btn-clear {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--sdpi-color-text-secondary, #999);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-clear:hover {
+  color: var(--sdpi-color-text, #cccccc);
+}
+
+/* Diagnostics Section (LightControlView specific) */
+.diagnostics-section {
+  display: grid;
+  gap: 12px;
+}
+
+.transport-health ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.transport-label {
+  font-weight: 600;
+  color: var(--sdpi-color-text, #cccccc);
+}
+
+.transport-indicator {
+  font-size: 13px;
+  margin-left: 8px;
+}
+
+.transport-indicator.healthy {
+  color: var(--sdpi-color-success, #6dd400);
+}
+
+.transport-indicator.unhealthy {
+  color: var(--sdpi-color-danger, #ff4d4f);
+}
+
+/* Color Preview (SegmentColorDialView specific) */
+.color-preview {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 2px solid var(--sdpi-color-border, #333);
+  display: inline-block;
+}

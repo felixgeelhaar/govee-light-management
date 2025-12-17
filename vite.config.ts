@@ -5,7 +5,10 @@ import { resolve } from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue()],
-  
+
+  // Use relative paths in generated HTML
+  base: './',
+
   // Build configuration for Property Inspector
   build: {
     outDir: 'com.felixgeelhaar.govee-light-management.sdPlugin/ui/dist',

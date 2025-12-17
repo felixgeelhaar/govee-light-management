@@ -1,5 +1,5 @@
 <template>
-  <div class="music-mode-view">
+  <div class="pi-view">
     <!-- API Configuration Section -->
     <ApiConfigSection v-model="localApiKey" />
 
@@ -76,7 +76,6 @@
           id="musicModeSelect"
           v-model="musicMode"
           class="form-select"
-          @change="saveSettings"
         >
           <option value="">-- Select a mode --</option>
           <option value="rhythm">🎵 Rhythm - Steady pulse with music beat</option>
@@ -101,7 +100,6 @@
           max="100"
           step="5"
           class="form-range"
-          @input="saveSettings"
         />
         <small class="help-text">
           Adjust how responsive the lights are to music (0-100%)
@@ -115,7 +113,6 @@
             v-model="autoColor"
             type="checkbox"
             class="form-checkbox"
-            @change="saveSettings"
           />
           <span>Auto Color Mode</span>
         </label>
@@ -139,318 +136,94 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useApiConnection } from "../composables/useApiConnection";
 import { useLightDiscovery } from "../composables/useLightDiscovery";
+import { useMusicModeSettings } from "../composables/useSettings";
 import ApiConfigSection from "../components/ApiConfigSection.vue";
+import "../styles/property-inspector.css";
+
+// Settings management with auto-save
+const settingsManager = useMusicModeSettings();
 
 // API Connection composable
 const apiConnection = useApiConnection();
-const localApiKey = ref("");
 
 // Light Discovery composable
 const lightDiscovery = useLightDiscovery();
-const selectedLight = ref("");
 
 // Explicitly extract lights array for template (helps TypeScript)
 const lightsArray = computed(() => lightDiscovery.lights.value);
 
-// Music mode configuration
-const musicMode = ref("");
-const sensitivity = ref(50);
-const autoColor = ref(true);
+// Computed values bound to settings
+const localApiKey = computed({
+  get: () => settingsManager.settings.apiKey || "",
+  set: (value: string) =>
+    settingsManager.updateSetting("apiKey", value || undefined),
+});
+
+const selectedLight = computed({
+  get: () => {
+    const deviceId = settingsManager.settings.selectedDeviceId;
+    const model = settingsManager.settings.selectedModel;
+    return deviceId && model ? `${deviceId}|${model}` : "";
+  },
+  set: (value: string) => {
+    if (value) {
+      const [deviceId, model] = value.split("|");
+      const light = lightDiscovery.lights.value.find((l) => l.value === value);
+      settingsManager.updateSettings({
+        selectedDeviceId: deviceId,
+        selectedModel: model,
+        selectedLightName: light?.label.split(" (")[0], // Remove model from label
+      });
+    } else {
+      settingsManager.updateSettings({
+        selectedDeviceId: undefined,
+        selectedModel: undefined,
+        selectedLightName: undefined,
+      });
+    }
+  },
+});
+
+const musicMode = computed({
+  get: () => settingsManager.settings.musicMode || "",
+  set: (value: string) => settingsManager.updateSetting("musicMode", value || undefined),
+});
+
+const sensitivity = computed({
+  get: () => settingsManager.settings.sensitivity ?? 50,
+  set: (value: number) => settingsManager.updateSetting("sensitivity", value),
+});
+
+const autoColor = computed({
+  get: () => settingsManager.settings.autoColor ?? true,
+  set: (value: boolean) => settingsManager.updateSetting("autoColor", value),
+});
 
 // Handle light selection
 function onLightSelected() {
-  const [deviceId, model] = selectedLight.value.split("|");
-  const light = lightDiscovery.lights.value.find((l) => l.value === selectedLight.value);
-
-  if (light) {
-    saveSettings({
-      selectedDeviceId: deviceId,
-      selectedModel: model,
-      selectedLightName: light.label.split(" (")[0], // Remove model from label
-    });
-  }
+  // Trigger the setter which will auto-save via the composable
+  selectedLight.value = selectedLight.value;
 }
 
-// Save settings to Stream Deck
-function saveSettings(updates: Record<string, any> = {}) {
-  const settings = {
-    apiKey: localApiKey.value,
-    selectedDeviceId: updates.selectedDeviceId,
-    selectedModel: updates.selectedModel,
-    selectedLightName: updates.selectedLightName,
-    musicMode: musicMode.value,
-    sensitivity: sensitivity.value,
-    autoColor: autoColor.value,
-  };
-
-  // Send to plugin
-  window.$SD?.sendToPlugin?.({ event: "setSettings", settings });
-}
-
-// Initialize from Stream Deck settings
+// Initialize
 onMounted(async () => {
+  // Enable auto-save with 500ms debounce
+  settingsManager.enableAutoSave(500);
+
   // Wait for Stream Deck connection
   await new Promise((resolve) => setTimeout(resolve, 100));
 
-  // Get current settings from Stream Deck
-  const settings = window.$SD?.settings || {};
-
-  if (settings.apiKey) {
-    localApiKey.value = settings.apiKey;
-    await apiConnection.connect(settings.apiKey);
-  }
-
-  if (settings.selectedDeviceId && settings.selectedModel) {
-    selectedLight.value = `${settings.selectedDeviceId}|${settings.selectedModel}`;
-  }
-
-  if (settings.musicMode) {
-    musicMode.value = settings.musicMode;
-  }
-
-  if (settings.sensitivity !== undefined) {
-    sensitivity.value = settings.sensitivity;
-  }
-
-  if (settings.autoColor !== undefined) {
-    autoColor.value = settings.autoColor;
-  }
-});
-
-// Auto-save settings when changed
-watch([musicMode, sensitivity, autoColor], () => {
-  if (selectedLight.value) {
-    saveSettings();
+  // Load settings (will be automatically handled by composable)
+  if (settingsManager.settings.apiKey) {
+    await apiConnection.connect(settingsManager.settings.apiKey);
   }
 });
 </script>
 
 <style scoped>
-.music-mode-view {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  padding: 16px;
-}
-
-.config-section {
-  padding: 16px;
-  border: 1px solid var(--sdpi-color-border, #333);
-  border-radius: 8px;
-  background-color: var(--sdpi-color-bg-secondary, #2d2d30);
-}
-
-.config-section h2 {
-  margin: 0 0 16px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--sdpi-color-accent, #0099ff);
-}
-
-.config-section h3 {
-  margin: 12px 0 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--sdpi-color-text, #cccccc);
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.form-group:last-child {
-  margin-bottom: 0;
-}
-
-.form-group label {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--sdpi-color-text, #cccccc);
-}
-
-.form-input,
-.form-select {
-  padding: 8px 12px;
-  border: 1px solid var(--sdpi-color-border, #333);
-  border-radius: 4px;
-  background-color: var(--sdpi-color-bg, #1e1e1e);
-  color: var(--sdpi-color-text, #cccccc);
-  font-size: 14px;
-}
-
-.form-input:focus,
-.form-select:focus {
-  outline: none;
-  border-color: var(--sdpi-color-accent, #0099ff);
-}
-
-.form-range {
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background-color: var(--sdpi-color-bg, #1e1e1e);
-  outline: none;
-  -webkit-appearance: none;
-}
-
-.form-range::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background-color: var(--sdpi-color-accent, #0099ff);
-  cursor: pointer;
-}
-
-.form-range::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background-color: var(--sdpi-color-accent, #0099ff);
-  cursor: pointer;
-  border: none;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  color: var(--sdpi-color-text, #cccccc);
-}
-
-.form-checkbox {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--sdpi-color-accent, #0099ff);
-}
-
-.input-group {
-  display: flex;
-  gap: 8px;
-}
-
-.input-group .form-input {
-  flex: 1;
-}
-
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background-color: var(--sdpi-color-accent, #0099ff);
-  color: #fff;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: var(--sdpi-color-accent-hover, #0077cc);
-}
-
-.btn-secondary {
-  background-color: var(--sdpi-color-bg-tertiary, #404040);
-  color: var(--sdpi-color-text, #cccccc);
-  border: 1px solid var(--sdpi-color-border, #333);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background-color: var(--sdpi-color-bg-hover, #505050);
-}
-
-.btn-link {
-  background: none;
-  border: none;
-  color: var(--sdpi-color-accent, #0099ff);
-  cursor: pointer;
-  font-size: 12px;
-  text-decoration: underline;
-  padding: 0;
-  margin-left: 8px;
-}
-
-.btn-link:hover {
-  color: var(--sdpi-color-accent-hover, #0077cc);
-}
-
-.status-message {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 14px;
-  margin: 8px 0;
-}
-
-.status-loading {
-  background-color: var(--sdpi-color-bg-info, #1a3b5c);
-  color: var(--sdpi-color-text-info, #79c7ff);
-  border: 1px solid var(--sdpi-color-border-info, #0099ff);
-}
-
-.status-success {
-  background-color: var(--sdpi-color-bg-success, #1a3b1a);
-  color: var(--sdpi-color-text-success, #7dd87d);
-  border: 1px solid var(--sdpi-color-border-success, #28a745);
-}
-
-.status-error {
-  background-color: var(--sdpi-color-bg-error, #3b1a1a);
-  color: var(--sdpi-color-text-error, #ff7979);
-  border: 1px solid var(--sdpi-color-border-error, #dc3545);
-}
-
-.status-icon {
-  font-size: 16px;
-  flex-shrink: 0;
-}
-
-.help-text {
-  font-size: 12px;
-  color: var(--sdpi-color-text-secondary, #999);
-  line-height: 1.4;
-}
-
-.help-section {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--sdpi-color-border, #333);
-}
-
-.help-list {
-  margin: 8px 0;
-  padding-left: 20px;
-  font-size: 13px;
-  color: var(--sdpi-color-text-secondary, #999);
-  line-height: 1.6;
-}
-
-.help-list li {
-  margin-bottom: 4px;
-}
-
-.help-list strong {
-  color: var(--sdpi-color-text, #cccccc);
-  font-weight: 600;
-}
+/* All common styles moved to src/frontend/styles/property-inspector.css */
+/* Add view-specific styles here if needed */
 </style>
