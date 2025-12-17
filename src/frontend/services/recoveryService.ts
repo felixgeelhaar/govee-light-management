@@ -87,9 +87,9 @@ export class RecoveryService {
         continue;
       }
 
+      const startTime = Date.now();
       try {
-        const operationId = `recovery-${strategy.name}-${Date.now()}`;
-        const startTime = Date.now();
+        const operationId = `recovery-${strategy.name}-${startTime}`;
 
         console.log(`Attempting recovery with strategy: ${strategy.name}`);
 
@@ -117,7 +117,7 @@ export class RecoveryService {
           this.recordFailure(circuitBreakerKey);
         }
       } catch (recoveryError) {
-        const duration = Date.now() - Date.now();
+        const duration = Date.now() - startTime;
 
         // Record failed recovery attempt
         this.recordRecoveryAttempt({

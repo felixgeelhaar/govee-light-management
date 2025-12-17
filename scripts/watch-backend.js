@@ -2,7 +2,6 @@
 
 import { spawn } from 'child_process';
 import { watch } from 'chokidar';
-import { resolve } from 'path';
 
 const PLUGIN_ID = 'com.felixgeelhaar.govee-light-management';
 

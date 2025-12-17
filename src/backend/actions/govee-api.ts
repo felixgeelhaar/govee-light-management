@@ -84,7 +84,7 @@ export class GoveeLightManagement extends SingletonAction<GoveeSettings> {
       "https://openapi.api.govee.com/router/api/v1/user/devices",
       {
         headers: {
-          "Govee-API-Key": apiKey ?? "",
+          "Govee-API-Key": apiKey,
         },
       },
     );
