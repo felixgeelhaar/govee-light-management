@@ -26,6 +26,10 @@ import {
 import { DeviceService } from "../domain/services/DeviceService";
 import { globalSettingsService } from "../services/GlobalSettingsService";
 import { telemetryService } from "../services/TelemetryService";
+import {
+  ApiResponseValidator,
+  GroupControlSettingsSchema,
+} from "../infrastructure/validation";
 
 type GroupControlSettings = {
   apiKey?: string;
@@ -60,7 +64,17 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
   ): Promise<void> {
     const { settings } = ev.payload;
 
-    await this.ensureServices(settings.apiKey);
+    // Validate settings with Zod schema
+    const validatedSettings = ApiResponseValidator.safeParse(
+      GroupControlSettingsSchema,
+      settings,
+      "GroupControlSettings",
+    );
+
+    // Use validated settings or fall back to original (for backwards compatibility)
+    const safeSettings = validatedSettings || settings;
+
+    await this.ensureServices(safeSettings.apiKey);
 
     // Set initial title based on configuration
     const title = this.getActionTitle(settings);

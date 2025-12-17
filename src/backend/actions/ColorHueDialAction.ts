@@ -22,6 +22,10 @@ import {
 } from "../connectivity";
 import { telemetryService } from "../services/TelemetryService";
 import { globalSettingsService } from "../services/GlobalSettingsService";
+import {
+  ApiResponseValidator,
+  ColorHueDialSettingsSchema,
+} from "../infrastructure/validation";
 
 type ColorHueDialSettings = {
   apiKey?: string;
@@ -54,7 +58,17 @@ export class ColorHueDialAction extends SingletonAction<ColorHueDialSettings> {
   ): Promise<void> {
     const { settings } = ev.payload;
 
-    await this.ensureServices(settings.apiKey);
+    // Validate settings with Zod schema
+    const validatedSettings = ApiResponseValidator.safeParse(
+      ColorHueDialSettingsSchema,
+      settings,
+      "ColorHueDialSettings",
+    );
+
+    // Use validated settings or fall back to original (for backwards compatibility)
+    const safeSettings = validatedSettings || settings;
+
+    await this.ensureServices(safeSettings.apiKey);
 
     // Load current light if configured
     if (

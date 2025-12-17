@@ -22,6 +22,10 @@ import {
 } from "../connectivity";
 import { telemetryService } from "../services/TelemetryService";
 import { globalSettingsService } from "../services/GlobalSettingsService";
+import {
+  ApiResponseValidator,
+  BrightnessDialSettingsSchema,
+} from "../infrastructure/validation";
 
 type BrightnessDialSettings = {
   apiKey?: string;
@@ -53,7 +57,17 @@ export class BrightnessDialAction extends SingletonAction<BrightnessDialSettings
   ): Promise<void> {
     const { settings } = ev.payload;
 
-    await this.ensureServices(settings.apiKey);
+    // Validate settings with Zod schema
+    const validatedSettings = ApiResponseValidator.safeParse(
+      BrightnessDialSettingsSchema,
+      settings,
+      "BrightnessDialSettings",
+    );
+
+    // Use validated settings or fall back to original (for backwards compatibility)
+    const safeSettings = validatedSettings || settings;
+
+    await this.ensureServices(safeSettings.apiKey);
 
     // Load current light if configured
     if (

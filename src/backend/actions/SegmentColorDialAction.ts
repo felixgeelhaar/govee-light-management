@@ -13,6 +13,10 @@ import { Light } from "../domain/entities/Light";
 import { SegmentColor } from "../domain/value-objects/SegmentColor";
 import { ColorRgb } from "@felixgeelhaar/govee-api-client";
 import { globalSettingsService } from "../services/GlobalSettingsService";
+import {
+  ApiResponseValidator,
+  SegmentColorDialSettingsSchema,
+} from "../infrastructure/validation";
 
 type SegmentColorDialSettings = {
   apiKey?: string;
@@ -46,7 +50,17 @@ export class SegmentColorDialAction extends SingletonAction<SegmentColorDialSett
   ): Promise<void> {
     const { settings } = ev.payload;
 
-    await this.ensureServices(settings.apiKey);
+    // Validate settings with Zod schema
+    const validatedSettings = ApiResponseValidator.safeParse(
+      SegmentColorDialSettingsSchema,
+      settings,
+      "SegmentColorDialSettings",
+    );
+
+    // Use validated settings or fall back to original (for backwards compatibility)
+    const safeSettings = validatedSettings || settings;
+
+    await this.ensureServices(safeSettings.apiKey);
 
     // Initialize color values from settings
     this.currentHue = settings.hue ?? 0;

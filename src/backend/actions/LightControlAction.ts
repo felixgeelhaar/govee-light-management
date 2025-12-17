@@ -24,6 +24,10 @@ import {
 } from "../connectivity";
 import { telemetryService } from "../services/TelemetryService";
 import { globalSettingsService } from "../services/GlobalSettingsService";
+import {
+  ApiResponseValidator,
+  LightControlSettingsSchema,
+} from "../infrastructure/validation";
 
 type LightControlSettings = {
   apiKey?: string;
@@ -67,7 +71,17 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
   ): Promise<void> {
     const { settings } = ev.payload;
 
-    await this.ensureServices(settings.apiKey);
+    // Validate settings with Zod schema
+    const validatedSettings = ApiResponseValidator.safeParse(
+      LightControlSettingsSchema,
+      settings,
+      "LightControlSettings",
+    );
+
+    // Use validated settings or fall back to original (for backwards compatibility)
+    const safeSettings = validatedSettings || settings;
+
+    await this.ensureServices(safeSettings.apiKey);
 
     // Set initial title based on configuration
     const title = this.getActionTitle(settings);
