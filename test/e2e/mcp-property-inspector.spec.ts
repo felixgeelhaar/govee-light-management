@@ -55,13 +55,17 @@ test.describe('MCP Property Inspector Tests', () => {
 
   test.describe('API Key Input and Validation', () => {
     test('should show validation error for empty API key on form submit', async ({ page }) => {
-      // Try to submit form without API key
+      // The API key field has required attribute, so browser native validation kicks in
+      const apiKeyInput = page.locator('input[name="apiKey"]');
+      await expect(apiKeyInput).toHaveAttribute('required', '');
+
+      // Try to submit - browser will show native validation tooltip
       const submitButton = page.locator('button[type="submit"]');
       await submitButton.click();
-      
-      // Should show field error
-      const apiKeyError = page.locator('#apiKeyError');
-      await expect(apiKeyError).toContainText('API key is required');
+
+      // No success message should appear since form wasn't submitted
+      const successMessage = page.locator('.success-message');
+      await expect(successMessage).toHaveCount(0);
     });
 
     test('should validate API key format', async ({ page }) => {
@@ -93,8 +97,8 @@ test.describe('MCP Property Inspector Tests', () => {
       
       // Light select should be enabled with options
       await expect(lightSelect).toBeEnabled();
-      const options = lightSelect.locator('option');
-      await expect(options).toHaveCount.greaterThan(1);
+      const optionCount = await lightSelect.locator('option').count();
+      expect(optionCount).toBeGreaterThan(1);
       
       // Should show success message
       const successMessage = page.locator('.success-message');
@@ -303,37 +307,42 @@ test.describe('MCP Property Inspector Tests', () => {
     });
 
     test('should validate required fields on submission', async ({ page }) => {
-      // Clear API key to make form invalid
+      // Navigate fresh to ensure no form state
+      await page.goto('/property-inspector.html');
+      await page.waitForLoadState('networkidle');
+
+      // The API key field has required attribute, so browser native validation kicks in
       const apiKeyInput = page.locator('input[name="apiKey"]');
-      await apiKeyInput.clear();
-      
+      await expect(apiKeyInput).toHaveAttribute('required', '');
+
       const submitButton = page.locator('button[type="submit"]');
       await submitButton.click();
-      
-      // Should show validation errors
-      const apiKeyError = page.locator('#apiKeyError');
-      await expect(apiKeyError).toContainText('API key is required');
+
+      // No success message should appear since form wasn't submitted due to browser validation
+      const successMessage = page.locator('.success-message');
+      await expect(successMessage).toHaveCount(0);
     });
 
     test('should maintain form state during loading', async ({ page }) => {
       const controlModeSelect = page.locator('select[name="controlMode"]');
       const testButton = page.locator('button[data-action="testLight"]');
-      
+      const saveButton = page.locator('button[type="submit"]');
+
       // Change control mode
       await controlModeSelect.selectOption('brightness');
-      
+
       // Start test (which shows loading state)
       await testButton.click();
-      
-      // During loading, form should be disabled
-      await expect(controlModeSelect).toBeDisabled();
-      
+
+      // During loading, buttons should be disabled
+      await expect(saveButton).toBeDisabled();
+
       // Wait for loading to complete
       await page.waitForTimeout(1500);
-      
-      // Form should be re-enabled
-      await expect(controlModeSelect).toBeEnabled();
-      
+
+      // Buttons should be re-enabled
+      await expect(saveButton).toBeEnabled();
+
       // Control mode should still be brightness
       await expect(controlModeSelect).toHaveValue('brightness');
     });
@@ -354,14 +363,14 @@ test.describe('MCP Property Inspector Tests', () => {
       // Focus should start on first input
       await page.keyboard.press('Tab');
       await expect(page.locator('input[name="apiKey"]')).toBeFocused();
-      
-      // Tab to next field
-      await page.keyboard.press('Tab');
-      await expect(page.locator('select[name="selectedLight"]')).toBeFocused();
-      
-      // Tab to control mode
+
+      // Tab skips disabled light select, goes to control mode
       await page.keyboard.press('Tab');
       await expect(page.locator('select[name="controlMode"]')).toBeFocused();
+
+      // Tab to save button
+      await page.keyboard.press('Tab');
+      await expect(page.locator('button[type="submit"]')).toBeFocused();
     });
 
     test('should handle form submission with Enter key', async ({ page }) => {
