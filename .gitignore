@@ -16,6 +16,7 @@ coverage/
 # Playwright
 playwright-report/
 test-results/
+.playwright-mcp/
 
 # Stream Deck files
 *.sdPlugin/bin/
