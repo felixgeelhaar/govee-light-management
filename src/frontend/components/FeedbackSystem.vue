@@ -114,34 +114,97 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * FeedbackSystem Component
+ *
+ * A comprehensive feedback system providing toast notifications, loading overlays,
+ * and success animations for Stream Deck Property Inspectors.
+ *
+ * This component should be mounted once at the app root and accessed via the
+ * `useFeedback` composable or by providing a ref to child components.
+ *
+ * Features:
+ * - Toast notifications (success, error, warning, info) with auto-dismiss
+ * - Action buttons on toasts for retry/recovery flows
+ * - Global loading overlay with progress bar
+ * - Success animation overlay for operation completion
+ * - Smooth enter/leave transitions
+ *
+ * @example App.vue Setup
+ * ```vue
+ * <template>
+ *   <FeedbackSystem ref="feedbackRef" />
+ *   <RouterView />
+ * </template>
+ *
+ * <script setup>
+ * import { ref, provide } from 'vue';
+ * const feedbackRef = ref();
+ * provide('feedbackSystem', feedbackRef);
+ * </script>
+ * ```
+ *
+ * @example Using via composable
+ * ```typescript
+ * const feedback = useFeedbackHelpers();
+ * feedback.showSuccessToast('Saved', 'Settings saved successfully');
+ * feedback.showError('Failed', 'Connection failed', [
+ *   { label: 'Retry', action: () => retry() }
+ * ]);
+ * ```
+ */
 import { ref } from "vue";
 import LoadingSpinner from "./LoadingSpinner.vue";
 
-// Toast notification interface
+/**
+ * Toast notification configuration
+ * @interface Toast
+ */
 interface Toast {
+  /** Unique identifier for the toast */
   id: string;
+  /** Visual style variant */
   type: "success" | "error" | "warning" | "info";
+  /** Primary text displayed in the toast */
   title: string;
+  /** Secondary descriptive text */
   message?: string;
+  /** Auto-dismiss duration in milliseconds (undefined = persistent) */
   duration?: number;
+  /** If true, toast won't auto-dismiss */
   persistent?: boolean;
+  /** Progress bar percentage (0-100) */
   progress?: number;
+  /** Action buttons displayed in the toast */
   actions?: Array<{
+    /** Button label text */
     label: string;
+    /** Button style variant */
     type?: "primary" | "secondary" | "danger";
+    /** Click handler function */
     action: () => void | Promise<void>;
   }>;
 }
 
 // Reactive state
+/** Active toast notifications */
 const toasts = ref<Toast[]>([]);
+/** Whether global loading overlay is visible */
 const globalLoading = ref(false);
+/** Text displayed in loading overlay */
 const globalLoadingText = ref("Loading...");
+/** Loading progress percentage (0-100) */
 const globalLoadingProgress = ref<number | undefined>(undefined);
+/** Whether success animation is visible */
 const showSuccessAnimation = ref(false);
+/** Message displayed in success animation */
 const successMessage = ref("");
 
-// Toast management
+/**
+ * Displays a toast notification
+ * @param toast - Toast configuration (without id)
+ * @returns The generated toast ID for later reference
+ */
 const showToast = (toast: Omit<Toast, "id">) => {
   const id = `toast-${Date.now()}-${Math.random()}`;
   const newToast: Toast = {
@@ -162,6 +225,10 @@ const showToast = (toast: Omit<Toast, "id">) => {
   return id;
 };
 
+/**
+ * Dismisses a toast notification by ID
+ * @param id - The toast ID to dismiss
+ */
 const dismissToast = (id: string) => {
   const index = toasts.value.findIndex((t) => t.id === id);
   if (index !== -1) {
@@ -169,6 +236,11 @@ const dismissToast = (id: string) => {
   }
 };
 
+/**
+ * Updates the progress bar on a specific toast
+ * @param id - The toast ID to update
+ * @param progress - Progress percentage (0-100)
+ */
 const updateToastProgress = (id: string, progress: number) => {
   const toast = toasts.value.find((t) => t.id === id);
   if (toast) {
@@ -176,6 +248,10 @@ const updateToastProgress = (id: string, progress: number) => {
   }
 };
 
+/**
+ * Handles toast action button clicks
+ * @internal
+ */
 const handleToastAction = async (
   action: NonNullable<Toast["actions"]>[0],
   toastId: string,
@@ -191,18 +267,30 @@ const handleToastAction = async (
   dismissToast(toastId);
 };
 
-// Global loading management
+/**
+ * Shows the global loading overlay
+ * @param text - Loading message to display
+ * @param progress - Optional initial progress percentage
+ */
 const showGlobalLoading = (text = "Loading...", progress?: number) => {
   globalLoading.value = true;
   globalLoadingText.value = text;
   globalLoadingProgress.value = progress;
 };
 
+/**
+ * Hides the global loading overlay
+ */
 const hideGlobalLoading = () => {
   globalLoading.value = false;
   globalLoadingProgress.value = undefined;
 };
 
+/**
+ * Updates the global loading progress bar
+ * @param progress - Progress percentage (0-100)
+ * @param text - Optional new loading text
+ */
 const updateGlobalLoadingProgress = (progress: number, text?: string) => {
   globalLoadingProgress.value = Math.max(0, Math.min(100, progress));
   if (text) {
@@ -210,7 +298,11 @@ const updateGlobalLoadingProgress = (progress: number, text?: string) => {
   }
 };
 
-// Success animation
+/**
+ * Displays a success animation overlay
+ * @param message - Success message to display
+ * @param duration - Animation display duration in milliseconds
+ */
 const displaySuccessAnimation = (message: string, duration = 2000) => {
   successMessage.value = message;
   showSuccessAnimation.value = true;
@@ -224,7 +316,10 @@ const hideSuccessAnimation = () => {
   showSuccessAnimation.value = false;
 };
 
-// Helper functions
+/**
+ * Returns the icon character for a toast type
+ * @internal
+ */
 const getToastIcon = (type: Toast["type"]) => {
   const icons = {
     success: "✓",
@@ -235,11 +330,23 @@ const getToastIcon = (type: Toast["type"]) => {
   return icons[type] || icons.info;
 };
 
-// Quick helper methods for common toast types
+/**
+ * Shows a success toast notification
+ * @param title - Toast title
+ * @param message - Optional description
+ * @returns Toast ID
+ */
 const showSuccessToast = (title: string, message?: string) => {
   return showToast({ type: "success", title, message });
 };
 
+/**
+ * Shows an error toast notification with extended duration
+ * @param title - Error title
+ * @param message - Optional error description
+ * @param actions - Optional action buttons (e.g., Retry)
+ * @returns Toast ID
+ */
 const showError = (
   title: string,
   message?: string,
@@ -248,10 +355,22 @@ const showError = (
   return showToast({ type: "error", title, message, actions, duration: 8000 });
 };
 
+/**
+ * Shows a warning toast notification
+ * @param title - Warning title
+ * @param message - Optional warning description
+ * @returns Toast ID
+ */
 const showWarning = (title: string, message?: string) => {
   return showToast({ type: "warning", title, message, duration: 6000 });
 };
 
+/**
+ * Shows an info toast notification
+ * @param title - Info title
+ * @param message - Optional description
+ * @returns Toast ID
+ */
 const showInfo = (title: string, message?: string) => {
   return showToast({ type: "info", title, message });
 };

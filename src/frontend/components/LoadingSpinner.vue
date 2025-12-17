@@ -17,9 +17,34 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * LoadingSpinner Component
+ *
+ * A customizable animated loading spinner for indicating async operations.
+ * Supports multiple color variants and sizes for different use cases.
+ *
+ * @example
+ * ```vue
+ * <LoadingSpinner />
+ * <LoadingSpinner size="48" variant="light" />
+ * <LoadingSpinner :size="24" :stroke-width="2" variant="secondary" />
+ * ```
+ *
+ * @accessibility
+ * - Includes `prefers-reduced-motion` support for users who prefer less animation
+ * - Should be accompanied by appropriate aria-label or screen reader text
+ */
+
+/**
+ * Component props interface
+ * @interface Props
+ */
 interface Props {
+  /** Size of the spinner in pixels (width and height) */
   size?: number;
+  /** Color variant of the spinner */
   variant?: "primary" | "secondary" | "light" | "dark";
+  /** Width of the spinner stroke in pixels */
   strokeWidth?: number;
 }
 

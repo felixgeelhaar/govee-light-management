@@ -217,6 +217,36 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * HealthDashboard Component
+ *
+ * A comprehensive system health monitoring dashboard that displays real-time
+ * health metrics, diagnostics, trends, and recommendations for the plugin.
+ *
+ * Features:
+ * - Overall health status with score (0-100)
+ * - Health trend visualization with SVG chart
+ * - System metrics grid with thresholds and status indicators
+ * - Recent diagnostics list with filtering by category
+ * - System information display (platform, memory, connection)
+ * - Actionable recommendations based on health analysis
+ * - Start/Stop monitoring controls
+ * - Manual health check trigger
+ *
+ * @example Basic Usage
+ * ```vue
+ * <template>
+ *   <HealthDashboard />
+ * </template>
+ * ```
+ *
+ * @example Conditional Display
+ * ```vue
+ * <template>
+ *   <HealthDashboard v-if="showAdvancedDiagnostics" />
+ * </template>
+ * ```
+ */
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import {
   useHealthMonitoring,
@@ -225,27 +255,43 @@ import {
 import { useFeedbackHelpers } from "../composables/useFeedback";
 
 // Composables
+/** Health monitoring service for tracking system health */
 const health = useHealthMonitoring();
+/** Feedback helpers for toast notifications */
 const feedback = useFeedbackHelpers();
 
 // Local state
+/** Currently selected diagnostic category filter */
 const selectedCategory = ref("All");
+/** Whether a health check is currently in progress */
 const isCheckingHealth = ref(false);
+/** Most recent health report from manual check */
 const currentReport = ref<HealthReport | null>(null);
 
 // Computed values
+/** Current health status including score, trend, and monitoring state */
 const healthStatus = computed(() => health.healthStatus.value);
+/** All system metrics with their current values and thresholds */
 const allMetrics = computed(() => health.getAllMetrics());
+/** Recent diagnostic results (last 20) */
 const recentDiagnostics = computed(() => health.getRecentDiagnostics(20));
+/** Historical health scores for trend visualization */
 const healthHistory = computed(() => health.getHealthHistory());
+/** Current system information (platform, memory, connection) */
 const systemInfo = computed(() => health.getSystemInfo());
 
+/**
+ * Available diagnostic categories including "All" and any found in diagnostics
+ */
 const diagnosticCategories = computed(() => {
   const categories = new Set(["All"]);
   recentDiagnostics.value.forEach((d) => categories.add(d.category));
   return Array.from(categories);
 });
 
+/**
+ * Diagnostics filtered by the currently selected category
+ */
 const filteredDiagnostics = computed(() => {
   if (selectedCategory.value === "All") {
     return recentDiagnostics.value;
@@ -256,6 +302,9 @@ const filteredDiagnostics = computed(() => {
 });
 
 // Methods
+/**
+ * Starts continuous health monitoring
+ */
 const startMonitoring = () => {
   health.startMonitoring();
   feedback.showSuccessToast(
@@ -264,6 +313,9 @@ const startMonitoring = () => {
   );
 };
 
+/**
+ * Stops continuous health monitoring
+ */
 const stopMonitoring = () => {
   health.stopMonitoring();
   feedback.showInfo(
@@ -272,6 +324,11 @@ const stopMonitoring = () => {
   );
 };
 
+/**
+ * Performs an immediate health check and updates the report
+ * Shows appropriate feedback based on health status
+ * @async
+ */
 const performHealthCheck = async () => {
   isCheckingHealth.value = true;
   try {
@@ -295,6 +352,11 @@ const performHealthCheck = async () => {
 };
 
 // Utility methods
+/**
+ * Returns an emoji icon for a health status
+ * @param status - The health status (healthy, degraded, unhealthy)
+ * @returns Status emoji icon
+ */
 const getStatusIcon = (status: string) => {
   switch (status) {
     case "healthy":
@@ -308,10 +370,20 @@ const getStatusIcon = (status: string) => {
   }
 };
 
+/**
+ * Formats a status string with proper capitalization
+ * @param status - The status string to format
+ * @returns Capitalized status string
+ */
 const formatStatus = (status: string): string => {
   return status.charAt(0).toUpperCase() + status.slice(1);
 };
 
+/**
+ * Formats a trend direction with icon
+ * @param direction - The trend direction (improving, stable, declining)
+ * @returns Formatted trend string with emoji
+ */
 const formatTrendDirection = (direction: string): string => {
   const icons = {
     improving: "📈 Improving",
@@ -321,6 +393,11 @@ const formatTrendDirection = (direction: string): string => {
   return icons[direction as keyof typeof icons] || direction;
 };
 
+/**
+ * Formats a diagnostic result for display
+ * @param result - The result type (pass, fail, warning)
+ * @returns Formatted result string
+ */
 const formatResult = (result: string): string => {
   const resultMap = {
     pass: "Pass",
@@ -330,6 +407,11 @@ const formatResult = (result: string): string => {
   return resultMap[result as keyof typeof resultMap] || result;
 };
 
+/**
+ * Formats a metric value for display
+ * @param value - The value to format
+ * @returns Formatted string representation
+ */
 const formatMetricValue = (value: number | string | boolean): string => {
   if (typeof value === "boolean") {
     return value ? "Yes" : "No";
@@ -340,10 +422,20 @@ const formatMetricValue = (value: number | string | boolean): string => {
   return String(value);
 };
 
+/**
+ * Formats a timestamp for display
+ * @param timestamp - Unix timestamp in milliseconds
+ * @returns Formatted time string
+ */
 const formatTime = (timestamp: number): string => {
   return new Date(timestamp).toLocaleTimeString();
 };
 
+/**
+ * Formats a timestamp as relative time (e.g., "5m ago")
+ * @param timestamp - Unix timestamp in milliseconds
+ * @returns Relative time string
+ */
 const formatRelativeTime = (timestamp: number): string => {
   const now = Date.now();
   const diff = now - timestamp;
@@ -354,6 +446,10 @@ const formatRelativeTime = (timestamp: number): string => {
   return `${Math.floor(diff / 86400000)}d ago`;
 };
 
+/**
+ * Calculates SVG coordinate points for the health trend chart
+ * @returns Array of {x, y} coordinates for the chart
+ */
 const getTrendPoints = (): Array<{ x: number; y: number }> => {
   const history = healthHistory.value;
   if (history.length < 2) return [];
@@ -372,11 +468,19 @@ const getTrendPoints = (): Array<{ x: number; y: number }> => {
   return points;
 };
 
+/**
+ * Generates SVG polyline points string from trend points
+ * @returns Space-separated coordinate pairs (e.g., "0,50 100,40 200,45")
+ */
 const generateTrendPoints = (): string => {
   const points = getTrendPoints();
   return points.map((p) => `${p.x},${p.y}`).join(" ");
 };
 
+/**
+ * Returns the appropriate color for the current trend direction
+ * @returns Hex color code for the trend line
+ */
 const getTrendColor = (): string => {
   switch (healthStatus.value.trendDirection) {
     case "improving":
@@ -389,6 +493,11 @@ const getTrendColor = (): string => {
   }
 };
 
+/**
+ * Calculates the percentage fill for a metric's threshold bar
+ * @param metric - The metric with threshold and value
+ * @returns Percentage (0-100) for the threshold bar fill
+ */
 const getThresholdPercentage = (metric: {
   threshold?: { critical: number };
   value: unknown;

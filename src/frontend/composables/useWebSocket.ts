@@ -2,7 +2,58 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { websocketService } from "../services/websocketService";
 
 /**
- * Vue composable for WebSocket communication with Stream Deck
+ * useWebSocket Composable
+ *
+ * A Vue composable for managing WebSocket communication with the Stream Deck
+ * backend. Provides methods for sending messages, settings, and handling
+ * real-time bidirectional communication.
+ *
+ * Features:
+ * - Reactive connection state tracking
+ * - Message sending and receiving
+ * - Settings synchronization with Stream Deck
+ * - Light and group data requests
+ * - API key validation
+ * - Event listener management
+ * - Automatic cleanup on component unmount
+ *
+ * @example Basic Usage
+ * ```typescript
+ * const ws = useWebSocket();
+ *
+ * // Check connection status
+ * if (ws.isConnected.value) {
+ *   // Request lights
+ *   ws.requestLights();
+ * }
+ *
+ * // Listen for events
+ * ws.addEventListener("lightsReceived", (data) => {
+ *   console.log("Lights:", data.lights);
+ * });
+ *
+ * // Send settings to Stream Deck
+ * ws.sendSettings({ apiKey: "your-key", selectedDeviceId: "device-123" });
+ * ```
+ *
+ * @example Event Handling
+ * ```typescript
+ * const ws = useWebSocket();
+ *
+ * // Add event listener
+ * const handleApiValidation = (data) => {
+ *   if (data.valid) {
+ *     console.log("API key is valid");
+ *   }
+ * };
+ *
+ * ws.addEventListener("apiKeyValidated", handleApiValidation);
+ *
+ * // Remove event listener when done
+ * ws.removeEventListener("apiKeyValidated", handleApiValidation);
+ * ```
+ *
+ * @returns {Object} WebSocket state and methods
  */
 export function useWebSocket() {
   const isConnected = ref(false);
@@ -40,6 +91,10 @@ export function useWebSocket() {
   });
 
   // API methods
+  /**
+   * Sends a raw message through the WebSocket connection
+   * @param message - The message object to send
+   */
   const sendMessage = (message: any) => {
     try {
       websocketService.sendMessage(message);
@@ -48,6 +103,10 @@ export function useWebSocket() {
     }
   };
 
+  /**
+   * Sends action settings to Stream Deck for persistence
+   * @param settings - Settings object to save
+   */
   const sendSettings = (settings: Record<string, any>) => {
     try {
       websocketService.sendSettings(settings);
@@ -56,6 +115,10 @@ export function useWebSocket() {
     }
   };
 
+  /**
+   * Requests the list of available lights from the backend
+   * Response received via "lightsReceived" event
+   */
   const requestLights = () => {
     try {
       websocketService.requestLights();
@@ -64,6 +127,10 @@ export function useWebSocket() {
     }
   };
 
+  /**
+   * Requests the list of light groups from the backend
+   * Response received via "groupsReceived" event
+   */
   const requestGroups = () => {
     try {
       websocketService.requestGroups();
@@ -72,6 +139,10 @@ export function useWebSocket() {
     }
   };
 
+  /**
+   * Saves a new or updated light group
+   * @param group - Group object with name and light IDs
+   */
   const saveGroup = (group: { name: string; lightIds: string[] }) => {
     try {
       websocketService.saveGroup(group);
@@ -80,6 +151,10 @@ export function useWebSocket() {
     }
   };
 
+  /**
+   * Deletes a light group by ID
+   * @param groupId - The ID of the group to delete
+   */
   const deleteGroup = (groupId: string) => {
     try {
       websocketService.deleteGroup(groupId);
@@ -88,6 +163,11 @@ export function useWebSocket() {
     }
   };
 
+  /**
+   * Sends an API key to the backend for validation
+   * Response received via "apiKeyValidated" event
+   * @param apiKey - The Govee API key to validate
+   */
   const validateApiKey = (apiKey: string) => {
     try {
       websocketService.validateApiKey(apiKey);
@@ -97,10 +177,20 @@ export function useWebSocket() {
   };
 
   // Event listener management
+  /**
+   * Adds an event listener for WebSocket events
+   * @param event - Event name to listen for (or "*" for all events)
+   * @param handler - Callback function to handle the event
+   */
   const addEventListener = (event: string, handler: (data: any) => void) => {
     websocketService.on(event, handler);
   };
 
+  /**
+   * Removes an event listener for WebSocket events
+   * @param event - Event name to stop listening for
+   * @param handler - The handler function to remove
+   */
   const removeEventListener = (event: string, handler: (data: any) => void) => {
     websocketService.off(event, handler);
   };

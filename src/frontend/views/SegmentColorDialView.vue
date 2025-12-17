@@ -11,10 +11,10 @@
       <div v-if="lightDiscovery.isIdle" class="form-group">
         <button
           class="btn btn-primary"
-          :disabled="!apiConnection.isConnected"
+          :disabled="!apiConnection.isConnected.value || apiConnection.isConnecting.value"
           @click="lightDiscovery.fetchLights"
         >
-          Discover RGB IC Segment Lights
+          {{ apiConnection.isConnecting.value ? "Connecting..." : "Discover RGB IC Segment Lights" }}
         </button>
         <small class="help-text">
           Only RGB IC lights with segment control will be shown
@@ -189,10 +189,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useApiConnection } from "../composables/useApiConnection";
 import { useLightDiscovery } from "../composables/useLightDiscovery";
 import { useSegmentColorDialSettings } from "../composables/useSettings";
+import { useFeedbackHelpers } from "../composables/useFeedback";
 import ApiConfigSection from "../components/ApiConfigSection.vue";
 import FormInput from "../components/FormInput.vue";
 import "../styles/property-inspector.css";
@@ -205,6 +206,9 @@ const apiConnection = useApiConnection();
 
 // Light Discovery composable
 const lightDiscovery = useLightDiscovery();
+
+// Feedback system for user notifications
+const feedback = useFeedbackHelpers();
 
 // Explicitly extract lights array for template (helps TypeScript)
 const lightsArray = computed(() => lightDiscovery.lights.value);
@@ -329,6 +333,56 @@ function onLightSelected() {
   // Trigger the setter which will auto-save via the composable
   selectedLight.value = selectedLight.value;
 }
+
+// Watch for API connection success
+watch(
+  () => apiConnection.isConnected.value,
+  (isConnected, wasConnected) => {
+    if (isConnected && !wasConnected) {
+      feedback.showConnectionSuccess("Govee API");
+      // Auto-fetch lights when connected
+      if (lightDiscovery.isIdle.value) {
+        lightDiscovery.fetchLights();
+      }
+    }
+  },
+);
+
+// Watch for API connection errors
+watch(
+  () => apiConnection.error.value,
+  (error) => {
+    if (error) {
+      feedback.showConnectionError(
+        { message: error },
+        () => apiConnection.retry(),
+      );
+    }
+  },
+);
+
+// Watch for light discovery success
+watch(
+  () => lightDiscovery.isReady.value,
+  (isReady, wasReady) => {
+    if (isReady && !wasReady && lightDiscovery.hasLights.value) {
+      feedback.showDiscoverySuccess(lightDiscovery.lights.value.length);
+    }
+  },
+);
+
+// Watch for light discovery errors
+watch(
+  () => lightDiscovery.error.value,
+  (error) => {
+    if (error) {
+      feedback.showDiscoveryError(
+        { message: error },
+        () => lightDiscovery.retryFetch(),
+      );
+    }
+  },
+);
 
 // Initialize
 onMounted(async () => {

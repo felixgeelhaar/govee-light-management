@@ -59,8 +59,49 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * DiagnosticsPanel Component
+ *
+ * Displays real-time telemetry and diagnostic information for monitoring
+ * the plugin's health and performance. Shows discovery metrics, command
+ * success rates, and transport health status.
+ *
+ * Features:
+ * - Discovery average latency and stale response counts
+ * - Command success rates with total execution counts
+ * - Transport health checks and error details
+ * - User-initiated refresh and reset controls
+ * - Responsive 2-column grid layout
+ *
+ * @example Basic Usage
+ * ```typescript
+ * // Template: <DiagnosticsPanel :snapshot="telemetrySnapshot" @refresh="handleRefresh" @reset="handleReset" />
+ * ```
+ *
+ * @example With Telemetry Service
+ * ```typescript
+ * // In your component setup:
+ * const snapshot = ref<TelemetrySnapshot | null>(null);
+ *
+ * async function fetchSnapshot() {
+ *   snapshot.value = await telemetryService.getSnapshot();
+ * }
+ *
+ * function resetTelemetry() {
+ *   telemetryService.reset();
+ *   snapshot.value = null;
+ * }
+ *
+ * // Template: <DiagnosticsPanel :snapshot="snapshot" @refresh="fetchSnapshot" @reset="resetTelemetry" />
+ * ```
+ */
 import { computed } from "vue";
 
+/**
+ * Structure representing a telemetry snapshot from the TelemetryService.
+ * Contains metrics for transport health, device discovery, and command execution.
+ * @interface TelemetrySnapshot
+ */
 interface TelemetrySnapshot {
   transport: {
     checks: number;
@@ -100,17 +141,35 @@ interface TelemetrySnapshot {
   };
 }
 
+/**
+ * Component props
+ * @interface Props
+ */
 const props = defineProps<{
+  /** Telemetry snapshot data from TelemetryService, or null if no data available */
   snapshot: TelemetrySnapshot | null;
 }>();
 
+/**
+ * Component events
+ */
 defineEmits<{
+  /** Emitted when user requests a data refresh */
   refresh: [];
+  /** Emitted when user requests telemetry reset */
   reset: [];
 }>();
 
+/**
+ * Whether any telemetry data is available to display
+ * @returns true if snapshot contains data
+ */
 const hasData = computed(() => Boolean(props.snapshot));
 
+/**
+ * Calculates the average discovery duration in milliseconds
+ * @returns Average duration or null if no discovery data
+ */
 const averageDiscovery = computed(() => {
   if (!props.snapshot || props.snapshot.discovery.total === 0) return null;
   return Math.round(
@@ -118,6 +177,10 @@ const averageDiscovery = computed(() => {
   );
 });
 
+/**
+ * Calculates the command success rate as a percentage
+ * @returns Success percentage (0-100) or null if no command data
+ */
 const commandSuccess = computed(() => {
   if (!props.snapshot || props.snapshot.commands.total === 0) return null;
   const success =
@@ -125,7 +188,9 @@ const commandSuccess = computed(() => {
   return Math.round((success / props.snapshot.commands.total) * 100);
 });
 
+/** Total number of commands executed */
 const totalCommands = computed(() => props.snapshot?.commands.total ?? 0);
+/** Number of failed commands */
 const failedCommands = computed(() => props.snapshot?.commands.failures ?? 0);
 </script>
 

@@ -200,6 +200,37 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * LightMonitoringDashboard Component
+ *
+ * A comprehensive dashboard for monitoring Govee light states in real-time.
+ * Provides light selection, state tracking, change detection, and configuration
+ * for polling intervals and synchronization.
+ *
+ * Features:
+ * - Real-time light state monitoring with configurable poll intervals
+ * - Light selection with multi-select checkboxes
+ * - Current state display showing power, brightness, color, and temperature
+ * - Change detection and recent changes log
+ * - Online/offline status indicators
+ * - Configurable auto-sync and change detection settings
+ * - Color preview for RGB values
+ *
+ * @example Basic Usage
+ * ```vue
+ * <template>
+ *   <LightMonitoringDashboard />
+ * </template>
+ * ```
+ *
+ * @example In a Property Inspector
+ * ```vue
+ * <template>
+ *   <ApiConfigSection v-model="settings.apiKey" />
+ *   <LightMonitoringDashboard v-if="apiConnection.isConnected" />
+ * </template>
+ * ```
+ */
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import {
   useLightMonitoring,
@@ -209,28 +240,45 @@ import { useLightDiscovery } from "../composables/useLightDiscovery";
 import { useFeedbackHelpers } from "../composables/useFeedback";
 
 // Composables
+/** Light monitoring service for state tracking */
 const monitoring = useLightMonitoring();
+/** Light discovery composable for fetching available lights */
 const lightDiscovery = useLightDiscovery();
+/** Feedback helpers for toast notifications */
 const feedback = useFeedbackHelpers();
 
 // Local state
+/** Array of light IDs currently selected for monitoring */
 const monitoredLightIds = ref<string[]>([]);
+/** Poll interval in seconds (10-300) */
 const configPollInterval = ref(30);
+/** Whether to detect and report state changes */
 const configChangeDetection = ref(true);
+/** Whether to automatically sync states periodically */
 const configAutoSync = ref(true);
 
 // Computed values
+/** Aggregated monitoring statistics (monitored count, online/offline counts, changes) */
 const stats = computed(() => monitoring.monitoringStats.value);
+/** Current state of all monitored lights */
 const lightStates = computed(() =>
   Object.values(monitoring.getAllLightStates()),
 );
+/** List of recent state changes for change log */
 const recentChanges = computed(() => monitoring.getRecentChanges());
+/** Available lights from discovery for selection */
 const availableLights = computed(() => lightDiscovery.filteredLights.value);
 
 // Change subscriptions
+/** Map of device IDs to their change subscription unsubscribe functions */
 const changeUnsubscribers = new Map<string, () => void>();
 
 // Methods
+/**
+ * Starts monitoring the selected lights
+ * Sets up state polling and change detection subscriptions
+ * @async
+ */
 const startMonitoring = async () => {
   if (monitoredLightIds.value.length === 0) {
     feedback.showWarning(
@@ -263,6 +311,10 @@ const startMonitoring = async () => {
   }
 };
 
+/**
+ * Stops all active monitoring
+ * Cleans up change subscriptions and resets state
+ */
 const stopMonitoring = () => {
   monitoring.stopMonitoring();
 
@@ -273,6 +325,10 @@ const stopMonitoring = () => {
   feedback.showInfo("Monitoring Stopped", "Light monitoring has been stopped");
 };
 
+/**
+ * Manually synchronizes all monitored light states
+ * @async
+ */
 const syncStates = async () => {
   try {
     await monitoring.syncLightStates();
@@ -285,6 +341,9 @@ const syncStates = async () => {
   }
 };
 
+/**
+ * Updates monitoring configuration with current settings
+ */
 const updateConfig = () => {
   monitoring.updateConfig({
     pollInterval: configPollInterval.value * 1000,
@@ -293,6 +352,10 @@ const updateConfig = () => {
   });
 };
 
+/**
+ * Handles state change events and shows notification
+ * @param change - The state change event details
+ */
 const handleStateChange = (change: LightStateChange) => {
   const lightName = getLightName(change.deviceId);
   const property = formatProperty(change.property);
@@ -305,11 +368,21 @@ const handleStateChange = (change: LightStateChange) => {
 };
 
 // Utility methods
+/**
+ * Gets the display name for a light by device ID
+ * @param deviceId - The device ID to look up
+ * @returns The light's display name or the device ID if not found
+ */
 const getLightName = (deviceId: string): string => {
   const light = availableLights.value.find((l) => l.value.startsWith(deviceId));
   return light ? light.label.split(" (")[0] : deviceId;
 };
 
+/**
+ * Formats a property name for display
+ * @param property - The raw property name
+ * @returns Human-readable property name
+ */
 const formatProperty = (property: string): string => {
   const propertyMap: Record<string, string> = {
     powerState: "Power",
@@ -321,6 +394,11 @@ const formatProperty = (property: string): string => {
   return propertyMap[property] || property;
 };
 
+/**
+ * Formats a value for display, handling various types
+ * @param value - The value to format
+ * @returns Formatted string representation
+ */
 const formatValue = (value: unknown): string => {
   if (value === null || value === undefined) return "None";
   if (typeof value === "boolean") return value ? "On" : "Off";
@@ -330,10 +408,20 @@ const formatValue = (value: unknown): string => {
   return String(value);
 };
 
+/**
+ * Formats a timestamp for display
+ * @param timestamp - Unix timestamp in milliseconds
+ * @returns Formatted time string
+ */
 const formatTime = (timestamp: number): string => {
   return new Date(timestamp).toLocaleTimeString();
 };
 
+/**
+ * Formats a timestamp as relative time (e.g., "5m ago")
+ * @param timestamp - Unix timestamp in milliseconds
+ * @returns Relative time string
+ */
 const formatRelativeTime = (timestamp: number): string => {
   const now = Date.now();
   const diff = now - timestamp;

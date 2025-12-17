@@ -14,7 +14,7 @@ import { dirname, join, extname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const PORT = 3000;
+const PORT = process.env.TEST_SERVER_PORT || 3333;
 const HOST = 'localhost';
 
 // MIME types for different file extensions
