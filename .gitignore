@@ -13,6 +13,10 @@ build/
 coverage/
 *.lcov
 
+# Playwright
+playwright-report/
+test-results/
+
 # Stream Deck files
 *.sdPlugin/bin/
 *.sdPlugin/logs/
