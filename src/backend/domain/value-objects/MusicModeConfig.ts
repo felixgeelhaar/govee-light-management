@@ -12,13 +12,13 @@
  * - spectrum: Full color spectrum transitions (mode ID: 4)
  * - rolling: Flowing, wave-like color patterns (mode ID: 6)
  */
-export type MusicModeType = 'rhythm' | 'energic' | 'spectrum' | 'rolling';
+export type MusicModeType = "rhythm" | "energic" | "spectrum" | "rolling";
 
 export class MusicModeConfig {
   private constructor(
     private readonly _sensitivity: number,
     private readonly _mode: MusicModeType,
-    private readonly _autoColor: boolean
+    private readonly _autoColor: boolean,
   ) {}
 
   /**
@@ -28,17 +28,21 @@ export class MusicModeConfig {
    * @param autoColor Whether colors change automatically with music
    * @throws Error if parameters are invalid
    */
-  static create(sensitivity: number, mode: MusicModeType, autoColor: boolean): MusicModeConfig {
+  static create(
+    sensitivity: number,
+    mode: MusicModeType,
+    autoColor: boolean,
+  ): MusicModeConfig {
     if (!Number.isInteger(sensitivity)) {
-      throw new Error('Sensitivity must be an integer');
+      throw new Error("Sensitivity must be an integer");
     }
 
     if (sensitivity < 0 || sensitivity > 100) {
-      throw new Error('Sensitivity must be between 0 and 100');
+      throw new Error("Sensitivity must be between 0 and 100");
     }
 
     if (!mode?.trim()) {
-      throw new Error('Music mode is required');
+      throw new Error("Music mode is required");
     }
 
     return new MusicModeConfig(sensitivity, mode, autoColor);
@@ -48,28 +52,28 @@ export class MusicModeConfig {
    * Predefined config: Rhythm mode (standard sensitivity)
    */
   static rhythm(): MusicModeConfig {
-    return MusicModeConfig.create(50, 'rhythm', true);
+    return MusicModeConfig.create(50, "rhythm", true);
   }
 
   /**
    * Predefined config: Energic mode (high sensitivity)
    */
   static energic(): MusicModeConfig {
-    return MusicModeConfig.create(75, 'energic', true);
+    return MusicModeConfig.create(75, "energic", true);
   }
 
   /**
    * Predefined config: Spectrum mode (medium-high sensitivity)
    */
   static spectrum(): MusicModeConfig {
-    return MusicModeConfig.create(60, 'spectrum', true);
+    return MusicModeConfig.create(60, "spectrum", true);
   }
 
   /**
    * Predefined config: Rolling mode (standard sensitivity)
    */
   static rolling(): MusicModeConfig {
-    return MusicModeConfig.create(50, 'rolling', true);
+    return MusicModeConfig.create(50, "rolling", true);
   }
 
   get sensitivity(): number {
@@ -102,7 +106,7 @@ export class MusicModeConfig {
     return {
       sensitivity: this._sensitivity,
       mode: this._mode,
-      autoColor: this._autoColor
+      autoColor: this._autoColor,
     };
   }
 
@@ -117,7 +121,7 @@ export class MusicModeConfig {
     autoColor: boolean;
   }): MusicModeConfig {
     if (data.autoColor === undefined || data.autoColor === null) {
-      throw new Error('autoColor is required');
+      throw new Error("autoColor is required");
     }
 
     return MusicModeConfig.create(data.sensitivity, data.mode, data.autoColor);

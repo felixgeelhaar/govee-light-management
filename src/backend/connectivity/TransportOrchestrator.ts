@@ -52,7 +52,10 @@ export class TransportOrchestrator {
     };
   }
 
-  async getLightState(deviceId: string, model: string): Promise<DeviceStateResult> {
+  async getLightState(
+    deviceId: string,
+    model: string,
+  ): Promise<DeviceStateResult> {
     const transport = await this.resolveTransport({ deviceId, model });
     return transport.getLightState(deviceId, model);
   }
@@ -94,14 +97,19 @@ export class TransportOrchestrator {
       }),
     );
 
-    const available: Array<{ transport: ITransport; health?: TransportHealth }> = [];
+    const available: Array<{
+      transport: ITransport;
+      health?: TransportHealth;
+    }> = [];
     for (const candidate of candidates) {
       if (candidate) {
         available.push(candidate);
       }
     }
 
-    available.sort((a, b) => this.scoreHealth(a.health) - this.scoreHealth(b.health));
+    available.sort(
+      (a, b) => this.scoreHealth(a.health) - this.scoreHealth(b.health),
+    );
 
     if (!available.length) {
       throw new NoHealthyTransportError(Array.from(this.health.values()));

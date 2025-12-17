@@ -337,9 +337,10 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
         success: true,
       });
     } catch (error) {
-      const failure = error instanceof Error
-        ? { name: error.name, message: error.message }
-        : { name: "UnknownError", message: String(error) };
+      const failure =
+        error instanceof Error
+          ? { name: error.name, message: error.message }
+          : { name: "UnknownError", message: String(error) };
 
       telemetryService.recordCommand({
         command: commandName,
@@ -709,10 +710,7 @@ export class LightControlAction extends SingletonAction<LightControlSettings> {
         setTimeout(async () => {
           try {
             if (this.lightControlService && light) {
-              await this.lightControlService.controlLight(
-                light,
-                nextState,
-              );
+              await this.lightControlService.controlLight(light, nextState);
             }
           } catch (error) {
             streamDeck.logger.error("Light reset after test failed", error);

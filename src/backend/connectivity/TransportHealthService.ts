@@ -54,9 +54,10 @@ export class TransportHealthService {
     try {
       await this.orchestrator.refreshHealth();
     } catch (error) {
-      failure = error instanceof Error
-        ? { name: error.name, message: error.message }
-        : { name: "UnknownError", message: String(error) };
+      failure =
+        error instanceof Error
+          ? { name: error.name, message: error.message }
+          : { name: "UnknownError", message: String(error) };
       this.logger?.warn?.("transport.health.refresh_failed", failure);
     }
 

@@ -61,7 +61,8 @@
           </option>
         </select>
         <small v-if="!lightDiscovery.hasLights" class="help-text">
-          No color temperature lights found. Make sure your lights support color temperature control.
+          No color temperature lights found. Make sure your lights support color
+          temperature control.
         </small>
       </div>
     </section>
@@ -85,10 +86,15 @@
       <div class="help-section">
         <h3>How to Use:</h3>
         <ul class="help-list">
-          <li><strong>Rotate Dial:</strong> Adjust color temperature (warm ↔ cool)</li>
+          <li>
+            <strong>Rotate Dial:</strong> Adjust color temperature (warm ↔ cool)
+          </li>
           <li><strong>Press Dial:</strong> Toggle light power on/off</li>
           <li><strong>Display:</strong> Shows current temperature in Kelvin</li>
-          <li><strong>Temperature Range:</strong> 2000K (warm white) to 9000K (cool white)</li>
+          <li>
+            <strong>Temperature Range:</strong> 2000K (warm white) to 9000K
+            (cool white)
+          </li>
         </ul>
       </div>
     </section>
@@ -120,7 +126,9 @@ const stepSize = ref(100);
 // Handle light selection
 function onLightSelected() {
   const [deviceId, model] = selectedLight.value.split("|");
-  const light = lightDiscovery.lights.value.find((l) => l.value === selectedLight.value);
+  const light = lightDiscovery.lights.value.find(
+    (l) => l.value === selectedLight.value,
+  );
 
   if (light) {
     saveSettings({

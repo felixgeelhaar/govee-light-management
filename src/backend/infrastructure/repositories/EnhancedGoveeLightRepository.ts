@@ -376,7 +376,7 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
     if (!SceneMapper.isSupported(scene)) {
       throw new Error(
         `Scene "${scene.name}" is not supported by Govee API. ` +
-        `Supported scenes: ${SceneMapper.getSupportedSceneCodes().join(', ')}`
+          `Supported scenes: ${SceneMapper.getSupportedSceneCodes().join(", ")}`,
       );
     }
 
@@ -404,9 +404,12 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
     );
   }
 
-  async setSegmentColors(light: Light, segments: SegmentColor[]): Promise<void> {
+  async setSegmentColors(
+    light: Light,
+    segments: SegmentColor[],
+  ): Promise<void> {
     if (segments.length === 0) {
-      throw new Error('At least one segment color must be provided');
+      throw new Error("At least one segment color must be provided");
     }
 
     return ErrorBoundaries.wrapDeviceControl(
@@ -472,7 +475,7 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
             enabled,
           );
           streamDeck.logger.info(
-            `Light ${light.name} nightlight ${enabled ? 'enabled' : 'disabled'}`,
+            `Light ${light.name} nightlight ${enabled ? "enabled" : "disabled"}`,
           );
         });
       },
@@ -496,7 +499,7 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
             enabled,
           );
           streamDeck.logger.info(
-            `Light ${light.name} gradient ${enabled ? 'enabled' : 'disabled'}`,
+            `Light ${light.name} gradient ${enabled ? "enabled" : "disabled"}`,
           );
         });
       },

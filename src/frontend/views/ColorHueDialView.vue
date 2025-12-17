@@ -61,7 +61,8 @@
           </option>
         </select>
         <small v-if="!lightDiscovery.hasLights" class="help-text">
-          No color lights found. Make sure your lights support RGB color control.
+          No color lights found. Make sure your lights support RGB color
+          control.
         </small>
       </div>
     </section>
@@ -97,10 +98,17 @@
       <div class="help-section">
         <h3>How to Use:</h3>
         <ul class="help-list">
-          <li><strong>Rotate Dial:</strong> Change color hue across full spectrum</li>
+          <li>
+            <strong>Rotate Dial:</strong> Change color hue across full spectrum
+          </li>
           <li><strong>Press Dial:</strong> Toggle light power on/off</li>
-          <li><strong>Display:</strong> Shows current hue in degrees (0-360°)</li>
-          <li><strong>Color Wheel:</strong> 0° Red → 120° Green → 240° Blue → 360° Red</li>
+          <li>
+            <strong>Display:</strong> Shows current hue in degrees (0-360°)
+          </li>
+          <li>
+            <strong>Color Wheel:</strong> 0° Red → 120° Green → 240° Blue → 360°
+            Red
+          </li>
         </ul>
       </div>
     </section>
@@ -133,7 +141,9 @@ const saturation = ref(100);
 // Handle light selection
 function onLightSelected() {
   const [deviceId, model] = selectedLight.value.split("|");
-  const light = lightDiscovery.lights.value.find((l) => l.value === selectedLight.value);
+  const light = lightDiscovery.lights.value.find(
+    (l) => l.value === selectedLight.value,
+  );
 
   if (light) {
     saveSettings({

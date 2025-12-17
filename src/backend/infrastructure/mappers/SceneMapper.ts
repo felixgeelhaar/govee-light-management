@@ -5,8 +5,8 @@
  * and Govee API LightScene objects (ID-based).
  */
 
-import { Scene } from '../../domain/value-objects/Scene';
-import { LightScene } from '@felixgeelhaar/govee-api-client';
+import { Scene } from "../../domain/value-objects/Scene";
+import { LightScene } from "@felixgeelhaar/govee-api-client";
 
 /**
  * Maps domain Scene to govee-api-client LightScene
@@ -26,32 +26,32 @@ export class SceneMapper {
    */
   static toApiLightScene(scene: Scene): LightScene {
     switch (scene.id) {
-      case 'sunrise':
+      case "sunrise":
         return LightScene.sunrise();
 
-      case 'sunset':
+      case "sunset":
         return LightScene.sunset();
 
-      case 'rainbow':
+      case "rainbow":
         return LightScene.rainbow();
 
-      case 'aurora':
+      case "aurora":
         return LightScene.aurora();
 
-      case 'nightlight':
+      case "nightlight":
         return LightScene.nightlight();
 
       // Unsupported scenes from domain layer
-      case 'movie':
+      case "movie":
         throw new Error(
           'Scene "movie" is not supported by Govee API. ' +
-          'Consider using "candlelight" (LightScene.candlelight()) as an alternative.'
+            'Consider using "candlelight" (LightScene.candlelight()) as an alternative.',
         );
 
-      case 'reading':
+      case "reading":
         throw new Error(
           'Scene "reading" is not supported by Govee API. ' +
-          'Consider using warm white color temperature instead.'
+            "Consider using warm white color temperature instead.",
         );
 
       default:
@@ -87,7 +87,13 @@ export class SceneMapper {
    * @returns true if scene can be mapped to API, false otherwise
    */
   static isSupported(scene: Scene): boolean {
-    const supportedIds = ['sunrise', 'sunset', 'rainbow', 'aurora', 'nightlight'];
+    const supportedIds = [
+      "sunrise",
+      "sunset",
+      "rainbow",
+      "aurora",
+      "nightlight",
+    ];
     return supportedIds.includes(scene.id);
   }
 
@@ -97,6 +103,6 @@ export class SceneMapper {
    * @returns Array of scene IDs that can be mapped to API
    */
   static getSupportedSceneCodes(): string[] {
-    return ['sunrise', 'sunset', 'rainbow', 'aurora', 'nightlight'];
+    return ["sunrise", "sunset", "rainbow", "aurora", "nightlight"];
   }
 }

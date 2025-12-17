@@ -2,7 +2,9 @@
   <div class="form-group">
     <label :for="id" class="form-label">
       {{ label }}
-      <span v-if="required" class="required-indicator" aria-label="required">*</span>
+      <span v-if="required" class="required-indicator" aria-label="required"
+        >*</span
+      >
     </label>
 
     <input
@@ -23,7 +25,12 @@
       @blur="validate"
     />
 
-    <div v-if="errorMessage" :id="`${id}-error`" class="error-message" role="alert">
+    <div
+      v-if="errorMessage"
+      :id="`${id}-error`"
+      class="error-message"
+      role="alert"
+    >
       <span class="error-icon" aria-hidden="true">⚠️</span>
       {{ errorMessage }}
     </div>
@@ -56,7 +63,7 @@ const props = withDefaults(
     type: "text",
     disabled: false,
     required: false,
-  }
+  },
 );
 
 const emit = defineEmits<{
@@ -164,7 +171,9 @@ defineExpose({
   background-color: var(--sdpi-color-bg-primary, #1e1e1e);
   color: var(--sdpi-color-text-primary, #ffffff);
   font-size: 14px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .form-input:focus {

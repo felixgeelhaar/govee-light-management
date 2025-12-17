@@ -5,8 +5,12 @@
  * and Govee API SegmentColor (index property).
  */
 
-import { ColorRgb, Brightness, SegmentColor as ApiSegmentColor } from '@felixgeelhaar/govee-api-client';
-import { SegmentColor as DomainSegmentColor } from '../../domain/value-objects/SegmentColor';
+import {
+  ColorRgb,
+  Brightness,
+  SegmentColor as ApiSegmentColor,
+} from "@felixgeelhaar/govee-api-client";
+import { SegmentColor as DomainSegmentColor } from "../../domain/value-objects/SegmentColor";
 
 /**
  * Maps domain SegmentColor to govee-api-client SegmentColor
@@ -35,7 +39,7 @@ export class SegmentColorMapper {
     return new ApiSegmentColor(
       segment.segmentIndex,
       segment.color,
-      undefined // brightness not supported in domain layer yet
+      undefined, // brightness not supported in domain layer yet
     );
   }
 
@@ -67,7 +71,9 @@ export class SegmentColorMapper {
    * @param apiSegments - Array of API segment colors
    * @returns Array of domain segment colors
    */
-  static toDomainSegmentColors(apiSegments: ApiSegmentColor[]): DomainSegmentColor[] {
+  static toDomainSegmentColors(
+    apiSegments: ApiSegmentColor[],
+  ): DomainSegmentColor[] {
     return apiSegments.map((segment) => this.toDomainSegmentColor(segment));
   }
 }

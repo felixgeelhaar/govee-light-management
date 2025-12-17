@@ -83,7 +83,10 @@ export class DeviceService {
     this.cache = null;
   }
 
-  async getLightState(deviceId: string, model: string): Promise<DeviceStateResult> {
+  async getLightState(
+    deviceId: string,
+    model: string,
+  ): Promise<DeviceStateResult> {
     return this.orchestrator.getLightState(deviceId, model);
   }
 
@@ -105,9 +108,10 @@ export class DeviceService {
       });
     } catch (error) {
       const durationMs = Date.now() - started;
-      const failure = error instanceof Error
-        ? { name: error.name, message: error.message }
-        : { name: "UnknownError", message: String(error) };
+      const failure =
+        error instanceof Error
+          ? { name: error.name, message: error.message }
+          : { name: "UnknownError", message: String(error) };
 
       telemetryService.recordCommand({
         command: command.command,

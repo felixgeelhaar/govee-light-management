@@ -24,7 +24,11 @@ interface ClientFactory {
 
 const factory: ClientFactory = {
   create(apiKey: string) {
-    return new GoveeClient({ apiKey, enableRetries: true, retryPolicy: "production" });
+    return new GoveeClient({
+      apiKey,
+      enableRetries: true,
+      retryPolicy: "production",
+    });
   },
 };
 
@@ -37,7 +41,9 @@ export class CloudTransport implements ITransport {
 
   private client: GoveeClient | null = null;
 
-  constructor(private readonly dependencies: { factory?: ClientFactory } = {}) {}
+  constructor(
+    private readonly dependencies: { factory?: ClientFactory } = {},
+  ) {}
 
   async checkHealth(): Promise<TransportHealth> {
     const started = Date.now();
@@ -79,7 +85,10 @@ export class CloudTransport implements ITransport {
     return { lights };
   }
 
-  async getLightState(deviceId: string, model: string): Promise<DeviceStateResult> {
+  async getLightState(
+    deviceId: string,
+    model: string,
+  ): Promise<DeviceStateResult> {
     const client = await this.ensureClient();
     const state = await client.getDeviceState(deviceId, model);
 
@@ -162,7 +171,9 @@ export class CloudTransport implements ITransport {
     }
   }
 
-  async supports(device: Pick<LightItem, "deviceId" | "model">): Promise<boolean> {
+  async supports(
+    device: Pick<LightItem, "deviceId" | "model">,
+  ): Promise<boolean> {
     const apiKey = await this.getApiKey();
     return Boolean(apiKey);
   }

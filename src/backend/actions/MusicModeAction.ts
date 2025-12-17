@@ -9,7 +9,10 @@ import {
 import type { JsonValue } from "@elgato/utils";
 import { GoveeLightRepository } from "../infrastructure/repositories/GoveeLightRepository";
 import { Light } from "../domain/entities/Light";
-import { MusicModeConfig, MusicModeType } from "../domain/value-objects/MusicModeConfig";
+import {
+  MusicModeConfig,
+  MusicModeType,
+} from "../domain/value-objects/MusicModeConfig";
 import { DeviceService } from "../domain/services/DeviceService";
 import {
   TransportOrchestrator,
@@ -83,9 +86,7 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
   /**
    * Handle key press events - apply the configured music mode
    */
-  override async onKeyDown(
-    ev: KeyDownEvent<MusicModeSettings>,
-  ): Promise<void> {
+  override async onKeyDown(ev: KeyDownEvent<MusicModeSettings>): Promise<void> {
     const { settings } = ev.payload;
 
     if (!this.isConfigured(settings)) {
@@ -117,7 +118,10 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
         return;
       }
 
-      await this.lightRepository.setMusicMode(this.currentLight, musicModeConfig);
+      await this.lightRepository.setMusicMode(
+        this.currentLight,
+        musicModeConfig,
+      );
       await ev.action.showOk();
       streamDeck.logger.info(
         `Applied music mode ${musicModeConfig.mode} to ${this.currentLight.name}`,
@@ -208,7 +212,9 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
     }
     if (settings.musicMode) {
       // Capitalize first letter of mode
-      const modeName = settings.musicMode.charAt(0).toUpperCase() + settings.musicMode.slice(1);
+      const modeName =
+        settings.musicMode.charAt(0).toUpperCase() +
+        settings.musicMode.slice(1);
       parts.push(modeName);
     }
 
@@ -218,7 +224,9 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
   /**
    * Create MusicModeConfig instance from settings
    */
-  private getMusicModeFromSettings(settings: MusicModeSettings): MusicModeConfig | null {
+  private getMusicModeFromSettings(
+    settings: MusicModeSettings,
+  ): MusicModeConfig | null {
     if (!settings.musicMode) {
       return null;
     }
@@ -287,7 +295,9 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
     try {
       const allLights = await this.lightRepository.getAllLights();
       // Only return lights that support music mode
-      const musicLights = allLights.filter((light) => light.supportsMusicMode());
+      const musicLights = allLights.filter((light) =>
+        light.supportsMusicMode(),
+      );
 
       await streamDeck.ui.sendToPropertyInspector({
         event: "lights",

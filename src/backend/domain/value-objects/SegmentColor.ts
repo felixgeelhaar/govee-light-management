@@ -6,12 +6,12 @@
  * and effects like rainbow gradients, multi-color scenes, etc.
  */
 
-import { ColorRgb } from '@felixgeelhaar/govee-api-client';
+import { ColorRgb } from "@felixgeelhaar/govee-api-client";
 
 export class SegmentColor {
   private constructor(
     private readonly _segmentIndex: number,
-    private readonly _color: ColorRgb
+    private readonly _color: ColorRgb,
   ) {}
 
   /**
@@ -22,15 +22,15 @@ export class SegmentColor {
    */
   static create(segmentIndex: number, color: ColorRgb): SegmentColor {
     if (color === null || color === undefined) {
-      throw new Error('Color is required');
+      throw new Error("Color is required");
     }
 
     if (segmentIndex < 0) {
-      throw new Error('Segment index must be non-negative');
+      throw new Error("Segment index must be non-negative");
     }
 
     if (!Number.isInteger(segmentIndex)) {
-      throw new Error('Segment index must be an integer');
+      throw new Error("Segment index must be an integer");
     }
 
     return new SegmentColor(segmentIndex, color);
@@ -63,14 +63,17 @@ export class SegmentColor {
   /**
    * Serialize to plain object for storage/transmission
    */
-  toJSON(): { segmentIndex: number; color: { r: number; g: number; b: number } } {
+  toJSON(): {
+    segmentIndex: number;
+    color: { r: number; g: number; b: number };
+  } {
     return {
       segmentIndex: this._segmentIndex,
       color: {
         r: this._color.r,
         g: this._color.g,
-        b: this._color.b
-      }
+        b: this._color.b,
+      },
     };
   }
 
@@ -84,7 +87,7 @@ export class SegmentColor {
     color: { r: number; g: number; b: number };
   }): SegmentColor {
     if (!data.color) {
-      throw new Error('Color is required');
+      throw new Error("Color is required");
     }
 
     const color = new ColorRgb(data.color.r, data.color.g, data.color.b);

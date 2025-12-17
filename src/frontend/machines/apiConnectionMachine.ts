@@ -93,7 +93,10 @@ export const apiConnectionMachine = setup({
 
             // Production-ready WebSocket-based API key validation
             console.log("[API Validation] Checking WebSocket connection...");
-            console.log("[API Validation] WebSocket connected:", websocketService.isConnected);
+            console.log(
+              "[API Validation] WebSocket connected:",
+              websocketService.isConnected,
+            );
 
             if (!websocketService.isConnected) {
               console.error("[API Validation] WebSocket not connected!");
@@ -127,7 +130,10 @@ export const apiConnectionMachine = setup({
                     apiCacheService.cacheApiKeyValidation(input.apiKey, true);
                     resolve(true);
                   } else {
-                    console.error("[API Validation] API key is invalid:", message.payload.error);
+                    console.error(
+                      "[API Validation] API key is invalid:",
+                      message.payload.error,
+                    );
                     // Don't cache failures as they might be temporary network issues
                     reject(
                       new Error(message.payload.error || "Invalid API key"),
@@ -143,7 +149,9 @@ export const apiConnectionMachine = setup({
               // Send validation request
               console.log("[API Validation] Sending validateApiKey request");
               websocketService.validateApiKey(input.apiKey);
-              console.log("[API Validation] Request sent, waiting for response...");
+              console.log(
+                "[API Validation] Request sent, waiting for response...",
+              );
             });
           },
           { operation: "api-validation" },

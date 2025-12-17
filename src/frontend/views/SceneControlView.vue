@@ -61,7 +61,8 @@
           </option>
         </select>
         <small v-if="!lightDiscovery.hasLights" class="help-text">
-          No scene-capable lights found. Make sure your lights support scene control.
+          No scene-capable lights found. Make sure your lights support scene
+          control.
         </small>
       </div>
     </section>
@@ -72,11 +73,7 @@
 
       <div class="form-group">
         <label for="sceneSelect">Select Scene</label>
-        <select
-          id="sceneSelect"
-          v-model="selectedScene"
-          class="form-select"
-        >
+        <select id="sceneSelect" v-model="selectedScene" class="form-select">
           <option value="">-- Select a scene --</option>
           <optgroup label="Dynamic Scenes">
             <option value="sunrise">🌅 Sunrise</option>

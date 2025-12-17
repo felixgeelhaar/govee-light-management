@@ -9,13 +9,13 @@
  * - preset: Static preset scenes (Movie, Reading, Nightlight)
  * - custom: User-defined custom scenes
  */
-export type SceneType = 'dynamic' | 'preset' | 'custom';
+export type SceneType = "dynamic" | "preset" | "custom";
 
 export class Scene {
   private constructor(
     private readonly _id: string,
     private readonly _name: string,
-    private readonly _type: SceneType
+    private readonly _type: SceneType,
   ) {}
 
   /**
@@ -27,13 +27,13 @@ export class Scene {
    */
   static create(id: string, name: string, type: SceneType): Scene {
     if (!id?.trim()) {
-      throw new Error('Scene ID is required');
+      throw new Error("Scene ID is required");
     }
     if (!name?.trim()) {
-      throw new Error('Scene name is required');
+      throw new Error("Scene name is required");
     }
     if (!type?.trim()) {
-      throw new Error('Scene type is required');
+      throw new Error("Scene type is required");
     }
 
     return new Scene(id.trim(), name.trim(), type);
@@ -43,49 +43,49 @@ export class Scene {
    * Predefined scene: Sunrise (warm color transition)
    */
   static sunrise(): Scene {
-    return Scene.create('sunrise', 'Sunrise', 'dynamic');
+    return Scene.create("sunrise", "Sunrise", "dynamic");
   }
 
   /**
    * Predefined scene: Sunset (warm to cool color transition)
    */
   static sunset(): Scene {
-    return Scene.create('sunset', 'Sunset', 'dynamic');
+    return Scene.create("sunset", "Sunset", "dynamic");
   }
 
   /**
    * Predefined scene: Rainbow (full color spectrum animation)
    */
   static rainbow(): Scene {
-    return Scene.create('rainbow', 'Rainbow', 'dynamic');
+    return Scene.create("rainbow", "Rainbow", "dynamic");
   }
 
   /**
    * Predefined scene: Aurora (northern lights effect)
    */
   static aurora(): Scene {
-    return Scene.create('aurora', 'Aurora', 'dynamic');
+    return Scene.create("aurora", "Aurora", "dynamic");
   }
 
   /**
    * Predefined scene: Movie (theater-optimized lighting)
    */
   static movie(): Scene {
-    return Scene.create('movie', 'Movie', 'preset');
+    return Scene.create("movie", "Movie", "preset");
   }
 
   /**
    * Predefined scene: Reading (bright, focused lighting)
    */
   static reading(): Scene {
-    return Scene.create('reading', 'Reading', 'preset');
+    return Scene.create("reading", "Reading", "preset");
   }
 
   /**
    * Predefined scene: Nightlight (dim, warm lighting)
    */
   static nightlight(): Scene {
-    return Scene.create('nightlight', 'Nightlight', 'preset');
+    return Scene.create("nightlight", "Nightlight", "preset");
   }
 
   get id(): string {
@@ -114,7 +114,7 @@ export class Scene {
     return {
       id: this._id,
       name: this._name,
-      type: this._type
+      type: this._type,
     };
   }
 

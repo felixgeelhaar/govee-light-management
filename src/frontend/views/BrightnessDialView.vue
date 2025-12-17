@@ -61,7 +61,8 @@
           </option>
         </select>
         <small v-if="!lightDiscovery.hasLights" class="help-text">
-          No brightness-capable lights found. Make sure your lights support brightness control.
+          No brightness-capable lights found. Make sure your lights support
+          brightness control.
         </small>
       </div>
     </section>
@@ -120,7 +121,9 @@ const stepSize = ref(5);
 // Handle light selection
 function onLightSelected() {
   const [deviceId, model] = selectedLight.value.split("|");
-  const light = lightDiscovery.lights.value.find((l) => l.value === selectedLight.value);
+  const light = lightDiscovery.lights.value.find(
+    (l) => l.value === selectedLight.value,
+  );
 
   if (light) {
     saveSettings({

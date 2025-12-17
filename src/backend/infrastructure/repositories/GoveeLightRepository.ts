@@ -294,7 +294,10 @@ export class GoveeLightRepository implements ILightRepository {
     );
   }
 
-  async setSegmentColors(light: Light, segments: SegmentColor[]): Promise<void> {
+  async setSegmentColors(
+    light: Light,
+    segments: SegmentColor[],
+  ): Promise<void> {
     // TODO: Implement when @felixgeelhaar/govee-api-client v3.1.0+ adds setSegmentColors method
     throw new Error(
       `Segment color control not yet supported by govee-api-client. Attempted to set ${segments.length} segments.`,

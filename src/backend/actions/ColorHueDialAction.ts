@@ -115,9 +115,7 @@ export class ColorHueDialAction extends SingletonAction<ColorHueDialSettings> {
     // Check if light supports color
     if (!(this.currentLight.capabilities?.color ?? false)) {
       await ev.action.showAlert();
-      streamDeck.logger.warn(
-        "Selected light does not support color control",
-      );
+      streamDeck.logger.warn("Selected light does not support color control");
       return;
     }
 

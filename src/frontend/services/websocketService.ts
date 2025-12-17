@@ -118,10 +118,18 @@ export class WebSocketService {
         console.log("[WebSocket] Message event:", message.event);
         const handlers = this.messageHandlers.get(message.event);
         if (handlers) {
-          console.log("[WebSocket] Found", handlers.length, "handlers for event:", message.event);
+          console.log(
+            "[WebSocket] Found",
+            handlers.length,
+            "handlers for event:",
+            message.event,
+          );
           handlers.forEach((handler) => handler(message));
         } else {
-          console.log("[WebSocket] No handlers registered for event:", message.event);
+          console.log(
+            "[WebSocket] No handlers registered for event:",
+            message.event,
+          );
         }
 
         // Also trigger generic message handlers
@@ -170,7 +178,7 @@ export class WebSocketService {
       event: message.event,
       connected: this.websocket?.readyState === WebSocket.OPEN,
       readyState: this.websocket?.readyState,
-      message
+      message,
     });
     if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
       this.websocket.send(JSON.stringify(message));
@@ -183,7 +191,7 @@ export class WebSocketService {
         CONNECTING: WebSocket.CONNECTING,
         OPEN: WebSocket.OPEN,
         CLOSING: WebSocket.CLOSING,
-        CLOSED: WebSocket.CLOSED
+        CLOSED: WebSocket.CLOSED,
       });
     }
   }
@@ -290,7 +298,10 @@ export class WebSocketService {
    * Validate API key via plugin
    */
   validateApiKey(apiKey: string): void {
-    console.log("[WebSocket] validateApiKey called with key:", apiKey.substring(0, 10) + "...");
+    console.log(
+      "[WebSocket] validateApiKey called with key:",
+      apiKey.substring(0, 10) + "...",
+    );
     this.sendMessage({
       event: "sendToPlugin",
       context: this.uuid || "",

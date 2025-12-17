@@ -264,7 +264,7 @@ export class SceneControlAction extends SingletonAction<SceneControlSettings> {
     if (scene && !SceneMapper.isSupported(scene)) {
       streamDeck.logger.warn(
         `Scene "${scene.name}" is not supported by Govee API. ` +
-        `Supported scenes: ${SceneMapper.getSupportedSceneCodes().join(', ')}`
+          `Supported scenes: ${SceneMapper.getSupportedSceneCodes().join(", ")}`,
       );
       return null;
     }

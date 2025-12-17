@@ -15,15 +15,11 @@ export class SceneService {
    */
   async applySceneToLight(light: Light, scene: Scene): Promise<void> {
     if (!light.canBeControlled()) {
-      throw new Error(
-        `${light.name} is offline and cannot be controlled`
-      );
+      throw new Error(`${light.name} is offline and cannot be controlled`);
     }
 
     if (!light.supportsScenes()) {
-      throw new Error(
-        `${light.name} does not support scene control`
-      );
+      throw new Error(`${light.name} does not support scene control`);
     }
 
     await this.lightRepository.applyScene(light, scene);
@@ -34,17 +30,15 @@ export class SceneService {
    */
   async applySceneToGroup(group: LightGroup, scene: Scene): Promise<void> {
     const sceneLights = group.lights.filter(
-      (light) => light.supportsScenes() && light.canBeControlled()
+      (light) => light.supportsScenes() && light.canBeControlled(),
     );
 
     if (sceneLights.length === 0) {
-      throw new Error(
-        `${group.name} has no lights with scene support`
-      );
+      throw new Error(`${group.name} has no lights with scene support`);
     }
 
     const promises = sceneLights.map((light) =>
-      this.lightRepository.applyScene(light, scene)
+      this.lightRepository.applyScene(light, scene),
     );
 
     await Promise.all(promises);

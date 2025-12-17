@@ -15,7 +15,9 @@
     <div class="diagnostics-grid">
       <div class="diagnostic-card">
         <span class="diagnostic-label">Discovery Avg</span>
-        <strong>{{ averageDiscovery !== null ? `${averageDiscovery} ms` : '–' }}</strong>
+        <strong>{{
+          averageDiscovery !== null ? `${averageDiscovery} ms` : "–"
+        }}</strong>
         <small>{{ snapshot?.discovery.total }} scans</small>
       </div>
       <div class="diagnostic-card">
@@ -25,7 +27,9 @@
       </div>
       <div class="diagnostic-card">
         <span class="diagnostic-label">Command Success</span>
-        <strong>{{ commandSuccess !== null ? `${commandSuccess}%` : '–' }}</strong>
+        <strong>{{
+          commandSuccess !== null ? `${commandSuccess}%` : "–"
+        }}</strong>
         <small>
           {{ totalCommands - failedCommands }} / {{ totalCommands }}
         </small>
@@ -34,7 +38,12 @@
         <span class="diagnostic-label">Transport Checks</span>
         <strong>{{ snapshot?.transport.checks }}</strong>
         <small>
-          Last {{ snapshot?.transport.lastDurationMs ? `${snapshot?.transport.lastDurationMs} ms` : '–' }}
+          Last
+          {{
+            snapshot?.transport.lastDurationMs
+              ? `${snapshot?.transport.lastDurationMs} ms`
+              : "–"
+          }}
         </small>
       </div>
     </div>
@@ -50,68 +59,74 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from "vue";
 
 interface TelemetrySnapshot {
   transport: {
-    checks: number
-    lastDurationMs?: number
+    checks: number;
+    lastDurationMs?: number;
     lastSnapshot: Array<{
-      kind: string
-      label: string
-      isHealthy: boolean
-      latencyMs?: number
-      lastChecked?: number
-    }>
+      kind: string;
+      label: string;
+      isHealthy: boolean;
+      latencyMs?: number;
+      lastChecked?: number;
+    }>;
     lastFailure?: {
-      name: string
-      message: string
-    }
-  }
+      name: string;
+      message: string;
+    };
+  };
   discovery: {
-    total: number
-    stale: number
-    totalDurationMs: number
-    lastDurationMs?: number
-    lastCount?: number
-  }
+    total: number;
+    stale: number;
+    totalDurationMs: number;
+    lastDurationMs?: number;
+    lastCount?: number;
+  };
   commands: {
-    total: number
-    failures: number
-    totalDurationMs: number
-    byCommand: Record<string, {
-      total: number
-      failures: number
-      totalDurationMs: number
-      lastError?: { name: string; message: string }
-    }>
-  }
+    total: number;
+    failures: number;
+    totalDurationMs: number;
+    byCommand: Record<
+      string,
+      {
+        total: number;
+        failures: number;
+        totalDurationMs: number;
+        lastError?: { name: string; message: string };
+      }
+    >;
+  };
 }
 
 const props = defineProps<{
-  snapshot: TelemetrySnapshot | null
-}>()
+  snapshot: TelemetrySnapshot | null;
+}>();
 
 defineEmits<{
-  refresh: []
-  reset: []
-}>()
+  refresh: [];
+  reset: [];
+}>();
 
-const hasData = computed(() => Boolean(props.snapshot))
+const hasData = computed(() => Boolean(props.snapshot));
 
 const averageDiscovery = computed(() => {
-  if (!props.snapshot || props.snapshot.discovery.total === 0) return null
-  return Math.round(props.snapshot.discovery.totalDurationMs / props.snapshot.discovery.total)
-})
+  if (!props.snapshot || props.snapshot.discovery.total === 0) return null;
+  return Math.round(
+    props.snapshot.discovery.totalDurationMs / props.snapshot.discovery.total,
+  );
+});
 
 const commandSuccess = computed(() => {
-  if (!props.snapshot || props.snapshot.commands.total === 0) return null
-  const success = props.snapshot.commands.total - props.snapshot.commands.failures
-  return Math.round((success / props.snapshot.commands.total) * 100)
-})
+  if (!props.snapshot || props.snapshot.commands.total === 0) return null;
+  const success =
+    props.snapshot.commands.total - props.snapshot.commands.failures;
+  return Math.round((success / props.snapshot.commands.total) * 100);
+});
 
-const totalCommands = computed(() => props.snapshot?.commands.total ?? 0)
-const failedCommands = computed(() => props.snapshot?.commands.failures ?? 0)
+const totalCommands = computed(() => props.snapshot?.commands.total ?? 0);
+const failedCommands = computed(() => props.snapshot?.commands.failures ?? 0);
 </script>
 
 <style scoped>

@@ -61,7 +61,8 @@
           </option>
         </select>
         <small v-if="!lightDiscovery.hasLights" class="help-text">
-          No music mode-capable lights found. Make sure your lights support music mode.
+          No music mode-capable lights found. Make sure your lights support
+          music mode.
         </small>
       </div>
     </section>
@@ -72,26 +73,26 @@
 
       <div class="form-group">
         <label for="musicModeSelect">Music Mode</label>
-        <select
-          id="musicModeSelect"
-          v-model="musicMode"
-          class="form-select"
-        >
+        <select id="musicModeSelect" v-model="musicMode" class="form-select">
           <option value="">-- Select a mode --</option>
-          <option value="rhythm">🎵 Rhythm - Steady pulse with music beat</option>
-          <option value="energic">⚡ Energic - Dynamic high-energy effects</option>
-          <option value="spectrum">🌈 Spectrum - Full color frequency visualization</option>
-          <option value="rolling">🌊 Rolling - Smooth flowing color waves</option>
+          <option value="rhythm">
+            🎵 Rhythm - Steady pulse with music beat
+          </option>
+          <option value="energic">
+            ⚡ Energic - Dynamic high-energy effects
+          </option>
+          <option value="spectrum">
+            🌈 Spectrum - Full color frequency visualization
+          </option>
+          <option value="rolling">
+            🌊 Rolling - Smooth flowing color waves
+          </option>
         </select>
-        <small class="help-text">
-          Select the music visualization mode
-        </small>
+        <small class="help-text"> Select the music visualization mode </small>
       </div>
 
       <div class="form-group">
-        <label for="sensitivity">
-          Sensitivity: {{ sensitivity }}%
-        </label>
+        <label for="sensitivity"> Sensitivity: {{ sensitivity }}% </label>
         <input
           id="sensitivity"
           v-model.number="sensitivity"
@@ -124,8 +125,13 @@
       <div class="help-section">
         <h3>How to Use:</h3>
         <ul class="help-list">
-          <li><strong>Press Button:</strong> Activate music mode with current settings</li>
-          <li><strong>Rhythm:</strong> Best for steady music with clear beats</li>
+          <li>
+            <strong>Press Button:</strong> Activate music mode with current
+            settings
+          </li>
+          <li>
+            <strong>Rhythm:</strong> Best for steady music with clear beats
+          </li>
           <li><strong>Energic:</strong> Best for fast, high-energy music</li>
           <li><strong>Spectrum:</strong> Full frequency visualization</li>
           <li><strong>Rolling:</strong> Smooth, flowing color effects</li>
@@ -189,7 +195,8 @@ const selectedLight = computed({
 
 const musicMode = computed({
   get: () => settingsManager.settings.musicMode || "",
-  set: (value: string) => settingsManager.updateSetting("musicMode", value || undefined),
+  set: (value: string) =>
+    settingsManager.updateSetting("musicMode", value || undefined),
 });
 
 const sensitivity = computed({

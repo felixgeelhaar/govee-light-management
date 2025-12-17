@@ -61,7 +61,8 @@
           </option>
         </select>
         <small v-if="!lightDiscovery.hasLights" class="help-text">
-          No RGB IC segment lights found. Make sure your lights support segment color control.
+          No RGB IC segment lights found. Make sure your lights support segment
+          color control.
         </small>
       </div>
     </section>
@@ -106,7 +107,10 @@
       <div class="form-group">
         <label for="hue">
           Hue: {{ hue }}°
-          <span class="color-preview" :style="{ backgroundColor: currentColorHex }"></span>
+          <span
+            class="color-preview"
+            :style="{ backgroundColor: currentColorHex }"
+          ></span>
         </label>
         <input
           id="hue"
@@ -149,9 +153,7 @@
           step="5"
           class="form-range"
         />
-        <small class="help-text">
-          Overall brightness (0-100%)
-        </small>
+        <small class="help-text"> Overall brightness (0-100%) </small>
       </div>
 
       <FormInput
@@ -168,10 +170,18 @@
       <div class="help-section">
         <h3>How to Use:</h3>
         <ul class="help-list">
-          <li><strong>Rotate Dial:</strong> Adjust hue (color) of the segment</li>
-          <li><strong>Press Dial:</strong> Apply current color to selected segment</li>
-          <li><strong>Display:</strong> Shows rainbow gradient and current color</li>
-          <li><strong>Full Spectrum:</strong> 360° hue range covers all colors</li>
+          <li>
+            <strong>Rotate Dial:</strong> Adjust hue (color) of the segment
+          </li>
+          <li>
+            <strong>Press Dial:</strong> Apply current color to selected segment
+          </li>
+          <li>
+            <strong>Display:</strong> Shows rainbow gradient and current color
+          </li>
+          <li>
+            <strong>Full Spectrum:</strong> 360° hue range covers all colors
+          </li>
         </ul>
       </div>
     </section>
@@ -271,15 +281,36 @@ function hsvToHex(h: number, s: number, v: number): string {
   const x = c * (1 - Math.abs(((hNorm * 6) % 2) - 1));
   const m = vNorm - c;
 
-  let r = 0, g = 0, b = 0;
+  let r = 0,
+    g = 0,
+    b = 0;
   const hSextant = Math.floor(hNorm * 6);
 
-  if (hSextant === 0) { r = c; g = x; b = 0; }
-  else if (hSextant === 1) { r = x; g = c; b = 0; }
-  else if (hSextant === 2) { r = 0; g = c; b = x; }
-  else if (hSextant === 3) { r = 0; g = x; b = c; }
-  else if (hSextant === 4) { r = x; g = 0; b = c; }
-  else { r = c; g = 0; b = x; }
+  if (hSextant === 0) {
+    r = c;
+    g = x;
+    b = 0;
+  } else if (hSextant === 1) {
+    r = x;
+    g = c;
+    b = 0;
+  } else if (hSextant === 2) {
+    r = 0;
+    g = c;
+    b = x;
+  } else if (hSextant === 3) {
+    r = 0;
+    g = x;
+    b = c;
+  } else if (hSextant === 4) {
+    r = x;
+    g = 0;
+    b = c;
+  } else {
+    r = c;
+    g = 0;
+    b = x;
+  }
 
   const rInt = Math.round((r + m) * 255);
   const gInt = Math.round((g + m) * 255);

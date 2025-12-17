@@ -201,10 +201,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       try {
         await globalSettingsService.setApiKey(apiKey);
       } catch (error) {
-        streamDeck.logger?.warn(
-          "Failed to persist API key globally",
-          error,
-        );
+        streamDeck.logger?.warn("Failed to persist API key globally", error);
       }
     }
 
@@ -212,11 +209,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       this.lightControlService = new LightControlService(this.lightRepository);
     }
 
-    if (
-      this.groupRepository &&
-      this.lightRepository &&
-      !this.groupService
-    ) {
+    if (this.groupRepository && this.lightRepository && !this.groupService) {
       this.groupService = new LightGroupService(
         this.groupRepository,
         this.lightRepository,
@@ -279,9 +272,8 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       switch (mode) {
         case "toggle": {
           const targetState = stateSummary.allOn ? "off" : "on";
-          commandName = targetState === "on"
-            ? "group.power.on"
-            : "group.power.off";
+          commandName =
+            targetState === "on" ? "group.power.on" : "group.power.off";
           await this.lightControlService.controlGroup(group, targetState);
           break;
         }
@@ -347,9 +339,10 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
         success: true,
       });
     } catch (error) {
-      const failure = error instanceof Error
-        ? { name: error.name, message: error.message }
-        : { name: "UnknownError", message: String(error) };
+      const failure =
+        error instanceof Error
+          ? { name: error.name, message: error.message }
+          : { name: "UnknownError", message: String(error) };
 
       telemetryService.recordCommand({
         command: commandName,
@@ -454,9 +447,7 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
     return {
       id: group.id,
       name: group.name,
-      lightIds: group.lights.map(
-        (light) => `${light.deviceId}|${light.model}`,
-      ),
+      lightIds: group.lights.map((light) => `${light.deviceId}|${light.model}`),
       lightCount: group.size,
       lights,
     };
@@ -483,7 +474,9 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
         return;
       }
       const groups = await this.groupService.getAllGroups();
-      const serialized = groups.map((group) => this.mapGroupForInspector(group));
+      const serialized = groups.map((group) =>
+        this.mapGroupForInspector(group),
+      );
 
       await streamDeck.ui.sendToPropertyInspector({
         event: "groupsReceived",
@@ -808,9 +801,10 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
           command: "group.test",
           durationMs: Date.now() - started,
           success: false,
-          error: error instanceof Error
-            ? { name: error.name, message: error.message }
-            : { name: "UnknownError", message: String(error) },
+          error:
+            error instanceof Error
+              ? { name: error.name, message: error.message }
+              : { name: "UnknownError", message: String(error) },
         });
       }
       await streamDeck.ui.sendToPropertyInspector({
@@ -1009,7 +1003,10 @@ export class GroupControlAction extends SingletonAction<GroupControlSettings> {
       // Update action settings
       await ev.action.setSettings(newSettings);
 
-      if (newSettings.apiKey && newSettings.apiKey !== previousSettings.apiKey) {
+      if (
+        newSettings.apiKey &&
+        newSettings.apiKey !== previousSettings.apiKey
+      ) {
         await this.ensureServices(newSettings.apiKey);
       } else if (!newSettings.apiKey && previousSettings.apiKey) {
         try {

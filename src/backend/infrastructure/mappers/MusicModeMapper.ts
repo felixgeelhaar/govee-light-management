@@ -11,8 +11,11 @@
  * - Rolling: 6
  */
 
-import { MusicModeConfig, MusicModeType } from '../../domain/value-objects/MusicModeConfig';
-import { MusicMode } from '@felixgeelhaar/govee-api-client';
+import {
+  MusicModeConfig,
+  MusicModeType,
+} from "../../domain/value-objects/MusicModeConfig";
+import { MusicMode } from "@felixgeelhaar/govee-api-client";
 
 /**
  * Maps domain MusicModeConfig to govee-api-client MusicMode
@@ -100,7 +103,9 @@ export class MusicModeMapper {
    * @returns Music mode type string, or undefined if not found
    */
   static getModeFromId(modeId: number): MusicModeType | undefined {
-    const entry = Object.entries(this.MODE_ID_MAP).find(([, id]) => id === modeId);
+    const entry = Object.entries(this.MODE_ID_MAP).find(
+      ([, id]) => id === modeId,
+    );
     return entry ? (entry[0] as MusicModeType) : undefined;
   }
 }

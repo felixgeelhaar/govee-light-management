@@ -8,9 +8,10 @@ initializePropertyInspector();
 
 // Create and mount the Vue application with App wrapper
 const app = createApp({
-  render: () => h(App, null, {
-    default: () => h(MusicModeView)
-  })
+  render: () =>
+    h(App, null, {
+      default: () => h(MusicModeView),
+    }),
 });
 
 // Mount the app

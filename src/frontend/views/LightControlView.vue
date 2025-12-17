@@ -12,7 +12,10 @@
             <span class="transport-label">{{ health.label }}</span>
             <span
               class="transport-indicator"
-              :class="{ healthy: health.isHealthy, unhealthy: !health.isHealthy }"
+              :class="{
+                healthy: health.isHealthy,
+                unhealthy: !health.isHealthy,
+              }"
             >
               {{ health.isHealthy ? "Available" : "Unavailable" }}
               <span v-if="health.latencyMs !== undefined">
@@ -263,13 +266,15 @@ const colorTempValue = computed({
     settingsManager.updateSetting("colorTempValue", value),
 });
 
-const transportHealth = ref<Array<{
-  kind: string;
-  label: string;
-  isHealthy: boolean;
-  latencyMs?: number;
-  lastChecked?: number;
-}>>([]);
+const transportHealth = ref<
+  Array<{
+    kind: string;
+    label: string;
+    isHealthy: boolean;
+    latencyMs?: number;
+    lastChecked?: number;
+  }>
+>([]);
 
 const telemetrySnapshot = ref<any | null>(null);
 
