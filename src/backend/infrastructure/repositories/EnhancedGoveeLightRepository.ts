@@ -339,24 +339,28 @@ export class EnhancedGoveeLightRepository implements ILightRepository {
 
           const newState: Partial<LightState> = {
             isOn: validatedState.getPowerState() === "on",
-            isOnline: validatedState.isOnline(),
+            isOnline: validatedState.isOnline() as boolean,
           };
 
           // Extract brightness if available
-          const brightness = validatedState.getBrightness?.();
+          const brightness = validatedState.getBrightness?.() as
+            | Brightness
+            | undefined;
           if (brightness) {
             newState.brightness = brightness;
           }
 
           // Extract color if available
-          const color = validatedState.getColor?.();
+          const color = validatedState.getColor?.() as ColorRgb | undefined;
           if (color) {
             newState.color = color;
             newState.colorTemperature = undefined;
           }
 
           // Extract color temperature if available
-          const colorTemperature = validatedState.getColorTemperature?.();
+          const colorTemperature = validatedState.getColorTemperature?.() as
+            | ColorTemperature
+            | undefined;
           if (colorTemperature) {
             newState.colorTemperature = colorTemperature;
             newState.color = undefined;

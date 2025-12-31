@@ -1,5 +1,42 @@
 import { inject, type Ref } from "vue";
-import type FeedbackSystem from "../components/FeedbackSystem.vue";
+
+/**
+ * Interface for FeedbackSystem exposed methods
+ * This must match the defineExpose in FeedbackSystem.vue
+ */
+interface FeedbackSystemExposed {
+  showToast: (toast: {
+    type: "success" | "error" | "warning" | "info";
+    title: string;
+    message?: string;
+    duration?: number;
+    persistent?: boolean;
+    progress?: number;
+    actions?: Array<{
+      label: string;
+      type?: "primary" | "secondary" | "danger";
+      action: () => void | Promise<void>;
+    }>;
+  }) => string;
+  showSuccessToast: (title: string, message?: string) => string;
+  showError: (
+    title: string,
+    message?: string,
+    actions?: Array<{
+      label: string;
+      type?: "primary" | "secondary" | "danger";
+      action: () => void | Promise<void>;
+    }>,
+  ) => string;
+  showWarning: (title: string, message?: string) => string;
+  showInfo: (title: string, message?: string) => string;
+  dismissToast: (id: string) => void;
+  updateToastProgress: (id: string, progress: number) => void;
+  showGlobalLoading: (text?: string, progress?: number) => void;
+  hideGlobalLoading: () => void;
+  updateGlobalLoadingProgress: (progress: number, text?: string) => void;
+  showSuccessAnimation: (message: string, duration?: number) => void;
+}
 
 /**
  * useFeedback Composable
@@ -54,7 +91,7 @@ import type FeedbackSystem from "../components/FeedbackSystem.vue";
  */
 export function useFeedback() {
   const feedbackSystem =
-    inject<Ref<InstanceType<typeof FeedbackSystem>>>("feedbackSystem");
+    inject<Ref<FeedbackSystemExposed | null>>("feedbackSystem");
 
   if (!feedbackSystem?.value) {
     console.warn("Feedback system not available - ensure App.vue provides it");
