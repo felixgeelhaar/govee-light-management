@@ -65,7 +65,7 @@
     "tslib": "2.8.1",
     "typescript": "5.9.3",
     "vite": "7.3.0",
-    "vite-tsconfig-paths": "5.1.4",
+    "vite-tsconfig-paths": "6.0.3",
     "vitest": "^3.2.4",
     "vue-eslint-parser": "10.2.0",
     "vue-tsc": "3.1.8",
