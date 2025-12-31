@@ -21,6 +21,13 @@ import { test, expect } from '@playwright/test';
 // Increase timeout for visual tests since they involve screenshot comparisons
 test.setTimeout(60000);
 
+// Common screenshot options with tolerance for minor rendering differences
+// CI environments may render fonts/elements slightly differently
+const screenshotOptions = {
+  fullPage: true,
+  maxDiffPixelRatio: 0.05, // Allow up to 5% pixel difference
+};
+
 test.describe('Visual Regression - Light Control Property Inspector', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/property-inspector.html');
@@ -33,9 +40,7 @@ test.describe('Visual Regression - Light Control Property Inspector', () => {
     await expect(form).toBeVisible();
 
     // Capture the initial empty state of the property inspector
-    await expect(page).toHaveScreenshot('light-control-initial.png', {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot('light-control-initial.png', screenshotOptions);
   });
 
   test('API key input focused state', async ({ page }) => {
@@ -43,9 +48,7 @@ test.describe('Visual Regression - Light Control Property Inspector', () => {
     await expect(apiKeyInput).toBeVisible();
     await apiKeyInput.focus();
 
-    await expect(page).toHaveScreenshot('light-control-api-key-focused.png', {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot('light-control-api-key-focused.png', screenshotOptions);
   });
 
   test('brightness mode selected', async ({ page }) => {
@@ -58,9 +61,7 @@ test.describe('Visual Regression - Light Control Property Inspector', () => {
     const brightnessSettings = page.locator('#brightnessSettings');
     await expect(brightnessSettings).toBeVisible();
 
-    await expect(page).toHaveScreenshot('light-control-brightness-mode.png', {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot('light-control-brightness-mode.png', screenshotOptions);
   });
 
   test('color mode selected', async ({ page }) => {
@@ -73,9 +74,7 @@ test.describe('Visual Regression - Light Control Property Inspector', () => {
     const colorSettings = page.locator('#colorSettings');
     await expect(colorSettings).toBeVisible();
 
-    await expect(page).toHaveScreenshot('light-control-color-mode.png', {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot('light-control-color-mode.png', screenshotOptions);
   });
 
   test('color temperature mode selected', async ({ page }) => {
@@ -88,9 +87,7 @@ test.describe('Visual Regression - Light Control Property Inspector', () => {
     const colorTempSettings = page.locator('#colorTempSettings');
     await expect(colorTempSettings).toBeVisible();
 
-    await expect(page).toHaveScreenshot('light-control-colortemp-mode.png', {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot('light-control-colortemp-mode.png', screenshotOptions);
   });
 
   test('lights loaded after valid API key', async ({ page }) => {
@@ -105,9 +102,7 @@ test.describe('Visual Regression - Light Control Property Inspector', () => {
     const lightSelect = page.locator('#selectedLight');
     await expect(lightSelect).toBeEnabled({ timeout: 10000 });
 
-    await expect(page).toHaveScreenshot('light-control-lights-loaded.png', {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot('light-control-lights-loaded.png', screenshotOptions);
   });
 });
 
@@ -118,9 +113,7 @@ test.describe('Visual Regression - Group Control Property Inspector', () => {
   });
 
   test('initial state - group form', async ({ page }) => {
-    await expect(page).toHaveScreenshot('group-control-initial.png', {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot('group-control-initial.png', screenshotOptions);
   });
 });
 
@@ -129,9 +122,7 @@ test.describe('Visual Regression - Test Server Homepage', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    await expect(page).toHaveScreenshot('test-server-homepage.png', {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot('test-server-homepage.png', screenshotOptions);
   });
 });
 
@@ -144,9 +135,7 @@ test.describe('Visual Regression - Dark Theme Consistency', () => {
     const bodyElement = page.locator('body');
     await expect(bodyElement).toHaveCSS('background-color', 'rgb(45, 45, 48)');
 
-    await expect(page).toHaveScreenshot('dark-theme-light-control.png', {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot('dark-theme-light-control.png', screenshotOptions);
   });
 });
 
@@ -166,9 +155,7 @@ test.describe('Visual Regression - Responsive Layout', () => {
       // Verify form is visible
       await expect(page.locator('#lightControlForm')).toBeVisible();
 
-      await expect(page).toHaveScreenshot(`light-control-${viewport.name}.png`, {
-        fullPage: true,
-      });
+      await expect(page).toHaveScreenshot(`light-control-${viewport.name}.png`, screenshotOptions);
     });
   }
 });
