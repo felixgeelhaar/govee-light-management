@@ -375,6 +375,11 @@ const showInfo = (title: string, message?: string) => {
   return showToast({ type: "info", title, message });
 };
 
+// Component name for Vue devtools
+defineOptions({
+  name: "FeedbackSystem",
+});
+
 // Expose methods to parent components
 defineExpose({
   showToast,
@@ -389,13 +394,6 @@ defineExpose({
   showInfo,
   showSuccessAnimation: displaySuccessAnimation,
 });
-</script>
-
-<script lang="ts">
-// Component registration for icons (simple text-based icons for Stream Deck compatibility)
-export default {
-  name: "FeedbackSystem",
-};
 </script>
 
 <style scoped>

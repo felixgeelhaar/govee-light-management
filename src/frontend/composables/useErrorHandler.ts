@@ -195,9 +195,9 @@ export function useErrorHandler(
  * await operations.saveSetting.execute(() => api.saveSetting(value));
  * ```
  */
-export function useMultipleErrorHandlers<T extends Record<string, UseErrorHandlerOptions>>(
-  configs: T,
-): { [K in keyof T]: UseErrorHandlerReturn } {
+export function useMultipleErrorHandlers<
+  T extends Record<string, UseErrorHandlerOptions>,
+>(configs: T): { [K in keyof T]: UseErrorHandlerReturn } {
   const handlers = {} as { [K in keyof T]: UseErrorHandlerReturn };
 
   for (const key of Object.keys(configs) as (keyof T)[]) {

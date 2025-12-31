@@ -1,60 +1,60 @@
-import type { Meta, StoryObj } from '@storybook/vue3';
-import { ref } from 'vue';
-import FormInput from '../FormInput.vue';
+import type { Meta, StoryObj } from "@storybook/vue3";
+import { ref } from "vue";
+import FormInput from "../FormInput.vue";
 
 /**
  * FormInput is a reusable form input component with built-in validation,
  * accessibility features, and consistent styling for Stream Deck Property Inspectors.
  */
 const meta: Meta<typeof FormInput> = {
-  title: 'Components/FormInput',
+  title: "Components/FormInput",
   component: FormInput,
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     id: {
-      control: 'text',
-      description: 'Unique identifier for the input element',
+      control: "text",
+      description: "Unique identifier for the input element",
     },
     modelValue: {
-      control: 'text',
-      description: 'Current value (v-model binding)',
+      control: "text",
+      description: "Current value (v-model binding)",
     },
     label: {
-      control: 'text',
-      description: 'Label text displayed above the input',
+      control: "text",
+      description: "Label text displayed above the input",
     },
     type: {
-      control: { type: 'select' },
-      options: ['text', 'number', 'password', 'email', 'url'],
-      description: 'HTML input type',
+      control: { type: "select" },
+      options: ["text", "number", "password", "email", "url"],
+      description: "HTML input type",
     },
     placeholder: {
-      control: 'text',
-      description: 'Placeholder text when input is empty',
+      control: "text",
+      description: "Placeholder text when input is empty",
     },
     disabled: {
-      control: 'boolean',
-      description: 'Whether the input is disabled',
+      control: "boolean",
+      description: "Whether the input is disabled",
     },
     required: {
-      control: 'boolean',
-      description: 'Whether the field is required',
+      control: "boolean",
+      description: "Whether the field is required",
     },
     helpText: {
-      control: 'text',
-      description: 'Help text displayed below the input',
+      control: "text",
+      description: "Help text displayed below the input",
     },
     min: {
-      control: 'number',
-      description: 'Minimum value for number inputs',
+      control: "number",
+      description: "Minimum value for number inputs",
     },
     max: {
-      control: 'number',
-      description: 'Maximum value for number inputs',
+      control: "number",
+      description: "Maximum value for number inputs",
     },
     step: {
-      control: 'number',
-      description: 'Step increment for number inputs',
+      control: "number",
+      description: "Step increment for number inputs",
     },
   },
 };
@@ -67,10 +67,10 @@ type Story = StoryObj<typeof FormInput>;
  */
 export const Default: Story = {
   args: {
-    id: 'default-input',
-    modelValue: '',
-    label: 'Username',
-    placeholder: 'Enter your username',
+    id: "default-input",
+    modelValue: "",
+    label: "Username",
+    placeholder: "Enter your username",
   },
 };
 
@@ -79,11 +79,12 @@ export const Default: Story = {
  */
 export const WithHelpText: Story = {
   args: {
-    id: 'help-input',
-    modelValue: '',
-    label: 'API Key',
-    placeholder: 'Enter your Govee API key',
-    helpText: 'You can find your API key in the Govee app under Settings > Developer API',
+    id: "help-input",
+    modelValue: "",
+    label: "API Key",
+    placeholder: "Enter your Govee API key",
+    helpText:
+      "You can find your API key in the Govee app under Settings > Developer API",
   },
 };
 
@@ -92,10 +93,10 @@ export const WithHelpText: Story = {
  */
 export const Required: Story = {
   args: {
-    id: 'required-input',
-    modelValue: '',
-    label: 'Device Name',
-    placeholder: 'Enter device name',
+    id: "required-input",
+    modelValue: "",
+    label: "Device Name",
+    placeholder: "Enter device name",
     required: true,
   },
 };
@@ -105,9 +106,9 @@ export const Required: Story = {
  */
 export const Disabled: Story = {
   args: {
-    id: 'disabled-input',
-    modelValue: 'Locked value',
-    label: 'Device ID',
+    id: "disabled-input",
+    modelValue: "Locked value",
+    label: "Device ID",
     disabled: true,
   },
 };
@@ -117,14 +118,14 @@ export const Disabled: Story = {
  */
 export const NumberWithRange: Story = {
   args: {
-    id: 'brightness-input',
+    id: "brightness-input",
     modelValue: 50,
-    label: 'Brightness',
-    type: 'number',
+    label: "Brightness",
+    type: "number",
     min: 0,
     max: 100,
     step: 5,
-    helpText: 'Set brightness level (0-100%)',
+    helpText: "Set brightness level (0-100%)",
   },
 };
 
@@ -133,11 +134,11 @@ export const NumberWithRange: Story = {
  */
 export const Password: Story = {
   args: {
-    id: 'password-input',
-    modelValue: '',
-    label: 'Password',
-    type: 'password',
-    placeholder: 'Enter your password',
+    id: "password-input",
+    modelValue: "",
+    label: "Password",
+    type: "password",
+    placeholder: "Enter your password",
     required: true,
   },
 };
@@ -149,11 +150,11 @@ export const WithValidationError: Story = {
   render: () => ({
     components: { FormInput },
     setup() {
-      const value = ref('abc');
+      const value = ref("abc");
       const validator = (val: string | number) => {
         const str = String(val);
         if (str.length < 32) {
-          return 'API key must be at least 32 characters';
+          return "API key must be at least 32 characters";
         }
         return null;
       };
@@ -181,10 +182,10 @@ export const AllTypes: Story = {
   render: () => ({
     components: { FormInput },
     setup() {
-      const textValue = ref('Sample text');
+      const textValue = ref("Sample text");
       const numberValue = ref(75);
-      const passwordValue = ref('secret123');
-      const emailValue = ref('user@example.com');
+      const passwordValue = ref("secret123");
+      const emailValue = ref("user@example.com");
       return { textValue, numberValue, passwordValue, emailValue };
     },
     template: `
@@ -229,8 +230,8 @@ export const FormLayout: Story = {
   render: () => ({
     components: { FormInput },
     setup() {
-      const deviceName = ref('');
-      const apiKey = ref('');
+      const deviceName = ref("");
+      const apiKey = ref("");
       const brightness = ref(100);
       return { deviceName, apiKey, brightness };
     },

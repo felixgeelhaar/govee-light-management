@@ -1,0 +1,12 @@
+# Node modules
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Vue files - excluded due to Prettier 3.x parser bug
+# See: https://github.com/prettier/prettier/issues
+# Prettier 3.7.4 throws "Unexpected character EOF" on Vue SFC files
+# Prettier 3.3.3-3.6.x treats TypeScript generics as HTML tags
+*.vue

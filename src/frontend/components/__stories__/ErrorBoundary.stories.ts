@@ -1,6 +1,6 @@
-import type { Meta, StoryObj } from '@storybook/vue3';
-import { ref, h, defineComponent } from 'vue';
-import ErrorBoundary from '../ErrorBoundary.vue';
+import type { Meta, StoryObj } from "@storybook/vue3";
+import { ref, h, defineComponent } from "vue";
+import ErrorBoundary from "../ErrorBoundary.vue";
 
 /**
  * ErrorBoundary catches errors from child components and displays a fallback UI.
@@ -8,17 +8,17 @@ import ErrorBoundary from '../ErrorBoundary.vue';
  * error recovery functionality.
  */
 const meta: Meta<typeof ErrorBoundary> = {
-  title: 'Components/ErrorBoundary',
+  title: "Components/ErrorBoundary",
   component: ErrorBoundary,
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     title: {
-      control: 'text',
-      description: 'Custom title for the error display',
+      control: "text",
+      description: "Custom title for the error display",
     },
     showToast: {
-      control: 'boolean',
-      description: 'Whether to show toast notification on error',
+      control: "boolean",
+      description: "Whether to show toast notification on error",
     },
   },
 };
@@ -28,7 +28,7 @@ type Story = StoryObj<typeof ErrorBoundary>;
 
 // Component that renders normally
 const NormalComponent = defineComponent({
-  name: 'NormalComponent',
+  name: "NormalComponent",
   template: `
     <div style="padding: 24px; background: var(--sdpi-color-bg-secondary, #3c3c3c); border-radius: 8px;">
       <h4 style="color: #fff; margin: 0 0 8px;">Child Component</h4>
@@ -39,16 +39,16 @@ const NormalComponent = defineComponent({
 
 // Component that throws an error
 const ErrorComponent = defineComponent({
-  name: 'ErrorComponent',
+  name: "ErrorComponent",
   setup() {
-    throw new Error('This is a simulated component error');
+    throw new Error("This is a simulated component error");
   },
-  template: '<div>This will never render</div>',
+  template: "<div>This will never render</div>",
 });
 
 // Component with a button to trigger error
 const TriggerableErrorComponent = defineComponent({
-  name: 'TriggerableErrorComponent',
+  name: "TriggerableErrorComponent",
   setup() {
     const shouldError = ref(false);
 
@@ -58,16 +58,36 @@ const TriggerableErrorComponent = defineComponent({
 
     return () => {
       if (shouldError.value) {
-        throw new Error('User triggered error!');
+        throw new Error("User triggered error!");
       }
-      return h('div', { style: 'padding: 24px; background: var(--sdpi-color-bg-secondary, #3c3c3c); border-radius: 8px;' }, [
-        h('h4', { style: 'color: #fff; margin: 0 0 8px;' }, 'Interactive Component'),
-        h('p', { style: 'color: #ccc; margin: 0 0 16px;' }, 'Click the button below to trigger an error.'),
-        h('button', {
-          onClick: triggerError,
-          style: 'padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;',
-        }, 'Trigger Error'),
-      ]);
+      return h(
+        "div",
+        {
+          style:
+            "padding: 24px; background: var(--sdpi-color-bg-secondary, #3c3c3c); border-radius: 8px;",
+        },
+        [
+          h(
+            "h4",
+            { style: "color: #fff; margin: 0 0 8px;" },
+            "Interactive Component",
+          ),
+          h(
+            "p",
+            { style: "color: #ccc; margin: 0 0 16px;" },
+            "Click the button below to trigger an error.",
+          ),
+          h(
+            "button",
+            {
+              onClick: triggerError,
+              style:
+                "padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;",
+            },
+            "Trigger Error",
+          ),
+        ],
+      );
     };
   },
 });
@@ -96,7 +116,7 @@ export const ErrorState: Story = {
     setup() {
       // Simulate error state directly
       const hasError = ref(true);
-      const errorMessage = 'Failed to load component data';
+      const errorMessage = "Failed to load component data";
 
       return { hasError, errorMessage };
     },
@@ -134,7 +154,8 @@ export const ErrorState: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'This shows the error fallback UI. In production, this appears when a child component throws an error.',
+        story:
+          "This shows the error fallback UI. In production, this appears when a child component throws an error.",
       },
     },
   },

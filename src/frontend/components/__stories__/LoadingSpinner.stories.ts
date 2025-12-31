@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/vue3';
-import LoadingSpinner from '../LoadingSpinner.vue';
+import type { Meta, StoryObj } from "@storybook/vue3";
+import LoadingSpinner from "../LoadingSpinner.vue";
 
 /**
  * LoadingSpinner is a customizable animated loading indicator.
@@ -7,22 +7,22 @@ import LoadingSpinner from '../LoadingSpinner.vue';
  * in the Stream Deck Property Inspector UI.
  */
 const meta: Meta<typeof LoadingSpinner> = {
-  title: 'Components/LoadingSpinner',
+  title: "Components/LoadingSpinner",
   component: LoadingSpinner,
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     size: {
-      control: { type: 'range', min: 16, max: 96, step: 4 },
-      description: 'Size of the spinner in pixels',
+      control: { type: "range", min: 16, max: 96, step: 4 },
+      description: "Size of the spinner in pixels",
     },
     variant: {
-      control: { type: 'select' },
-      options: ['primary', 'secondary', 'light', 'dark'],
-      description: 'Color variant of the spinner',
+      control: { type: "select" },
+      options: ["primary", "secondary", "light", "dark"],
+      description: "Color variant of the spinner",
     },
     strokeWidth: {
-      control: { type: 'range', min: 1, max: 8, step: 1 },
-      description: 'Width of the spinner stroke',
+      control: { type: "range", min: 1, max: 8, step: 1 },
+      description: "Width of the spinner stroke",
     },
   },
 };
@@ -36,7 +36,7 @@ type Story = StoryObj<typeof LoadingSpinner>;
 export const Default: Story = {
   args: {
     size: 32,
-    variant: 'primary',
+    variant: "primary",
     strokeWidth: 3,
   },
 };
@@ -47,7 +47,7 @@ export const Default: Story = {
 export const Small: Story = {
   args: {
     size: 16,
-    variant: 'primary',
+    variant: "primary",
     strokeWidth: 2,
   },
 };
@@ -58,7 +58,7 @@ export const Small: Story = {
 export const Large: Story = {
   args: {
     size: 64,
-    variant: 'primary',
+    variant: "primary",
     strokeWidth: 4,
   },
 };
@@ -69,7 +69,7 @@ export const Large: Story = {
 export const Secondary: Story = {
   args: {
     size: 32,
-    variant: 'secondary',
+    variant: "secondary",
     strokeWidth: 3,
   },
 };
@@ -80,7 +80,7 @@ export const Secondary: Story = {
 export const Light: Story = {
   args: {
     size: 32,
-    variant: 'light',
+    variant: "light",
     strokeWidth: 3,
   },
 };
@@ -91,11 +91,11 @@ export const Light: Story = {
 export const Dark: Story = {
   args: {
     size: 32,
-    variant: 'dark',
+    variant: "dark",
     strokeWidth: 3,
   },
   parameters: {
-    backgrounds: { default: 'white' },
+    backgrounds: { default: "white" },
   },
 };
 
