@@ -105,7 +105,7 @@ jobs:
       run: npm run build
     
     - name: Download all artifacts
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
     
     - name: Create universal plugin package
       run: |
