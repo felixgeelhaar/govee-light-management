@@ -75,7 +75,7 @@
     "vite-tsconfig-paths": "6.0.3",
     "vitest": "^3.2.4",
     "vue-eslint-parser": "10.2.0",
-    "vue-tsc": "3.2.1"
+    "vue-tsc": "3.2.6"
   },
   "dependencies": {
     "@elgato/streamdeck": "2.0.0",
