@@ -40,7 +40,7 @@
     "jsdom": "27.4.0",
     "lint-staged": "16.2.7",
     "playwright": "^1.57.0",
-    "prettier": "3.7.4",
+    "prettier": "3.8.1",
     "tslib": "2.8.1",
     "typescript": "5.9.3",
     "vite": "^7.3.2",
