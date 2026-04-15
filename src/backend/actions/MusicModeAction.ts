@@ -1,5 +1,4 @@
 import {
-  action,
   KeyDownEvent,
   SingletonAction,
   WillAppearEvent,
@@ -21,8 +20,9 @@ type MusicModeSettings = BaseSettings & {
   sensitivity?: number;
 };
 
-@action({ UUID: "com.felixgeelhaar.govee-light-management.music-mode" })
 export class MusicModeAction extends SingletonAction<MusicModeSettings> {
+  override readonly manifestId =
+    "com.felixgeelhaar.govee-light-management.music-mode";
   private services = new ActionServices();
 
   override async onWillAppear(

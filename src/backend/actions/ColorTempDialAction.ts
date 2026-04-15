@@ -1,5 +1,4 @@
 import {
-  action,
   type DialAction,
   type DialRotateEvent,
 } from "@elgato/streamdeck";
@@ -20,8 +19,9 @@ const DEFAULT_STEP_KELVIN = 100;
 const DEFAULT_BAR_FILL = "#FFFFFF"; // white indicator
 const DEFAULT_BAR_BG = "0:#FFB347,1:#A8D8EA"; // warm→cool gradient
 
-@action({ UUID: "com.felixgeelhaar.govee-light-management.colortemp-dial" })
 export class ColorTempDialAction extends BaseDialAction<ColorTempDialSettings> {
+  override readonly manifestId =
+    "com.felixgeelhaar.govee-light-management.colortemp-dial";
   private tempMap = new Map<string, number>();
 
   protected initValueMaps(ctx: string): void {

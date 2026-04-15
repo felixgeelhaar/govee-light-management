@@ -1,5 +1,4 @@
 import {
-  action,
   KeyDownEvent,
   SingletonAction,
   WillAppearEvent,
@@ -23,8 +22,9 @@ type SceneSettings = BaseSettings & {
   sceneName?: string;
 };
 
-@action({ UUID: "com.felixgeelhaar.govee-light-management.scene" })
 export class SceneAction extends SingletonAction<SceneSettings> {
+  override readonly manifestId =
+    "com.felixgeelhaar.govee-light-management.scene";
   private services = new ActionServices();
 
   override async onWillAppear(

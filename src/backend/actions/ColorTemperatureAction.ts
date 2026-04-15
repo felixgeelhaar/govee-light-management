@@ -1,5 +1,4 @@
 import {
-  action,
   KeyDownEvent,
   SingletonAction,
   WillAppearEvent,
@@ -16,8 +15,9 @@ type ColorTemperatureSettings = BaseSettings & {
   colorTempValue?: number;
 };
 
-@action({ UUID: "com.felixgeelhaar.govee-light-management.colortemp" })
 export class ColorTemperatureAction extends SingletonAction<ColorTemperatureSettings> {
+  override readonly manifestId =
+    "com.felixgeelhaar.govee-light-management.colortemp";
   private services = new ActionServices();
 
   override async onWillAppear(

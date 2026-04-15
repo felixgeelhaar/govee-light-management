@@ -1,5 +1,4 @@
 import {
-  action,
   KeyDownEvent,
   SingletonAction,
   WillAppearEvent,
@@ -21,8 +20,9 @@ type ToggleSettings = BaseSettings & {
   operation?: "toggle" | "on" | "off";
 };
 
-@action({ UUID: "com.felixgeelhaar.govee-light-management.toggle" })
 export class ToggleAction extends SingletonAction<ToggleSettings> {
+  override readonly manifestId =
+    "com.felixgeelhaar.govee-light-management.toggle";
   private services = new ActionServices();
   private featureState = new Map<string, boolean>();
 

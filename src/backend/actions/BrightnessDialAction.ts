@@ -1,5 +1,4 @@
 import {
-  action,
   type DialAction,
   type DialRotateEvent,
 } from "@elgato/streamdeck";
@@ -14,8 +13,9 @@ type BrightnessDialSettings = BaseDialSettings;
 const DEFAULT_BAR_FILL = "0:#7B2CBF,1:#3A86FF"; // purple→blue gradient
 const DEFAULT_BAR_BG = "#1F2937"; // dark gray
 
-@action({ UUID: "com.felixgeelhaar.govee-light-management.brightness-dial" })
 export class BrightnessDialAction extends BaseDialAction<BrightnessDialSettings> {
+  override readonly manifestId =
+    "com.felixgeelhaar.govee-light-management.brightness-dial";
   private brightnessMap = new Map<string, number>();
 
   protected initValueMaps(ctx: string): void {

@@ -1,5 +1,4 @@
 import {
-  action,
   type DialAction,
   type DialRotateEvent,
   streamDeck,
@@ -20,10 +19,9 @@ const DEFAULT_BAR_FILL = "#FFFFFF"; // white indicator
 const DEFAULT_BAR_BG =
   "0:#FF0000,0.17:#FFFF00,0.33:#00FF00,0.5:#00FFFF,0.67:#0000FF,0.83:#FF00FF,1:#FF0000"; // rainbow
 
-@action({
-  UUID: "com.felixgeelhaar.govee-light-management.segment-color-dial",
-})
 export class SegmentColorDialAction extends BaseDialAction<SegmentColorDialSettings> {
+  override readonly manifestId =
+    "com.felixgeelhaar.govee-light-management.segment-color-dial";
   private hueMap = new Map<string, number>();
 
   protected initValueMaps(ctx: string): void {

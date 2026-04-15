@@ -37,7 +37,9 @@ export class GoveeLightRepository implements ILightRepository {
   async getAllLights(): Promise<Light[]> {
     try {
       const devices = await this.client.getControllableDevices();
-      return devices.map((device) => this.mapDeviceToLight(device));
+      return devices
+        .filter((device) => this.isSupportedDevice(device))
+        .map((device) => this.mapDeviceToLight(device));
     } catch (error) {
       streamDeck.logger.error("Failed to fetch lights from Govee API:", error);
       throw new Error(
@@ -50,7 +52,10 @@ export class GoveeLightRepository implements ILightRepository {
     try {
       const devices = await this.client.getControllableDevices();
       const device = devices.find(
-        (d) => d.deviceId === deviceId && d.model === model,
+        (d) =>
+          this.isSupportedDevice(d) &&
+          d.deviceId === deviceId &&
+          d.model === model,
       );
 
       if (!device) {
@@ -69,8 +74,10 @@ export class GoveeLightRepository implements ILightRepository {
   async findLightsByName(name: string): Promise<Light[]> {
     try {
       const devices = await this.client.getControllableDevices();
-      const matchingDevices = devices.filter((device) =>
-        device.deviceName.toLowerCase().includes(name.toLowerCase()),
+      const matchingDevices = devices.filter(
+        (device) =>
+          this.isSupportedDevice(device) &&
+          device.deviceName.toLowerCase().includes(name.toLowerCase()),
       );
 
       return matchingDevices.map((device) => this.mapDeviceToLight(device));
@@ -548,11 +555,14 @@ export class GoveeLightRepository implements ILightRepository {
 
       const devices = await this.client.getControllableDevices();
       const device = devices.find(
-        (d) => d.deviceId === deviceId && d.model === model,
+        (d) =>
+          this.isSupportedDevice(d) &&
+          d.deviceId === deviceId &&
+          d.model === model,
       );
       if (!device) return [];
 
-      for (const cap of device.capabilities) {
+      for (const cap of this.getCapabilities(device)) {
         if (cap.instance === "musicMode") {
           const params = cap.parameters as any;
           if (params?.fields) {
@@ -663,7 +673,10 @@ export class GoveeLightRepository implements ILightRepository {
 
       const devices = await this.client.getControllableDevices();
       const device = devices.find(
-        (d) => d.deviceId === deviceId && d.model === model,
+        (d) =>
+          this.isSupportedDevice(d) &&
+          d.deviceId === deviceId &&
+          d.model === model,
       );
       if (!device) return [];
 
@@ -674,7 +687,7 @@ export class GoveeLightRepository implements ILightRepository {
         sceneStageToggle: "Scene Stage",
       };
 
-      return device.capabilities
+      return this.getCapabilities(device)
         .filter((cap) => cap.type.includes("toggle"))
         .map((cap) => ({
           name: TOGGLE_LABELS[cap.instance] ?? cap.instance,
@@ -699,7 +712,9 @@ export class GoveeLightRepository implements ILightRepository {
     };
 
     // Detect capabilities from the device's capability list
-    const capInstances = new Set(device.capabilities.map((c) => c.instance));
+    const capInstances = new Set(
+      this.getCapabilities(device).map((capability) => capability.instance),
+    );
 
     return Light.create(
       device.deviceId,
@@ -724,5 +739,65 @@ export class GoveeLightRepository implements ILightRepository {
    */
   getServiceStats() {
     return this.client.getServiceStats();
+  }
+
+  private isSupportedDevice(device: unknown): device is GoveeDevice {
+    if (!device || typeof device !== "object") {
+      return false;
+    }
+
+    const candidate = device as Record<string, unknown>;
+    const isValid =
+      typeof candidate.deviceId === "string" &&
+      candidate.deviceId.trim() !== "" &&
+      typeof candidate.model === "string" &&
+      candidate.model.trim() !== "" &&
+      typeof candidate.deviceName === "string" &&
+      candidate.deviceName.trim() !== "";
+
+    if (!isValid) {
+      streamDeck.logger.warn("Skipping unsupported Govee device entry", {
+        deviceId:
+          typeof candidate.deviceId === "string"
+            ? candidate.deviceId
+            : undefined,
+        model:
+          typeof candidate.model === "string" ? candidate.model : undefined,
+        deviceName:
+          typeof candidate.deviceName === "string"
+            ? candidate.deviceName
+            : undefined,
+        className:
+          device instanceof Object && device.constructor
+            ? device.constructor.name
+            : undefined,
+      });
+    }
+
+    return isValid;
+  }
+
+  private getCapabilities(
+    device: GoveeDevice,
+  ): Array<{ instance: string; type: string; parameters?: unknown }> {
+    if (!Array.isArray(device.capabilities)) {
+      streamDeck.logger.warn("Device capabilities missing, using empty list", {
+        deviceId: device.deviceId,
+        model: device.model,
+        name: device.deviceName,
+      });
+      return [];
+    }
+
+    return device.capabilities.filter(
+      (
+        capability,
+      ): capability is { instance: string; type: string; parameters?: unknown } =>
+        Boolean(
+          capability &&
+            typeof capability.instance === "string" &&
+            typeof capability.type === "string",
+        ),
+    );
   }
 }

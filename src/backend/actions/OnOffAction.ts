@@ -1,5 +1,4 @@
 import {
-  action,
   KeyDownEvent,
   SingletonAction,
   WillAppearEvent,
@@ -16,8 +15,9 @@ type OnOffSettings = BaseSettings & {
   operation?: "toggle" | "on" | "off";
 };
 
-@action({ UUID: "com.felixgeelhaar.govee-light-management.lights" })
 export class OnOffAction extends SingletonAction<OnOffSettings> {
+  override readonly manifestId =
+    "com.felixgeelhaar.govee-light-management.lights";
   private services = new ActionServices();
   private powerState = new Map<string, boolean>();
   /** Track last synced device to avoid redundant API calls on settings changes. */

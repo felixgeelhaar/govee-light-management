@@ -72,36 +72,18 @@ export class CloudTransport implements ITransport {
     try {
       const client = await this.ensureClient();
       const devices = await client.getControllableDevices();
-      const lights: LightItem[] = devices.map((device) => {
-        // Detect advanced capabilities from the device's capability list
-        const capInstances = new Set(
-          device.capabilities.map((c) => c.instance),
-        );
-        const capTypes = new Set(device.capabilities.map((c) => c.type));
+      const lights: LightItem[] = [];
 
-        return {
-          deviceId: device.deviceId,
-          model: device.model,
-          name: device.deviceName,
-          label: device.deviceName,
-          value: `${device.deviceId}|${device.model}`,
-          controllable: device.controllable,
-          retrievable: device.retrievable,
-          supportedCommands: [...device.supportedCmds],
-          capabilities: {
-            power: true,
-            brightness: capInstances.has("brightness"),
-            color: capInstances.has("colorRgb"),
-            colorTemperature: capInstances.has("colorTemInKelvin"),
-            scenes: capInstances.has("lightScene"),
-            segmentedColor: capInstances.has("segmentedColorRgb"),
-            musicMode: capInstances.has("musicMode"),
-            nightlight: capInstances.has("nightlightToggle"),
-            gradient:
-              capInstances.has("gradientToggle") ||
-              capTypes.has("gradientToggle"),
-          },
-        };
+      for (const device of devices) {
+        const light = this.toLightItem(device);
+        if (light) {
+          lights.push(light);
+        }
+      }
+
+      streamDeck.logger?.info("cloud.discover.completed", {
+        totalDevices: Array.isArray(devices) ? devices.length : 0,
+        usableLights: lights.length,
       });
 
       return { lights };
@@ -224,5 +206,114 @@ export class CloudTransport implements ITransport {
   private async getApiKey(): Promise<string | undefined> {
     const settings = await globalSettingsService.getApiKey();
     return settings;
+  }
+
+  private toLightItem(device: unknown): LightItem | null {
+    if (!this.isDiscoverableDevice(device)) {
+      streamDeck.logger?.warn("cloud.discover.skipping-device", {
+        reason: "missing-light-fields",
+        summary: this.describeDevice(device),
+      });
+      return null;
+    }
+
+    const capabilities = Array.isArray(device.capabilities)
+      ? device.capabilities
+      : [];
+    const supportedCommands = Array.isArray(device.supportedCmds)
+      ? device.supportedCmds.filter(
+          (command): command is string => typeof command === "string",
+        )
+      : [];
+
+    const capInstances = new Set(
+      capabilities
+        .map((capability) =>
+          capability && typeof capability.instance === "string"
+            ? capability.instance
+            : undefined,
+        )
+        .filter((instance): instance is string => Boolean(instance)),
+    );
+    const capTypes = new Set(
+      capabilities
+        .map((capability) =>
+          capability && typeof capability.type === "string"
+            ? capability.type
+            : undefined,
+        )
+        .filter((type): type is string => Boolean(type)),
+    );
+
+    return {
+      deviceId: device.deviceId,
+      model: device.model,
+      name: device.deviceName,
+      label: device.deviceName,
+      value: `${device.deviceId}|${device.model}`,
+      controllable: Boolean(device.controllable),
+      retrievable: Boolean(device.retrievable),
+      supportedCommands,
+      capabilities: {
+        power: true,
+        brightness: capInstances.has("brightness"),
+        color: capInstances.has("colorRgb"),
+        colorTemperature: capInstances.has("colorTemInKelvin"),
+        scenes: capInstances.has("lightScene"),
+        segmentedColor: capInstances.has("segmentedColorRgb"),
+        musicMode: capInstances.has("musicMode"),
+        nightlight: capInstances.has("nightlightToggle"),
+        gradient:
+          capInstances.has("gradientToggle") ||
+          capTypes.has("gradientToggle"),
+      },
+    };
+  }
+
+  private isDiscoverableDevice(
+    device: unknown,
+  ): device is {
+    deviceId: string;
+    model: string;
+    deviceName: string;
+    controllable?: boolean;
+    retrievable?: boolean;
+    supportedCmds?: unknown[];
+    capabilities?: Array<{ instance?: string; type?: string }>;
+  } {
+    if (!device || typeof device !== "object") {
+      return false;
+    }
+
+    const candidate = device as Record<string, unknown>;
+    return (
+      typeof candidate.deviceId === "string" &&
+      candidate.deviceId.trim() !== "" &&
+      typeof candidate.model === "string" &&
+      candidate.model.trim() !== "" &&
+      typeof candidate.deviceName === "string" &&
+      candidate.deviceName.trim() !== ""
+    );
+  }
+
+  private describeDevice(device: unknown): Record<string, unknown> {
+    if (!device || typeof device !== "object") {
+      return { type: typeof device };
+    }
+
+    const candidate = device as Record<string, unknown>;
+    return {
+      deviceId:
+        typeof candidate.deviceId === "string" ? candidate.deviceId : undefined,
+      model: typeof candidate.model === "string" ? candidate.model : undefined,
+      deviceName:
+        typeof candidate.deviceName === "string"
+          ? candidate.deviceName
+          : undefined,
+      className:
+        device instanceof Object && device.constructor
+          ? device.constructor.name
+          : undefined,
+    };
   }
 }

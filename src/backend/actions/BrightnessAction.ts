@@ -1,5 +1,4 @@
 import {
-  action,
   KeyDownEvent,
   SingletonAction,
   WillAppearEvent,
@@ -16,8 +15,9 @@ type BrightnessSettings = BaseSettings & {
   brightnessValue?: number;
 };
 
-@action({ UUID: "com.felixgeelhaar.govee-light-management.brightness" })
 export class BrightnessAction extends SingletonAction<BrightnessSettings> {
+  override readonly manifestId =
+    "com.felixgeelhaar.govee-light-management.brightness";
   private services = new ActionServices();
 
   override async onWillAppear(

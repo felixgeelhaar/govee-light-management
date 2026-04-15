@@ -1,5 +1,4 @@
 import {
-  action,
   KeyDownEvent,
   SingletonAction,
   WillAppearEvent,
@@ -21,8 +20,9 @@ type SegmentColorSettings = BaseSettings & {
   hueEnd?: number; // used for gradient
 };
 
-@action({ UUID: "com.felixgeelhaar.govee-light-management.segment-color" })
 export class SegmentColorAction extends SingletonAction<SegmentColorSettings> {
+  override readonly manifestId =
+    "com.felixgeelhaar.govee-light-management.segment-color";
   private services = new ActionServices();
 
   override async onWillAppear(
