@@ -10,11 +10,25 @@ import {
 import type { JsonValue } from "@elgato/utils";
 import { ColorTemperature } from "@felixgeelhaar/govee-api-client";
 import { ActionServices, type BaseSettings } from "./shared/ActionServices";
+import {
+  kelvinFromPercent,
+  normalizeKelvin,
+  type KelvinRange,
+} from "./shared/kelvin-utils";
 import { telemetryService } from "../services/TelemetryService";
 
 type ColorTemperatureSettings = BaseSettings & {
   colorTempValue?: number;
 };
+
+/**
+ * Fallback range used when the device has not advertised its Kelvin range
+ * (typical for group targets) or when discovery has not yet populated it.
+ * 2700–6500K is the common intersection across Govee H-series lights and
+ * avoids hitting the "parameter value out of range" rejection that the
+ * previous hardcoded 2000–9000K mapping produced on most devices.
+ */
+const FALLBACK_RANGE: KelvinRange = { min: 2700, max: 6500, precision: 100 };
 
 @action({ UUID: "com.felixgeelhaar.govee-light-management.colortemp" })
 export class ColorTemperatureAction extends SingletonAction<ColorTemperatureSettings> {
@@ -55,7 +69,15 @@ export class ColorTemperatureAction extends SingletonAction<ColorTemperatureSett
 
     try {
       const tempPercent = settings.colorTempValue ?? 50;
-      const kelvin = Math.round(2000 + (tempPercent / 100) * 7000);
+      // Map the percentage to the device's advertised Kelvin range instead
+      // of a hardcoded 2000–9000K window. Most Govee devices only support
+      // 2700–6500K; sending outside that window caused a silent
+      // "parameter value out of range" rejection (see #167).
+      const range = await this.resolveKelvinRange(settings);
+      const kelvin = normalizeKelvin(
+        kelvinFromPercent(tempPercent, range),
+        range,
+      );
       const colorTemp = new ColorTemperature(kelvin);
 
       const stopSpinner = this.services.showSpinner(ev.action);
@@ -108,5 +130,30 @@ export class ColorTemperatureAction extends SingletonAction<ColorTemperatureSett
 
   private getTitle(_settings: ColorTemperatureSettings): string {
     return "";
+  }
+
+  /**
+   * Resolve the Kelvin range to use for the percent→Kelvin mapping.
+   *
+   * Prefers the device's advertised range from cloud capability metadata
+   * (populated by CloudTransport.extractColorTemperatureRange). Falls back
+   * to a safe 2700–6500K window when:
+   *  - the target is a group (no single device range available), or
+   *  - the device has not advertised a range, or
+   *  - discovery has not yet populated properties.colorTem.
+   */
+  private async resolveKelvinRange(
+    settings: ColorTemperatureSettings,
+  ): Promise<KelvinRange> {
+    const lightItem = await this.services.getLightItem(settings);
+    const declared = lightItem?.properties?.colorTem?.range;
+    if (!declared) {
+      return FALLBACK_RANGE;
+    }
+    return {
+      min: declared.min,
+      max: declared.max,
+      precision: Math.max(1, declared.precision ?? FALLBACK_RANGE.precision),
+    };
   }
 }

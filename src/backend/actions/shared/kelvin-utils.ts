@@ -43,3 +43,25 @@ export function kelvinToBarValue(
   }
   return Math.round(((kelvin - min) / (max - min)) * 100);
 }
+
+/**
+ * Map a 0–100 percentage slider value to an absolute kelvin value within
+ * the device's advertised range.
+ *
+ * This is the inverse of `kelvinToBarValue` and produces a kelvin that is
+ * guaranteed to be inside `[range.min, range.max]`. The result is NOT yet
+ * snapped to the device's precision step — callers that need the snapped
+ * value should wrap this in `normalizeKelvin`.
+ *
+ * Used by keypad actions that expose a 0–100% slider in the Property
+ * Inspector (e.g. the Color Temperature keypad action) so that sliding
+ * to 0% gives the device's minimum and 100% gives its maximum, instead of
+ * a hardcoded window that may fall outside the device's accepted range.
+ */
+export function kelvinFromPercent(
+  percent: number,
+  { min, max }: Pick<KelvinRange, "min" | "max">,
+): number {
+  const bounded = clamp(percent, 0, 100);
+  return Math.round(min + (bounded / 100) * (max - min));
+}
