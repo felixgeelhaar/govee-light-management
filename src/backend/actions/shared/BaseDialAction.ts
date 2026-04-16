@@ -66,6 +66,9 @@ export abstract class BaseDialAction<
     this.stopLiveSync(ctx);
     this.liveSyncInFlight.delete(ctx);
     this.services.cleanupDialTimers(ctx);
+    // Force the next rotation to re-issue overlay-clearing toggles
+    // (see ActionServices.ensurePreparedForSolidColor / issue #170).
+    this.services.clearPreparedForContext(ctx);
   }
 
   override async onDidReceiveSettings(
@@ -77,6 +80,9 @@ export abstract class BaseDialAction<
       ev.action as DialAction<TSettings & JsonObject>,
     );
     this.settingsMap.set(ctx, ev.payload.settings);
+    // Settings may have pointed the dial at a different device; re-prepare
+    // the newly-selected target on the next rotation.
+    this.services.clearPreparedForContext(ctx);
     await this.refreshVisibleDial(ctx);
   }
 

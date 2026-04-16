@@ -152,6 +152,15 @@ export class ActionServices {
   private static lightStateSnapshots = new Map<string, LightState>();
   private static lightStateSyncedAt = new Map<string, number>();
   private static liveStateSyncInFlight = new Map<string, Promise<boolean>>();
+  /**
+   * Tracks which (contextId, deviceId, model) tuples have already had
+   * their overlay modes (gradient / nightlight) cleared in this dial
+   * session. Keeps the 1st rotation / 1st keypress slightly slower while
+   * avoiding those toggles on every subsequent command. Cleared when the
+   * dial disappears or switches to a different device (see
+   * `clearPreparedForContext`).
+   */
+  private static preparedForSolidColor = new Set<string>();
 
   get lightRepository() {
     return ActionServices._shared.lightRepository;
@@ -1217,5 +1226,96 @@ export class ActionServices {
     this.blockLiveState(light, operation, LIVE_STATE_RETRY_BACKOFF_MS, error);
 
     return true;
+  }
+
+  // ── Overlay-mode preparation for solid-color commands ─────────────────
+  //
+  // On RGB IC / scene-capable lights, the device may currently be in a
+  // gradient or nightlight mode. A bare setColor / setColorTemperature /
+  // setBrightness command does not reliably exit those overlays, which
+  // causes the perceived color to be tinted or washed out. Before the
+  // first solid-color command of a dial session, we explicitly disable
+  // the overlays that the device advertises. Subsequent commands in the
+  // same session skip the prepare step to avoid per-tick API overhead.
+  //
+  // The tracking is keyed by `${contextId}|${deviceId}|${model}` so that:
+  //   • different dials for the same device don't share prepared state
+  //     (safe: extra prepare calls are fire-and-forget)
+  //   • switching the dial to a different device forces a re-prepare
+  //   • disappearing / reappearing the dial forces a re-prepare
+
+  private getPreparedKey(
+    contextId: string,
+    light: Pick<Light, "deviceId" | "model">,
+  ): string {
+    return `${contextId}|${light.deviceId}|${light.model}`;
+  }
+
+  /**
+   * Clear any mode overlays that would tint or override a solid color
+   * command. Fire-and-forget per capability — a failure in one toggle
+   * does not block the others or the subsequent color command.
+   *
+   * This is intentionally public so tests can invoke it directly.
+   */
+  async prepareForSolidColor(light: Light): Promise<void> {
+    const repo = this.lightRepository;
+    if (!repo) {
+      return;
+    }
+    const tasks: Array<Promise<void>> = [];
+    if (light.supportsGradient()) {
+      tasks.push(
+        repo.toggleGradient(light, false).catch((error) => {
+          streamDeck.logger?.debug(
+            `prepareForSolidColor: toggleGradient off failed for ${light.name}`,
+            error,
+          );
+        }),
+      );
+    }
+    if (light.supportsNightlight()) {
+      tasks.push(
+        repo.toggleNightlight(light, false).catch((error) => {
+          streamDeck.logger?.debug(
+            `prepareForSolidColor: toggleNightlight off failed for ${light.name}`,
+            error,
+          );
+        }),
+      );
+    }
+    await Promise.all(tasks);
+  }
+
+  /**
+   * Idempotent, per-context guarded version of `prepareForSolidColor`.
+   * Runs the prepare once per `(contextId, deviceId, model)` tuple until
+   * `clearPreparedForContext` is called. Safe to call on every command.
+   */
+  async ensurePreparedForSolidColor(
+    contextId: string,
+    light: Light,
+  ): Promise<void> {
+    const key = this.getPreparedKey(contextId, light);
+    if (ActionServices.preparedForSolidColor.has(key)) {
+      return;
+    }
+    await this.prepareForSolidColor(light);
+    ActionServices.preparedForSolidColor.add(key);
+  }
+
+  /**
+   * Drop all prepared-state entries for a context. Called from
+   * `onWillDisappear` / `onDidReceiveSettings` so that the next command
+   * on that dial re-issues the overlay-clearing toggles. Matches prefix
+   * so we drop entries for any device previously used by this context.
+   */
+  clearPreparedForContext(contextId: string): void {
+    const prefix = `${contextId}|`;
+    for (const key of ActionServices.preparedForSolidColor) {
+      if (key.startsWith(prefix)) {
+        ActionServices.preparedForSolidColor.delete(key);
+      }
+    }
   }
 }

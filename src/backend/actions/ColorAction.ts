@@ -55,6 +55,14 @@ export class ColorAction extends SingletonAction<ColorSettings> {
       const color = ColorRgb.fromHex(settings.colorValue || "#ffffff");
       const stopSpinner = this.services.showSpinner(ev.action);
       try {
+        // Exit gradient/nightlight overlay once per key session so
+        // setColor is not tinted by a lingering mode (see #170).
+        if (target.type === "light" && target.light) {
+          await this.services.ensurePreparedForSolidColor(
+            ev.action.id,
+            target.light,
+          );
+        }
         await this.services.controlTarget(target, "color", color);
       } finally {
         stopSpinner();
