@@ -190,7 +190,7 @@
       "Name": "Saturation Dial",
       "UUID": "com.felixgeelhaar.govee-light-management.saturation-dial",
       "Icon": "imgs/actions/saturation-dial/icon",
-      "Tooltip": "Adjust the saturation of the current colour with Stream Deck+ dial",
+      "Tooltip": "Adjust the saturation of the current color with Stream Deck+ dial",
       "PropertyInspectorPath": "ui/saturation-dial.html",
       "Controllers": ["Encoder"],
       "Encoder": {

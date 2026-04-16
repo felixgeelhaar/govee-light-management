@@ -29,6 +29,28 @@ export function rgbToHue(color: ColorRgb): number {
 }
 
 /**
+ * Extract HSV saturation (0–100) from an RGB ColorRgb instance.
+ *
+ * Uses the standard HSV formula `S = (V - min) / V * 100` where
+ * V = max(r,g,b). Returns 0 for pure black (V === 0) and for grays
+ * (max === min). The result is the best approximation of saturation
+ * that can be derived from device-reported RGB — Govee does not expose
+ * an HSV state, so a light that was set via hsvToRgb(..., s<100, v=100)
+ * round-trips faithfully, but a light whose RGB was set directly (e.g.
+ * via hex picker) reports whatever saturation the chosen color has.
+ */
+export function rgbToSaturation(color: ColorRgb): number {
+  const r = color.r / 255;
+  const g = color.g / 255;
+  const b = color.b / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+
+  if (max === 0) return 0;
+  return Math.round((1 - min / max) * 100);
+}
+
+/**
  * Convert HSV color values to an RGB ColorRgb instance.
  * @param h Hue in degrees (0-360)
  * @param s Saturation percentage (0-100)
