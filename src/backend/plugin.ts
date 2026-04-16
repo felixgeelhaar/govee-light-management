@@ -7,6 +7,7 @@ import { ColorTemperatureAction } from "./actions/ColorTemperatureAction";
 import { BrightnessDialAction } from "./actions/BrightnessDialAction";
 import { ColorTempDialAction } from "./actions/ColorTempDialAction";
 import { ColorHueDialAction } from "./actions/ColorHueDialAction";
+import { SaturationDialAction } from "./actions/SaturationDialAction";
 import { SegmentColorAction } from "./actions/SegmentColorAction";
 import { SegmentColorDialAction } from "./actions/SegmentColorDialAction";
 import { SceneAction } from "./actions/SceneAction";
@@ -29,6 +30,7 @@ streamDeck.actions.registerAction(new ToggleAction());
 streamDeck.actions.registerAction(new BrightnessDialAction());
 streamDeck.actions.registerAction(new ColorTempDialAction());
 streamDeck.actions.registerAction(new ColorHueDialAction());
+streamDeck.actions.registerAction(new SaturationDialAction());
 streamDeck.actions.registerAction(new SegmentColorDialAction());
 
 streamDeck.connect();

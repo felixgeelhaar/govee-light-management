@@ -187,6 +187,29 @@
       ]
     },
     {
+      "Name": "Saturation Dial",
+      "UUID": "com.felixgeelhaar.govee-light-management.saturation-dial",
+      "Icon": "imgs/actions/saturation-dial/icon",
+      "Tooltip": "Adjust the saturation of the current colour with Stream Deck+ dial",
+      "PropertyInspectorPath": "ui/saturation-dial.html",
+      "Controllers": ["Encoder"],
+      "Encoder": {
+        "Icon": "imgs/actions/saturation-dial/icon",
+        "background": "imgs/actions/saturation-dial/background",
+        "TriggerDescription": {
+          "Rotate": "Adjust saturation",
+          "Push": "Toggle power",
+          "Touch": "N/A"
+        },
+        "layout": "layouts/saturation.json"
+      },
+      "States": [
+        {
+          "Image": "imgs/actions/saturation-dial/icon"
+        }
+      ]
+    },
+    {
       "Name": "Segment Color Dial",
       "UUID": "com.felixgeelhaar.govee-light-management.segment-color-dial",
       "Icon": "imgs/actions/segment-color-dial/icon",

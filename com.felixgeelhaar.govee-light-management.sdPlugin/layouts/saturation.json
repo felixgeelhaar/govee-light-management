@@ -1,0 +1,34 @@
+{
+  "id": "layouts/saturation.json",
+  "items": [
+    {
+      "key": "label",
+      "type": "text",
+      "rect": [16, 10, 168, 18],
+      "alignment": "center",
+      "color": "#9CA3AF",
+      "font": { "size": 12, "weight": 500 },
+      "value": "Saturation"
+    },
+    {
+      "key": "value",
+      "type": "text",
+      "rect": [16, 28, 168, 36],
+      "alignment": "center",
+      "color": "#FFFFFF",
+      "font": { "size": 28, "weight": 700 },
+      "value": "100%"
+    },
+    {
+      "key": "bar",
+      "type": "bar",
+      "rect": [16, 74, 168, 14],
+      "subtype": 0,
+      "border_w": 0,
+      "bar_bg_c": "0:#6B7280,1:#EF4444",
+      "bar_fill_c": "#FFFFFF",
+      "range": { "min": 0, "max": 100 },
+      "value": 100
+    }
+  ]
+}
