@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 288 288"><defs><linearGradient id="g" x1="0" y1="0" x2="288" y2="288" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#A855F7"/><stop offset=".5" stop-color="#6366F1"/><stop offset="1" stop-color="#22D3EE"/>
+</linearGradient>
+<linearGradient id="sat" x1="0" x2="1" y1="0" y2="0">
+<stop offset="0" stop-color="#6B7280"/><stop offset="1" stop-color="#EF4444"/>
+</linearGradient>
+<filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+<feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+</filter></defs><rect x="14" y="14" width="260" height="260" rx="40" fill="#0B0E1A"/>
+<rect x="14" y="14" width="260" height="260" rx="40" fill="none" stroke="url(#g)" stroke-width="5" filter="url(#glow)"/>
+<circle cx="144" cy="144" r="114" fill="none" stroke="url(#g)" stroke-width="6"/>
+<circle cx="144" cy="144" r="68" fill="url(#sat)"/>
+<circle cx="144" cy="144" r="68" fill="none" stroke="url(#g)" stroke-width="4" opacity="0.6"/>
+<circle cx="144" cy="20" r="12" fill="#ffffff"/></svg>

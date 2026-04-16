@@ -85,7 +85,7 @@ src/
 
 ### Core Components
 
-- **Entry point**: `src/backend/plugin.ts` - Registers 12 actions (8 keypad + 4 encoder)
+- **Entry point**: `src/backend/plugin.ts` - Registers 13 actions (8 keypad + 5 encoder)
 - **Actions**: Located in `src/backend/actions/` directory
   - **Keypad Actions:**
     - `OnOffAction.ts` - Power toggle/on/off with state sync on appear

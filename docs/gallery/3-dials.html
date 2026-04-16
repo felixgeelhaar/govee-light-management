@@ -23,22 +23,22 @@
   }
   .dials {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 40px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 28px;
     width: 100%;
-    max-width: 1500px;
+    max-width: 1680px;
   }
   .dial {
     background: linear-gradient(180deg, #121634, #0B0E22);
     border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 36px 32px;
+    border-radius: 22px;
+    padding: 28px 24px;
     display: flex; flex-direction: column; align-items: center;
     box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03) inset;
   }
   .dial-icon {
-    width: 140px; height: 140px;
-    margin-bottom: 24px;
+    width: 120px; height: 120px;
+    margin-bottom: 20px;
     filter: drop-shadow(0 12px 40px rgba(168,85,247,0.35));
   }
   .dial-panel {
@@ -46,11 +46,11 @@
     background: #070A1A;
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 18px 22px;
-    margin-bottom: 18px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
   }
   .dial-label {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--dim);
     text-transform: uppercase;
     letter-spacing: 0.14em;
@@ -58,10 +58,10 @@
     margin-bottom: 8px;
   }
   .dial-value {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 800;
     color: var(--text);
-    margin-bottom: 14px;
+    margin-bottom: 12px;
     letter-spacing: -0.01em;
   }
   .dial-bar {
@@ -86,6 +86,10 @@
     width: 100%;
     background: linear-gradient(90deg, #FFB347, #FFE4A3, #A8D8EA, #4A7FA8);
   }
+  .greyvivid::before {
+    width: 100%;
+    background: linear-gradient(90deg, #6B7280, #EF4444);
+  }
   .indicator {
     position: absolute;
     top: 50%; transform: translateY(-50%);
@@ -94,7 +98,7 @@
     box-shadow: 0 0 12px rgba(255,255,255,0.7);
   }
   .dial-name {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--text);
     margin-top: 8px;
@@ -105,7 +109,7 @@
   <div class="head">
     <span class="eyebrow">Stream Deck +</span>
     <h1>Tactile <span class="grad-text">dial control</span></h1>
-    <p class="sub">Custom touchscreen layouts with branded gradient bars. Four encoder actions, one perfect workflow.</p>
+    <p class="sub">Custom touchscreen layouts with branded gradient bars. Five encoder actions, one perfect workflow.</p>
   </div>
   <div class="dials">
     <div class="dial">
@@ -127,6 +131,17 @@
         </div>
       </div>
       <div class="dial-name">Color Hue</div>
+    </div>
+    <div class="dial">
+      <img class="dial-icon" src="./assets/saturation-dial.svg" alt="">
+      <div class="dial-panel">
+        <div class="dial-label">Saturation</div>
+        <div class="dial-value">72%</div>
+        <div class="dial-bar greyvivid">
+          <div class="indicator" style="left:72%"></div>
+        </div>
+      </div>
+      <div class="dial-name">Saturation</div>
     </div>
     <div class="dial">
       <img class="dial-icon" src="./assets/colortemp-dial.svg" alt="">
