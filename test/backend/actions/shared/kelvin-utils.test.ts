@@ -94,4 +94,19 @@ describe("kelvinFromPercent", () => {
     expect(kelvinFromPercent(0, wide)).toBe(2000);
     expect(kelvinFromPercent(100, wide)).toBe(9000);
   });
+
+  it("returns min for a degenerate range (max === min)", () => {
+    // Some devices could theoretically advertise a single-value range;
+    // returning min keeps the contract "result is inside [min, max]" true.
+    expect(kelvinFromPercent(50, range(3000, 3000, 100))).toBe(3000);
+  });
+
+  it("returns min for an inverted range (max < min) instead of interpolating outside it", () => {
+    // Defensive guard: if metadata arrives malformed we must not emit a
+    // kelvin below min or above max — that would reintroduce the
+    // "parameter value out of range" rejection this helper exists to prevent.
+    const inverted = range(6500, 2700, 100);
+    const result = kelvinFromPercent(50, inverted);
+    expect(result).toBe(6500);
+  });
 });
