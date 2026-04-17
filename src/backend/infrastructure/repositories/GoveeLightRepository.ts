@@ -5,6 +5,7 @@ import {
   Brightness,
   GoveeDevice,
   LightScene,
+  Snapshot,
   MusicMode,
   SegmentColor as ApiSegmentColor,
 } from "@felixgeelhaar/govee-api-client";
@@ -425,6 +426,46 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to get dynamic scenes: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  async getSnapshots(light: Light): Promise<Snapshot[]> {
+    try {
+      return await this.client.getSnapshots(light.deviceId, light.model);
+    } catch (error) {
+      if (isValidationError(error)) {
+        streamDeck.logger.warn(
+          `Snapshots fetch validation failed for ${light.name}`,
+        );
+        return [];
+      }
+      streamDeck.logger.error(
+        `Failed to get snapshots for ${light.name}:`,
+        error,
+      );
+      throw new Error(
+        `Failed to get snapshots: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  async applySnapshot(light: Light, snapshot: Snapshot): Promise<void> {
+    try {
+      await this.client.setSnapshot(light.deviceId, light.model, snapshot);
+    } catch (error) {
+      if (isValidationError(error)) {
+        streamDeck.logger.warn(
+          `Snapshot command sent but response validation failed for ${light.name}`,
+        );
+        return;
+      }
+      streamDeck.logger.error(
+        `Failed to apply snapshot for ${light.name}:`,
+        error,
+      );
+      throw new Error(
+        `Failed to apply snapshot: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
   }

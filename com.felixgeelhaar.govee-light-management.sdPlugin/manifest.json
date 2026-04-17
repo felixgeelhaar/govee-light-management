@@ -90,6 +90,20 @@
       ]
     },
     {
+      "Name": "Snapshot",
+      "UUID": "com.felixgeelhaar.govee-light-management.snapshot",
+      "Icon": "imgs/actions/snapshot/icon",
+      "Tooltip": "Recall a saved snapshot preset on a Govee light",
+      "PropertyInspectorPath": "ui/snapshot.html",
+      "Controllers": ["Keypad"],
+      "States": [
+        {
+          "Image": "imgs/actions/snapshot/key",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
       "Name": "Music Mode",
       "UUID": "com.felixgeelhaar.govee-light-management.music-mode",
       "Icon": "imgs/actions/music-mode/icon",

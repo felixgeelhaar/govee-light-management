@@ -15,6 +15,7 @@ import {
   ColorRgb,
   ColorTemperature,
   LightScene,
+  Snapshot,
   MusicMode,
 } from "@felixgeelhaar/govee-api-client";
 
@@ -960,6 +961,20 @@ export class ActionServices {
       throw new Error("Light repository not initialized");
     }
     await this.lightRepository.setLightScene(light, scene);
+  }
+
+  async getSnapshots(light: Light): Promise<Snapshot[]> {
+    if (!this.lightRepository) {
+      throw new Error("Light repository not initialized");
+    }
+    return this.lightRepository.getSnapshots(light);
+  }
+
+  async applySnapshot(light: Light, snapshot: Snapshot): Promise<void> {
+    if (!this.lightRepository) {
+      throw new Error("Light repository not initialized");
+    }
+    await this.lightRepository.applySnapshot(light, snapshot);
   }
 
   async toggleFeatureRaw(

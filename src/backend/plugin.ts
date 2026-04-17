@@ -11,6 +11,7 @@ import { SaturationDialAction } from "./actions/SaturationDialAction";
 import { SegmentColorAction } from "./actions/SegmentColorAction";
 import { SegmentColorDialAction } from "./actions/SegmentColorDialAction";
 import { SceneAction } from "./actions/SceneAction";
+import { SnapshotAction } from "./actions/SnapshotAction";
 import { MusicModeAction } from "./actions/MusicModeAction";
 import { ToggleAction } from "./actions/ToggleAction";
 
@@ -23,6 +24,7 @@ streamDeck.actions.registerAction(new ColorAction());
 streamDeck.actions.registerAction(new ColorTemperatureAction());
 streamDeck.actions.registerAction(new SegmentColorAction());
 streamDeck.actions.registerAction(new SceneAction());
+streamDeck.actions.registerAction(new SnapshotAction());
 streamDeck.actions.registerAction(new MusicModeAction());
 streamDeck.actions.registerAction(new ToggleAction());
 

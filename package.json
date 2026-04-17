@@ -56,7 +56,7 @@
   },
   "dependencies": {
     "@elgato/streamdeck": "^2.0.4",
-    "@felixgeelhaar/govee-api-client": "^3.1.14",
+    "@felixgeelhaar/govee-api-client": "^3.2.0",
     "zod": "4.3.5"
   },
   "overrides": {
