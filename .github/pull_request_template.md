@@ -5,6 +5,42 @@
 <!--- Provide a general summary of your changes in the Title above -->
 <!--- Describe your changes in detail -->
 
+## 🎯 Hardware Dogfood (required for any behavior change)
+
+<!---
+Every behavior-changing PR must describe **end-to-end testing on real Govee
+hardware through the Stream Deck app** — not just "npm test passes". Unit
+tests caught zero of the bugs shipped in v2.1.4–v2.2.0; dogfooding catches
+first-click bugs that contributors otherwise have to find for us.
+
+Skip this section ONLY for pure docs/CI/refactor PRs with zero runtime
+impact.
+-->
+
+**I tested the following specific flows on real hardware:**
+
+<!-- Describe concrete actions, not generic checkmarks. e.g.:
+  - Added Custom Effect action to button, selected 'Pulse' preset,
+    pressed key — saw H6008 light pulse through red→blue→green
+  - Added Snapshot action with H60B0 (has no snapshots), opened PI —
+    saw "No snapshots found" hint instead of empty dropdown
+-->
+
+-
+- **Hardware / Stream Deck model tested:**
+
+- **Stream Deck app version:**
+
+- **If this touches a Property Inspector dropdown or datasource:**
+
+- [ ] The dropdown populates when there are items
+- [ ] The dropdown shows a `.field-hint` when the backend returns
+      `status: "empty"` (no misleading "Select a device first")
+- [ ] The dropdown shows a `.field-hint` when the backend returns
+      `status: "error"`
+- [ ] I added/updated an E2E test in `test/e2e/` covering the new
+      wiring (see `dependent-dropdowns.spec.ts` for the pattern)
+
 ## Type of Change
 
 <!--- Put an `x` in all the boxes that apply: -->
@@ -33,17 +69,17 @@
 <!--- Describe the changes you made in detail -->
 <!--- Use bullet points for clarity -->
 
-- 
-- 
-- 
+-
+-
+-
 
 ## Screenshots
 
 <!--- If your changes affect the UI, please provide screenshots -->
 <!--- Delete this section if not applicable -->
 
-| Before | After |
-|--------|--------|
+| Before         | After         |
+| -------------- | ------------- |
 | ![Before](url) | ![After](url) |
 
 ## Testing
@@ -53,10 +89,10 @@
 
 ### Test Environment
 
-- **OS**: 
-- **Stream Deck Version**: 
-- **Plugin Version**: 
-- **Node.js Version**: 
+- **OS**:
+- **Stream Deck Version**:
+- **Plugin Version**:
+- **Node.js Version**:
 
 ### Test Cases
 
@@ -77,7 +113,7 @@
 - [ ] Error handling
 - [ ] API key validation
 - [ ] State management
-- [ ] Other: _______________
+- [ ] Other: ******\_\_\_******
 
 ## Performance Impact
 

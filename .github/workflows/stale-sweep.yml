@@ -1,0 +1,161 @@
+name: Stale Review Sweep
+
+# Weekly sweep that flags PRs and issues where the maintainer owes a response.
+# Prevents situations like #167 (12-day-silent reporter follow-up) and review
+# drift on contributor PRs. Posts a summary comment on the tracking issue
+# and labels stale items so they surface in the maintainer's view.
+
+on:
+  schedule:
+    # Every Monday at 09:00 UTC
+    - cron: "0 9 * * 1"
+  workflow_dispatch: # allow manual runs
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Flag stale PRs and issues awaiting maintainer response
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const STALE_DAYS = 7;
+            const now = Date.now();
+            const staleCutoff = now - STALE_DAYS * 24 * 60 * 60 * 1000;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Fetch open PRs
+            const prs = await github.paginate(github.rest.pulls.list, {
+              owner, repo, state: "open", per_page: 100,
+            });
+
+            // Fetch open issues (excluding PRs)
+            const issuesRaw = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: "open", per_page: 100,
+            });
+            const issues = issuesRaw.filter(i => !i.pull_request);
+
+            const stalePrs = [];
+            const staleIssues = [];
+
+            // A PR is stale if:
+            //  - last activity > 7 days ago, AND
+            //  - the last commenter is NOT the maintainer, OR there are no
+            //    comments and the PR is older than 7 days.
+            for (const pr of prs) {
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner, repo, issue_number: pr.number, per_page: 100,
+              });
+              const lastComment = comments[comments.length - 1];
+              const lastActivity = new Date(
+                lastComment?.created_at ?? pr.created_at
+              ).getTime();
+              if (lastActivity > staleCutoff) continue;
+
+              const lastAuthor = lastComment?.user?.login ?? pr.user?.login;
+              const isMaintainer = lastAuthor === owner;
+              if (!isMaintainer) {
+                stalePrs.push({
+                  number: pr.number,
+                  title: pr.title,
+                  author: pr.user?.login,
+                  daysStale: Math.floor((now - lastActivity) / (24 * 60 * 60 * 1000)),
+                  url: pr.html_url,
+                });
+              }
+            }
+
+            // An issue is stale if the reporter has posted after the last
+            // maintainer comment and no maintainer response has followed
+            // within 7 days. This surfaces unanswered follow-ups like #167.
+            for (const issue of issues) {
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner, repo, issue_number: issue.number, per_page: 100,
+              });
+              if (comments.length === 0) {
+                const lastActivity = new Date(issue.created_at).getTime();
+                if (lastActivity < staleCutoff && issue.user?.login !== owner) {
+                  staleIssues.push({
+                    number: issue.number,
+                    title: issue.title,
+                    author: issue.user?.login,
+                    daysStale: Math.floor((now - lastActivity) / (24 * 60 * 60 * 1000)),
+                    url: issue.html_url,
+                  });
+                }
+                continue;
+              }
+              const lastComment = comments[comments.length - 1];
+              const lastActivity = new Date(lastComment.created_at).getTime();
+              if (lastActivity > staleCutoff) continue;
+              if (lastComment.user?.login === owner) continue;
+              staleIssues.push({
+                number: issue.number,
+                title: issue.title,
+                author: lastComment.user?.login,
+                daysStale: Math.floor((now - lastActivity) / (24 * 60 * 60 * 1000)),
+                url: issue.html_url,
+              });
+            }
+
+            // Build summary
+            const lines = [];
+            lines.push(`# Weekly Stale Review Sweep`);
+            lines.push(``);
+            lines.push(`Ran at ${new Date().toISOString()}.`);
+            lines.push(``);
+
+            if (stalePrs.length === 0 && staleIssues.length === 0) {
+              lines.push(`✅ Nothing stale. All PRs and issues have had a maintainer response in the last ${STALE_DAYS} days.`);
+            } else {
+              if (stalePrs.length > 0) {
+                lines.push(`## 🔔 PRs awaiting maintainer response (${stalePrs.length})`);
+                lines.push(``);
+                for (const p of stalePrs) {
+                  lines.push(`- [#${p.number}](${p.url}) by @${p.author} — last activity ${p.daysStale}d ago — ${p.title}`);
+                }
+                lines.push(``);
+              }
+              if (staleIssues.length > 0) {
+                lines.push(`## 🔔 Issues awaiting maintainer response (${staleIssues.length})`);
+                lines.push(``);
+                for (const i of staleIssues) {
+                  lines.push(`- [#${i.number}](${i.url}) — last comment by @${i.author} ${i.daysStale}d ago — ${i.title}`);
+                }
+                lines.push(``);
+              }
+            }
+
+            const body = lines.join("\n");
+            core.summary.addRaw(body).write();
+            console.log(body);
+
+            // If anything is stale, create or update a tracking issue so
+            // it surfaces in the maintainer's inbox, not just workflow logs.
+            if (stalePrs.length === 0 && staleIssues.length === 0) return;
+
+            const trackingTitle = "📋 Weekly Stale Review Sweep";
+            const existing = await github.paginate(
+              github.rest.issues.listForRepo,
+              { owner, repo, state: "open", creator: "github-actions[bot]", per_page: 100 }
+            );
+            const tracking = existing.find(i => i.title === trackingTitle);
+
+            if (tracking) {
+              await github.rest.issues.update({
+                owner, repo, issue_number: tracking.number, body,
+              });
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: tracking.number,
+                body: `Sweep re-ran — see issue body for latest list.`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner, repo, title: trackingTitle, body,
+              });
+            }
