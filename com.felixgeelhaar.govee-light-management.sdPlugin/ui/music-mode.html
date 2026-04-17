@@ -76,6 +76,12 @@
         const deviceSelect = document.getElementById("deviceSelect");
         const modeSelect = document.getElementById("modeSelect");
 
+        window.GoveePI.attachFieldStatus(modeSelect, "getMusicModes", {
+          emptyMsg: "This device doesn't support music modes.",
+          errorMsg:
+            "Couldn't load music modes. Check your connection and try again.",
+        });
+
         // When device changes, refresh the music modes list
         deviceSelect.addEventListener("valuechange", () => {
           if (modeSelect && modeSelect.refresh) {

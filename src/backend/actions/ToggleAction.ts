@@ -219,14 +219,24 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
   ): Promise<void> {
     const deviceId = settings.selectedDeviceId;
     if (!deviceId) {
-      await sendToPI(actionId, { event: "getToggleFeatures", items: [] });
+      await sendToPI(actionId, {
+        event: "getToggleFeatures",
+        items: [],
+        status: "empty",
+        message: "Select a device to load its toggleable features.",
+      });
       return;
     }
 
     try {
       const apiKey = await this.services.getApiKey(settings);
       if (!apiKey) {
-        await sendToPI(actionId, { event: "getToggleFeatures", items: [] });
+        await sendToPI(actionId, {
+          event: "getToggleFeatures",
+          items: [],
+          status: "error",
+          message: "Missing API key — reconnect in the API Key panel.",
+        });
         return;
       }
 
@@ -245,8 +255,18 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
       }
 
       const features = await this.services.getToggleFeatures(queryDeviceId);
+      if (features.length === 0) {
+        await sendToPI(actionId, {
+          event: "getToggleFeatures",
+          items: [],
+          status: "empty",
+          message: "This device has no toggleable features.",
+        });
+        return;
+      }
       await sendToPI(actionId, {
         event: "getToggleFeatures",
+        status: "ok",
         items: features.map((f) => ({
           label: f.name,
           value: JSON.stringify({ name: f.name, instance: f.instance }),
@@ -254,7 +274,13 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
       });
     } catch (error) {
       streamDeck.logger.error("Failed to fetch toggle features:", error);
-      await sendToPI(actionId, { event: "getToggleFeatures", items: [] });
+      await sendToPI(actionId, {
+        event: "getToggleFeatures",
+        items: [],
+        status: "error",
+        message:
+          "Failed to load toggleable features. Check your connection and retry.",
+      });
     }
   }
 

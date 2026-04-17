@@ -486,6 +486,8 @@ export class ActionServices {
         await sendToPI(actionId, {
           event: "getDevices",
           items: [],
+          status: "error",
+          message: "Missing API key — reconnect in the API Key panel.",
         });
         return;
       }
@@ -496,6 +498,8 @@ export class ActionServices {
         value: string;
         children?: Array<{ label: string; value: string }>;
       }> = [];
+
+      let discoveryFailed = false;
 
       // Add lights (with timeout to prevent hanging)
       if (this.deviceService) {
@@ -527,6 +531,7 @@ export class ActionServices {
             "handleGetDevices: device discovery failed:",
             discoverError,
           );
+          discoveryFailed = true;
           // Continue to still return groups even if light discovery fails
         }
       }
@@ -551,15 +556,29 @@ export class ActionServices {
       streamDeck.logger.info(
         `handleGetDevices: sending ${items.length} item groups to PI`,
       );
+      if (items.length === 0) {
+        await sendToPI(actionId, {
+          event: "getDevices",
+          items: [],
+          status: discoveryFailed ? "error" : "empty",
+          message: discoveryFailed
+            ? "Failed to load devices. Check your API key and connection."
+            : "No devices found. Add lights in the Govee mobile app, then refresh.",
+        });
+        return;
+      }
       await sendToPI(actionId, {
         event: "getDevices",
         items,
+        status: "ok",
       });
     } catch (error) {
       streamDeck.logger.error("Failed to fetch devices:", error);
       await sendToPI(actionId, {
         event: "getDevices",
         items: [],
+        status: "error",
+        message: "Failed to load devices. Check your API key and connection.",
       });
     }
   }

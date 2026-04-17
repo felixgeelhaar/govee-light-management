@@ -92,6 +92,12 @@
           }
         };
 
+        window.GoveePI.attachFieldStatus(sceneSelect, "getScenes", {
+          emptyMsg: "This device has no dynamic scenes available.",
+          errorMsg:
+            "Couldn't load scenes. Check your connection and try again.",
+        });
+
         // When device changes, refresh the scene list
         deviceSelect.addEventListener("valuechange", refreshScenes);
         deviceSelect.addEventListener("change", refreshScenes);

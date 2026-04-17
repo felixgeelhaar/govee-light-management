@@ -60,6 +60,13 @@
         const deviceSelect = document.getElementById("deviceSelect");
         const snapshotSelect = document.getElementById("snapshotSelect");
 
+        window.GoveePI.attachFieldStatus(snapshotSelect, "getSnapshots", {
+          emptyMsg:
+            "No snapshots found. Create one in the Govee mobile app first.",
+          errorMsg:
+            "Couldn't load snapshots. Check your connection and try again.",
+        });
+
         // When device changes, refresh the snapshot list
         deviceSelect.addEventListener("valuechange", () => {
           if (snapshotSelect && snapshotSelect.refresh) {

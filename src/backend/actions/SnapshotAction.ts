@@ -144,14 +144,24 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
   ): Promise<void> {
     const deviceId = settings.selectedDeviceId;
     if (!deviceId) {
-      await sendToPI(actionId, { event: "getSnapshots", items: [] });
+      await sendToPI(actionId, {
+        event: "getSnapshots",
+        items: [],
+        status: "empty",
+        message: "Select a device to load its snapshots.",
+      });
       return;
     }
 
     try {
       const apiKey = await this.services.getApiKey(settings ?? {});
       if (!apiKey) {
-        await sendToPI(actionId, { event: "getSnapshots", items: [] });
+        await sendToPI(actionId, {
+          event: "getSnapshots",
+          items: [],
+          status: "error",
+          message: "Missing API key — reconnect in the API Key panel.",
+        });
         return;
       }
 
@@ -170,13 +180,30 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
       }
 
       if (!queryLight) {
-        await sendToPI(actionId, { event: "getSnapshots", items: [] });
+        await sendToPI(actionId, {
+          event: "getSnapshots",
+          items: [],
+          status: "error",
+          message:
+            "Selected device could not be resolved. Try refreshing devices.",
+        });
         return;
       }
 
       const snapshots = await this.services.getSnapshots(queryLight);
+      if (snapshots.length === 0) {
+        await sendToPI(actionId, {
+          event: "getSnapshots",
+          items: [],
+          status: "empty",
+          message:
+            "No snapshots found. Create one in the Govee mobile app first.",
+        });
+        return;
+      }
       await sendToPI(actionId, {
         event: "getSnapshots",
+        status: "ok",
         items: snapshots.map((s) => ({
           label: s.name,
           value: JSON.stringify({
@@ -188,7 +215,12 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
       });
     } catch (error) {
       streamDeck.logger.error("Failed to fetch snapshots:", error);
-      await sendToPI(actionId, { event: "getSnapshots", items: [] });
+      await sendToPI(actionId, {
+        event: "getSnapshots",
+        items: [],
+        status: "error",
+        message: "Failed to load snapshots. Check your connection and retry.",
+      });
     }
   }
 

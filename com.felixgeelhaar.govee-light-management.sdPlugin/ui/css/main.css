@@ -219,3 +219,17 @@
 	background-color: #3a3a3a;
 	color: #ffffff;
 }
+
+.field-hint {
+	font-size: 11px;
+	padding: 4px 0 0;
+	line-height: 1.4;
+}
+
+.field-hint.info {
+	color: #9da3ae;
+}
+
+.field-hint.error {
+	color: #ff6b6b;
+}

@@ -141,14 +141,24 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
   ): Promise<void> {
     const deviceId = settings.selectedDeviceId;
     if (!deviceId) {
-      await sendToPI(actionId, { event: "getMusicModes", items: [] });
+      await sendToPI(actionId, {
+        event: "getMusicModes",
+        items: [],
+        status: "empty",
+        message: "Select a device to load its music modes.",
+      });
       return;
     }
 
     try {
       const apiKey = await this.services.getApiKey(settings);
       if (!apiKey) {
-        await sendToPI(actionId, { event: "getMusicModes", items: [] });
+        await sendToPI(actionId, {
+          event: "getMusicModes",
+          items: [],
+          status: "error",
+          message: "Missing API key — reconnect in the API Key panel.",
+        });
         return;
       }
 
@@ -167,8 +177,18 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
       }
 
       const modes = await this.services.getMusicModes(queryDeviceId);
+      if (modes.length === 0) {
+        await sendToPI(actionId, {
+          event: "getMusicModes",
+          items: [],
+          status: "empty",
+          message: "This device doesn't support music modes.",
+        });
+        return;
+      }
       await sendToPI(actionId, {
         event: "getMusicModes",
+        status: "ok",
         items: modes.map((m) => ({
           label: m.name,
           value: JSON.stringify({ name: m.name, modeId: m.value }),
@@ -176,7 +196,12 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
       });
     } catch (error) {
       streamDeck.logger.error("Failed to fetch music modes:", error);
-      await sendToPI(actionId, { event: "getMusicModes", items: [] });
+      await sendToPI(actionId, {
+        event: "getMusicModes",
+        items: [],
+        status: "error",
+        message: "Failed to load music modes. Check your connection and retry.",
+      });
     }
   }
 

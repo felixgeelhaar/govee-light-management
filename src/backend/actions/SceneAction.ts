@@ -169,14 +169,24 @@ export class SceneAction extends SingletonAction<SceneSettings> {
   ): Promise<void> {
     const deviceId = settings.selectedDeviceId;
     if (!deviceId) {
-      await sendToPI(actionId, { event: "getScenes", items: [] });
+      await sendToPI(actionId, {
+        event: "getScenes",
+        items: [],
+        status: "empty",
+        message: "Select a device to load its scenes.",
+      });
       return;
     }
 
     try {
       const apiKey = await this.services.getApiKey(settings ?? {});
       if (!apiKey) {
-        await sendToPI(actionId, { event: "getScenes", items: [] });
+        await sendToPI(actionId, {
+          event: "getScenes",
+          items: [],
+          status: "error",
+          message: "Missing API key — reconnect in the API Key panel.",
+        });
         return;
       }
 
@@ -197,7 +207,13 @@ export class SceneAction extends SingletonAction<SceneSettings> {
       }
 
       if (!queryLight) {
-        await sendToPI(actionId, { event: "getScenes", items: [] });
+        await sendToPI(actionId, {
+          event: "getScenes",
+          items: [],
+          status: "error",
+          message:
+            "Selected device could not be resolved. Try refreshing devices.",
+        });
         return;
       }
 
@@ -205,13 +221,30 @@ export class SceneAction extends SingletonAction<SceneSettings> {
         this.services.getDynamicScenes(queryLight),
         this.services.getDiyScenes(queryLight),
       ]);
+      const items = buildSceneItems(dynamicScenes, diyScenes);
+      if (items.length === 0) {
+        await sendToPI(actionId, {
+          event: "getScenes",
+          items: [],
+          status: "empty",
+          message:
+            "This device has no dynamic or DIY scenes available. Create scenes in the Govee mobile app first.",
+        });
+        return;
+      }
       await sendToPI(actionId, {
         event: "getScenes",
-        items: buildSceneItems(dynamicScenes, diyScenes),
+        status: "ok",
+        items,
       });
     } catch (error) {
       streamDeck.logger.error("Failed to fetch scenes:", error);
-      await sendToPI(actionId, { event: "getScenes", items: [] });
+      await sendToPI(actionId, {
+        event: "getScenes",
+        items: [],
+        status: "error",
+        message: "Failed to load scenes. Check your connection and retry.",
+      });
     }
   }
 

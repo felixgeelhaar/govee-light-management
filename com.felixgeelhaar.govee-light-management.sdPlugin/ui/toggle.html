@@ -68,6 +68,12 @@
         const deviceSelect = document.getElementById("deviceSelect");
         const featureSelect = document.getElementById("featureSelect");
 
+        window.GoveePI.attachFieldStatus(featureSelect, "getToggleFeatures", {
+          emptyMsg: "This device has no toggleable features.",
+          errorMsg:
+            "Couldn't load toggleable features. Check your connection and try again.",
+        });
+
         // When device changes, refresh the feature list
         deviceSelect.addEventListener("valuechange", () => {
           if (featureSelect && featureSelect.refresh) {
