@@ -66,11 +66,8 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
         await this.services.ensureServices(apiKey);
         const target = await this.services.resolveTarget(settings);
         if (!target) return;
-        // Exit gradient/nightlight overlay once per dial session so
-        // setColor is not tinted by a lingering mode (see #170).
-        if (target.type === "light" && target.light) {
-          await this.services.ensurePreparedForSolidColor(ctx, target.light);
-        }
+        // Clear overlay modes for single lights and groups (see #170).
+        await this.services.ensurePreparedForTarget(ctx, target);
         const hue = this.hueMap.get(ctx) ?? 0;
         const saturation = this.saturationMap.get(ctx) ?? next;
         const color = hsvToRgb(hue, saturation, 100);

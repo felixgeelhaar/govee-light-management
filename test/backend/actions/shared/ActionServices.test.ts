@@ -273,3 +273,79 @@ describe("ActionServices.ensurePreparedForSolidColor", () => {
     }
   });
 });
+
+describe("ActionServices.ensurePreparedForTarget", () => {
+  beforeEach(() => {
+    resetPreparedForSolidColor();
+  });
+
+  it("prepares a single-light target", async () => {
+    const repo = mockRepo();
+    const restore = installMockRepo(repo);
+    try {
+      const services = new ActionServices();
+      const light = makeLight({ gradient: true });
+
+      await services.ensurePreparedForTarget("ctx-1", {
+        type: "light",
+        light,
+      });
+
+      expect(repo.toggleGradient).toHaveBeenCalledWith(light, false);
+    } finally {
+      restore();
+    }
+  });
+
+  it("prepares each controllable light in a group target", async () => {
+    const repo = mockRepo();
+    const restore = installMockRepo(repo);
+    try {
+      const services = new ActionServices();
+      const lightA = makeLight({
+        deviceId: "grp-a",
+        gradient: true,
+        nightlight: true,
+      });
+      const lightB = makeLight({
+        deviceId: "grp-b",
+        gradient: true,
+      });
+
+      // Minimal LightGroup stub — only getControllableLights is called.
+      const group = {
+        getControllableLights: () => [lightA, lightB],
+      } as unknown as import("../../../../src/backend/domain/entities/LightGroup").LightGroup;
+
+      await services.ensurePreparedForTarget("ctx-1", {
+        type: "group",
+        group,
+      });
+
+      expect(repo.toggleGradient).toHaveBeenCalledTimes(2);
+      expect(repo.toggleGradient).toHaveBeenNthCalledWith(1, lightA, false);
+      expect(repo.toggleGradient).toHaveBeenNthCalledWith(2, lightB, false);
+      expect(repo.toggleNightlight).toHaveBeenCalledTimes(1);
+      expect(repo.toggleNightlight).toHaveBeenCalledWith(lightA, false);
+    } finally {
+      restore();
+    }
+  });
+
+  it("is a no-op for a target with no light or group", async () => {
+    const repo = mockRepo();
+    const restore = installMockRepo(repo);
+    try {
+      const services = new ActionServices();
+
+      await services.ensurePreparedForTarget("ctx-1", {
+        type: "light",
+        // light is undefined — target resolution failed
+      });
+
+      expect(repo.toggleGradient).not.toHaveBeenCalled();
+    } finally {
+      restore();
+    }
+  });
+});

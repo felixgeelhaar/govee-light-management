@@ -46,12 +46,8 @@ export class BrightnessDialAction extends BaseDialAction<BrightnessDialSettings>
         await this.services.ensureServices(apiKey);
         const target = await this.services.resolveTarget(settings);
         if (!target) return;
-        // Exit gradient/nightlight overlay once per dial session so
-        // setBrightness is not applied relative to a scene's dynamic
-        // brightness (see #170).
-        if (target.type === "light" && target.light) {
-          await this.services.ensurePreparedForSolidColor(ctx, target.light);
-        }
+        // Clear overlay modes for single lights and groups (see #170).
+        await this.services.ensurePreparedForTarget(ctx, target);
         const finalValue = this.brightnessMap.get(ctx) ?? next;
         await this.services.controlTarget(
           target,

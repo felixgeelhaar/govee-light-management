@@ -1320,6 +1320,25 @@ export class ActionServices {
   }
 
   /**
+   * Convenience wrapper that handles both single-light and group targets.
+   * For groups, iterates the controllable lights and prepares each one.
+   * Replaces the per-action `if (target.type === "light")` check so
+   * call sites can pass the target directly.
+   */
+  async ensurePreparedForTarget(
+    contextId: string,
+    target: DeviceTarget,
+  ): Promise<void> {
+    if (target.type === "light" && target.light) {
+      await this.ensurePreparedForSolidColor(contextId, target.light);
+    } else if (target.type === "group" && target.group) {
+      for (const light of target.group.getControllableLights()) {
+        await this.ensurePreparedForSolidColor(contextId, light);
+      }
+    }
+  }
+
+  /**
    * Drop all prepared-state entries for a context. Called from
    * `onWillDisappear` / `onDidReceiveSettings` so that the next command
    * on that dial re-issues the overlay-clearing toggles. Matches prefix

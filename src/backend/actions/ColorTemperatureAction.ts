@@ -82,14 +82,8 @@ export class ColorTemperatureAction extends SingletonAction<ColorTemperatureSett
 
       const stopSpinner = this.services.showSpinner(ev.action);
       try {
-        // Exit gradient/nightlight overlay once per key session so
-        // setColorTemperature is not tinted by a lingering mode (see #170).
-        if (target.type === "light" && target.light) {
-          await this.services.ensurePreparedForSolidColor(
-            ev.action.id,
-            target.light,
-          );
-        }
+        // Clear overlay modes for single lights and groups (see #170).
+        await this.services.ensurePreparedForTarget(ev.action.id, target);
         await this.services.controlTarget(
           target,
           "colorTemperature",
