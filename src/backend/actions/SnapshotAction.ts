@@ -152,12 +152,21 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
         selectedDeviceId: deviceId,
       });
 
-      if (!target || target.type !== "light" || !target.light) {
+      // For groups, fetch snapshots from the first controllable member.
+      let queryLight;
+      if (target?.type === "light" && target.light) {
+        queryLight = target.light;
+      } else if (target?.type === "group" && target.group) {
+        const members = target.group.getControllableLights();
+        queryLight = members[0];
+      }
+
+      if (!queryLight) {
         await sendToPI(actionId, { event: "getSnapshots", items: [] });
         return;
       }
 
-      const snapshots = await this.services.getSnapshots(target.light);
+      const snapshots = await this.services.getSnapshots(queryLight);
       await sendToPI(actionId, {
         event: "getSnapshots",
         items: snapshots.map((s) => ({

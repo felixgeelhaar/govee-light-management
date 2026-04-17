@@ -54,7 +54,7 @@ export class SceneAction extends SingletonAction<SceneSettings> {
 
     await this.services.ensureServices(apiKey);
     const target = await this.services.resolveTarget(settings);
-    if (!target || target.type !== "light" || !target.light) {
+    if (!target) {
       await ev.action.showAlert();
       return;
     }
@@ -74,7 +74,20 @@ export class SceneAction extends SingletonAction<SceneSettings> {
       const scene = new LightScene(parsed.id, parsed.paramId, parsed.name);
       const stopSpinner = this.services.showSpinner(ev.action);
       try {
-        await this.services.applyDynamicScene(target.light, scene);
+        if (target.type === "light" && target.light) {
+          await this.services.applyDynamicScene(target.light, scene);
+        } else if (target.type === "group" && target.group) {
+          for (const light of target.group.getControllableLights()) {
+            try {
+              await this.services.applyDynamicScene(light, scene);
+            } catch (error) {
+              streamDeck.logger.warn(
+                `Scene apply failed for group member ${light.name}:`,
+                error,
+              );
+            }
+          }
+        }
       } finally {
         stopSpinner();
       }
@@ -136,12 +149,23 @@ export class SceneAction extends SingletonAction<SceneSettings> {
         selectedDeviceId: deviceId,
       });
 
-      if (!target || target.type !== "light" || !target.light) {
+      // For groups, fetch scenes from the first controllable member.
+      // Lights within a group typically share the same model and
+      // therefore expose the same scene catalogue.
+      let queryLight;
+      if (target?.type === "light" && target.light) {
+        queryLight = target.light;
+      } else if (target?.type === "group" && target.group) {
+        const members = target.group.getControllableLights();
+        queryLight = members[0];
+      }
+
+      if (!queryLight) {
         await sendToPI(actionId, { event: "getScenes", items: [] });
         return;
       }
 
-      const scenes = await this.services.getDynamicScenes(target.light);
+      const scenes = await this.services.getDynamicScenes(queryLight);
       await sendToPI(actionId, {
         event: "getScenes",
         items: scenes.map((s) => ({
