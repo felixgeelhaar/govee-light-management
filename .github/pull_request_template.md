@@ -17,7 +17,7 @@ Skip this section ONLY for pure docs/CI/refactor PRs with zero runtime
 impact.
 -->
 
-**I tested the following specific flows on real hardware:**
+### I tested the following specific flows on real hardware
 
 <!-- Describe concrete actions, not generic checkmarks. e.g.:
   - Added Custom Effect action to button, selected 'Pulse' preset,
@@ -26,20 +26,23 @@ impact.
     saw "No snapshots found" hint instead of empty dropdown
 -->
 
+1.
+2.
+
+### Hardware / Stream Deck model tested
+
 -
-- **Hardware / Stream Deck model tested:**
 
-- **Stream Deck app version:**
+### Stream Deck app version
 
-- **If this touches a Property Inspector dropdown or datasource:**
+-
+
+### If this touches a Property Inspector dropdown or datasource
 
 - [ ] The dropdown populates when there are items
-- [ ] The dropdown shows a `.field-hint` when the backend returns
-      `status: "empty"` (no misleading "Select a device first")
-- [ ] The dropdown shows a `.field-hint` when the backend returns
-      `status: "error"`
-- [ ] I added/updated an E2E test in `test/e2e/` covering the new
-      wiring (see `dependent-dropdowns.spec.ts` for the pattern)
+- [ ] The dropdown shows a `.field-hint` when the backend returns `status: "empty"` (no misleading "Select a device first")
+- [ ] The dropdown shows a `.field-hint` when the backend returns `status: "error"`
+- [ ] I added/updated an E2E test in `test/e2e/` covering the new wiring (see `dependent-dropdowns.spec.ts` for the pattern)
 
 ## Type of Change
 
@@ -113,7 +116,7 @@ impact.
 - [ ] Error handling
 - [ ] API key validation
 - [ ] State management
-- [ ] Other: ******\_\_\_******
+- [ ] Other: **\*\***\_\_\_**\*\***
 
 ## Performance Impact
 
