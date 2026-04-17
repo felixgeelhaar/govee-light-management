@@ -7,6 +7,8 @@ const DIAL_PIS = [
   { name: 'Brightness Dial', url: '/ui/brightness-dial.html', settings: ['stepSize'] },
   { name: 'Color Hue Dial', url: '/ui/colorhue-dial.html', settings: ['saturation', 'stepSize'] },
   { name: 'Color Temperature Dial', url: '/ui/colortemp-dial.html', settings: ['stepSize'] },
+  { name: 'Saturation Dial', url: '/ui/saturation-dial.html', settings: ['stepSize'] },
+  { name: 'Segment Color Dial', url: '/ui/segment-color-dial.html', settings: ['segmentIndex', 'saturation', 'stepSize'] },
 ];
 
 for (const { name, url, settings } of DIAL_PIS) {

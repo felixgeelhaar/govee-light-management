@@ -116,7 +116,50 @@ function withTimeout<T>(
   });
 }
 
-export { sendToPI };
+/**
+ * Status discriminator for any datasource-style response the plugin sends
+ * to the Property Inspector. Every backend datasource handler MUST emit
+ * one of these so the PI can distinguish an empty result from a failure
+ * from a valid-but-empty state, and surface the right hint to the user.
+ *
+ * Introduced after #182, where silent `items: []` responses were
+ * indistinguishable from genuine empties and left users staring at a
+ * stale "Select a device first" placeholder.
+ */
+export type PIDatasourceStatus = "ok" | "empty" | "error";
+
+export interface PIDatasourceItem {
+  label: string;
+  value: string;
+  /** Optional nested-group items for SDPI optgroup-style dropdowns. */
+  children?: PIDatasourceItem[];
+}
+
+export interface PIDatasourceResponse<E extends string = string> {
+  event: E;
+  status: PIDatasourceStatus;
+  items: PIDatasourceItem[];
+  /**
+   * Human-readable hint shown below the dropdown when the status is
+   * `empty` or `error`. Optional for `ok` responses.
+   */
+  message?: string;
+}
+
+/**
+ * Typed wrapper around `sendToPI` for datasource-style responses. Requires
+ * the caller to include a `status` field at compile time so we can never
+ * again ship a handler that silently returns `items: []` without
+ * signalling why.
+ */
+async function sendPIDatasource<E extends string>(
+  actionId: string,
+  response: PIDatasourceResponse<E>,
+): Promise<void> {
+  await sendToPI(actionId, response as unknown as Record<string, unknown>);
+}
+
+export { sendToPI, sendPIDatasource };
 
 export interface DeviceTarget {
   type: "light" | "group";
@@ -483,21 +526,17 @@ export class ActionServices {
         streamDeck.logger.warn(
           "handleGetDevices: no API key in global settings",
         );
-        await sendToPI(actionId, {
+        await sendPIDatasource(actionId, {
           event: "getDevices",
-          items: [],
           status: "error",
+          items: [],
           message: "Missing API key — reconnect in the API Key panel.",
         });
         return;
       }
 
       await this.ensureServices(apiKey);
-      const items: Array<{
-        label: string;
-        value: string;
-        children?: Array<{ label: string; value: string }>;
-      }> = [];
+      const items: PIDatasourceItem[] = [];
 
       let discoveryFailed = false;
 
@@ -509,12 +548,10 @@ export class ActionServices {
             PI_HANDLER_TIMEOUT_MS,
             "Device discovery",
           );
-          const lightItems = lights.map((light) => {
-            return {
-              label: `${light.label ?? light.name} (${light.model})`,
-              value: `light:${light.deviceId}|${light.model}`,
-            };
-          });
+          const lightItems: PIDatasourceItem[] = lights.map((light) => ({
+            label: `${light.label ?? light.name} (${light.model})`,
+            value: `light:${light.deviceId}|${light.model}`,
+          }));
 
           if (lightItems.length > 0) {
             items.push({
@@ -539,7 +576,7 @@ export class ActionServices {
       // Add groups
       if (this.groupService) {
         const groups = await this.groupService.getAllGroups();
-        const groupItems = groups.map((g) => ({
+        const groupItems: PIDatasourceItem[] = groups.map((g) => ({
           label: `${g.name} (${g.size} lights)`,
           value: `group:${g.id}`,
         }));
@@ -557,27 +594,27 @@ export class ActionServices {
         `handleGetDevices: sending ${items.length} item groups to PI`,
       );
       if (items.length === 0) {
-        await sendToPI(actionId, {
+        await sendPIDatasource(actionId, {
           event: "getDevices",
-          items: [],
           status: discoveryFailed ? "error" : "empty",
+          items: [],
           message: discoveryFailed
             ? "Failed to load devices. Check your API key and connection."
             : "No devices found. Add lights in the Govee mobile app, then refresh.",
         });
         return;
       }
-      await sendToPI(actionId, {
+      await sendPIDatasource(actionId, {
         event: "getDevices",
-        items,
         status: "ok",
+        items,
       });
     } catch (error) {
       streamDeck.logger.error("Failed to fetch devices:", error);
-      await sendToPI(actionId, {
+      await sendPIDatasource(actionId, {
         event: "getDevices",
-        items: [],
         status: "error",
+        items: [],
         message: "Failed to load devices. Check your API key and connection.",
       });
     }

@@ -10,7 +10,7 @@ import {
 import type { JsonValue } from "@elgato/utils";
 import {
   ActionServices,
-  sendToPI,
+  sendPIDatasource,
   type BaseSettings,
 } from "./shared/ActionServices";
 import { effectService } from "../services/EffectService";
@@ -101,8 +101,18 @@ export class CustomEffectAction extends SingletonAction<CustomEffectSettings> {
       value: e.id,
       label: e.name,
     }));
-    await sendToPI(actionId, {
+    if (effects.length === 0) {
+      await sendPIDatasource(actionId, {
+        event: "getEffects",
+        status: "empty",
+        items: [],
+        message: "No effects available.",
+      });
+      return;
+    }
+    await sendPIDatasource(actionId, {
       event: "getEffects",
+      status: "ok",
       items: effects,
     });
   }

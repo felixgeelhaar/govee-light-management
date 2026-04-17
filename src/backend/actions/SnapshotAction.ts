@@ -12,7 +12,7 @@ import type { JsonValue } from "@elgato/utils";
 import { Snapshot } from "@felixgeelhaar/govee-api-client";
 import {
   ActionServices,
-  sendToPI,
+  sendPIDatasource,
   type BaseSettings,
 } from "./shared/ActionServices";
 
@@ -144,7 +144,7 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
   ): Promise<void> {
     const deviceId = settings.selectedDeviceId;
     if (!deviceId) {
-      await sendToPI(actionId, {
+      await sendPIDatasource(actionId, {
         event: "getSnapshots",
         items: [],
         status: "empty",
@@ -156,7 +156,7 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
     try {
       const apiKey = await this.services.getApiKey(settings ?? {});
       if (!apiKey) {
-        await sendToPI(actionId, {
+        await sendPIDatasource(actionId, {
           event: "getSnapshots",
           items: [],
           status: "error",
@@ -180,7 +180,7 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
       }
 
       if (!queryLight) {
-        await sendToPI(actionId, {
+        await sendPIDatasource(actionId, {
           event: "getSnapshots",
           items: [],
           status: "error",
@@ -192,7 +192,7 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
 
       const snapshots = await this.services.getSnapshots(queryLight);
       if (snapshots.length === 0) {
-        await sendToPI(actionId, {
+        await sendPIDatasource(actionId, {
           event: "getSnapshots",
           items: [],
           status: "empty",
@@ -201,7 +201,7 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
         });
         return;
       }
-      await sendToPI(actionId, {
+      await sendPIDatasource(actionId, {
         event: "getSnapshots",
         status: "ok",
         items: snapshots.map((s) => ({
@@ -215,7 +215,7 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
       });
     } catch (error) {
       streamDeck.logger.error("Failed to fetch snapshots:", error);
-      await sendToPI(actionId, {
+      await sendPIDatasource(actionId, {
         event: "getSnapshots",
         items: [],
         status: "error",

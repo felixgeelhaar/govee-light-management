@@ -11,7 +11,7 @@ import {
 import type { JsonValue } from "@elgato/utils";
 import {
   ActionServices,
-  sendToPI,
+  sendPIDatasource,
   type BaseSettings,
 } from "./shared/ActionServices";
 import { parseFeatureSetting } from "./shared/validation";
@@ -219,7 +219,7 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
   ): Promise<void> {
     const deviceId = settings.selectedDeviceId;
     if (!deviceId) {
-      await sendToPI(actionId, {
+      await sendPIDatasource(actionId, {
         event: "getToggleFeatures",
         items: [],
         status: "empty",
@@ -231,7 +231,7 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
     try {
       const apiKey = await this.services.getApiKey(settings);
       if (!apiKey) {
-        await sendToPI(actionId, {
+        await sendPIDatasource(actionId, {
           event: "getToggleFeatures",
           items: [],
           status: "error",
@@ -256,7 +256,7 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
 
       const features = await this.services.getToggleFeatures(queryDeviceId);
       if (features.length === 0) {
-        await sendToPI(actionId, {
+        await sendPIDatasource(actionId, {
           event: "getToggleFeatures",
           items: [],
           status: "empty",
@@ -264,7 +264,7 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
         });
         return;
       }
-      await sendToPI(actionId, {
+      await sendPIDatasource(actionId, {
         event: "getToggleFeatures",
         status: "ok",
         items: features.map((f) => ({
@@ -274,7 +274,7 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
       });
     } catch (error) {
       streamDeck.logger.error("Failed to fetch toggle features:", error);
-      await sendToPI(actionId, {
+      await sendPIDatasource(actionId, {
         event: "getToggleFeatures",
         items: [],
         status: "error",

@@ -12,7 +12,7 @@ import type { JsonValue } from "@elgato/utils";
 import { DiyScene, LightScene } from "@felixgeelhaar/govee-api-client";
 import {
   ActionServices,
-  sendToPI,
+  sendPIDatasource,
   type BaseSettings,
 } from "./shared/ActionServices";
 import { buildSceneItems } from "./scene-items";
@@ -169,7 +169,7 @@ export class SceneAction extends SingletonAction<SceneSettings> {
   ): Promise<void> {
     const deviceId = settings.selectedDeviceId;
     if (!deviceId) {
-      await sendToPI(actionId, {
+      await sendPIDatasource(actionId, {
         event: "getScenes",
         items: [],
         status: "empty",
@@ -181,7 +181,7 @@ export class SceneAction extends SingletonAction<SceneSettings> {
     try {
       const apiKey = await this.services.getApiKey(settings ?? {});
       if (!apiKey) {
-        await sendToPI(actionId, {
+        await sendPIDatasource(actionId, {
           event: "getScenes",
           items: [],
           status: "error",
@@ -207,7 +207,7 @@ export class SceneAction extends SingletonAction<SceneSettings> {
       }
 
       if (!queryLight) {
-        await sendToPI(actionId, {
+        await sendPIDatasource(actionId, {
           event: "getScenes",
           items: [],
           status: "error",
@@ -223,7 +223,7 @@ export class SceneAction extends SingletonAction<SceneSettings> {
       ]);
       const items = buildSceneItems(dynamicScenes, diyScenes);
       if (items.length === 0) {
-        await sendToPI(actionId, {
+        await sendPIDatasource(actionId, {
           event: "getScenes",
           items: [],
           status: "empty",
@@ -232,14 +232,14 @@ export class SceneAction extends SingletonAction<SceneSettings> {
         });
         return;
       }
-      await sendToPI(actionId, {
+      await sendPIDatasource(actionId, {
         event: "getScenes",
         status: "ok",
         items,
       });
     } catch (error) {
       streamDeck.logger.error("Failed to fetch scenes:", error);
-      await sendToPI(actionId, {
+      await sendPIDatasource(actionId, {
         event: "getScenes",
         items: [],
         status: "error",
