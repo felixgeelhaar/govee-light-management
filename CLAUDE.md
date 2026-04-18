@@ -10,14 +10,15 @@ This is an enterprise-grade Stream Deck plugin for managing Govee smart lights. 
 
 - **Architecture**: Domain-Driven Design with SOLID principles ✅
 - **Type Safety**: Complete TypeScript type safety across entire codebase ✅
-- **Testing**: TDD approach with 258 tests, 80%+ coverage achieved ✅
+- **Testing**: TDD approach with 492 unit tests + 118 E2E tests, 80%+ coverage ✅
 - **Build System**: Rollup backend + Vite frontend/tests ✅
 - **Developer Experience**: Hot reload, automated quality gates, comprehensive test suite ✅
 - **Code Quality**: Zero TypeScript errors, zero linting errors, all tests passing ✅
 - **Phase 1 Enhancement**: ✅ **COMPLETED** - Zod validation, error boundaries, circuit breaker patterns
 - **Stream Deck+ Support**: ✅ **COMPLETED** - Four production-ready encoder actions with HSV color space conversion
 - **v2.1.0 Features**: ✅ **COMPLETED** - Scene, music mode, feature toggle actions; all repository methods implemented
-- **Dependency Management**: ✅ **UP-TO-DATE** - govee-api-client v3.1.13 (as of April 2026)
+- **v2.3.x PI Datasource Guardrails**: ✅ **COMPLETED** — Typed `sendPIDatasource` response contract (status: ok|empty|error) and `attachFieldStatus` PI helper so empty/error states are always surfaced to users; E2E invariant tests across all 17 PIs
+- **Dependency Management**: ✅ **UP-TO-DATE** - govee-api-client v3.3.0 (as of April 2026, DIY-endpoint fix + online capability parsing)
 
 ## Development Commands
 
@@ -428,7 +429,7 @@ These methods enable action-level filtering to only show appropriate lights in P
 
 - ✅ TypeScript: Zero type errors
 - ✅ ESLint: All linting rules satisfied
-- ✅ Test Suite: 388/388 tests passing (332 original + 56 mapper tests)
+- ✅ Test Suite: 492 unit tests + 118 E2E tests passing (see Testing section)
 - ✅ TDD Approach: RED → GREEN → REFACTOR cycle followed for all features
 
 #### Architecture Patterns
