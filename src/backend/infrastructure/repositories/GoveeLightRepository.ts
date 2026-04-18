@@ -818,19 +818,12 @@ export class GoveeLightRepository implements ILightRepository {
         light.model,
       );
 
-      switch (instance) {
-        case "nightlightToggle":
-          return deviceState.getNightlightToggle() ?? false;
-        case "gradientToggle":
-          return deviceState.getGradientToggle() ?? false;
-        case "sceneStageToggle":
-          return deviceState.getSceneStageToggle() ?? false;
-        default:
-          streamDeck.logger.warn(
-            `No live toggle-state reader for ${instance} on ${light.name}`,
-          );
-          return undefined;
-      }
+      // govee-api-client 3.3.1+ exposes every toggle-capability instance
+      // via DeviceState.getToggle(instance), including dreamViewToggle
+      // and any new instance Govee adds. Returns undefined when the
+      // device did not report that instance, which the caller (Toggle
+      // action) handles as "no live state, fall back to cached".
+      return deviceState.getToggle(instance);
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
