@@ -53,8 +53,22 @@ jobs:
             echo "## What's New in v${{ steps.version.outputs.VERSION }}"
             echo ""
             if [ -n "$PREV_TAG" ]; then
+              # Include every conventional-commit type so chore-only releases
+              # (e.g. dep bumps, release bumps) and docs updates still show up.
+              # Previously the filter only matched feat/fix/perf/refactor,
+              # leaving v2.3.1's "What's New" empty after a dep bump.
               git log ${PREV_TAG}..HEAD --pretty=format:"- %s" \
-                --grep="^feat" --grep="^fix" --grep="^perf" --grep="^refactor"
+                --grep="^feat" \
+                --grep="^fix" \
+                --grep="^perf" \
+                --grep="^refactor" \
+                --grep="^chore" \
+                --grep="^docs" \
+                --grep="^build" \
+                --grep="^ci" \
+                --grep="^test" \
+                --grep="^style" \
+                --grep="^revert"
               echo ""
             fi
             echo ""

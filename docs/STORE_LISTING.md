@@ -1,6 +1,6 @@
-# Elgato Marketplace Store Listing — v2.2.0
+# Elgato Marketplace Store Listing — v2.3.1
 
-Use this content when submitting v2.2.0 to the Elgato Maker Console.
+Use this content when submitting v2.3.1 to the Elgato Maker Console.
 
 ---
 
@@ -61,6 +61,45 @@ The API key is entered once and shared across all actions. No accounts, no serve
 Works with all Govee lights that support the Govee Developer API, including LED strips, bulbs, light bars, floor lamps, and RGB IC strip lights. Supports Stream Deck, Stream Deck MK.2, Stream Deck XL, Stream Deck Mini, Stream Deck Neo, Stream Deck Pedal, and Stream Deck+.
 
 ---
+
+## What's New / Release Notes (v2.3.1)
+
+**Feature delivery + reliability fixes that finish what v2.3.0 started**
+
+### Fixed in v2.3.1
+
+- **DIY scenes actually populate now.** v2.3.0 advertised DIY scene support, but the underlying API client was querying the wrong Govee endpoint. Dropdowns silently returned empty. Bumping the client library fixes it — DIY scenes fetched directly from Govee's dedicated endpoint, matching how the Govee mobile app sees them.
+- **Snapshots load for more device models.** Devices like the H61E5 expose their snapshot presets through a different API path than standard lights. The client now falls back to that path when the primary one returns empty.
+- **Accurate offline detection.** Device online state is read from the actual Govee capability instead of being optimistically assumed. When a light is unreachable, the plugin knows — no more silent command failures.
+
+## What's New / Release Notes (v2.3.0)
+
+**DIY scenes, device metadata panel, and a quality-guardrail overhaul**
+
+### New Features
+
+- **DIY Scenes in the Scene action** — Your custom scenes created in the Govee mobile app now appear alongside the built-in dynamic scenes, all in one dropdown. Labeled with `(DIY)` so you can tell them apart at a glance.
+- **Device Metadata Panel in Property Inspectors** — A new debug section shows the selected device's ID, model, capabilities, and supported commands in a clean structured layout. Click to copy IDs when you need them for troubleshooting.
+
+### Fixed
+
+- **Property Inspector dropdowns now explain themselves.** When a device has no scenes, no snapshots, no music modes, or no toggleable features, the dropdown shows a clear message instead of the misleading "Select a device first" placeholder. Backend errors (bad API key, network failure) show a distinct error hint. Covers Scene, Snapshot, Music Mode, Toggle, Device, and the Custom Effect dropdown.
+- **Custom Effect dropdown now loads its presets.** A datasource wiring mismatch shipped in v2.2.0 prevented the effect list from populating — Custom Effect was essentially unusable. Fixed.
+- **Sequence step Device dropdown populates.** The step builder's Device dropdown was missing the binding SDPI needs to fire its datasource subscription, so it rendered empty with no way to pick a device.
+- **Govee cloud pseudo-groups filtered out.** Entries like `BaseGroup`, `SameModelGroup`, and `SameModeGroup` are not controllable through the public API — they used to appear as selectable lights that silently failed every command. Now they're filtered during discovery and a clear error hint is shown if a stale selection points at one.
+- **Snapshot & Music Mode dropdowns for capability-driven devices.** Devices that expose their options through nested capability fields (not simple datasource enumeration) now populate correctly.
+
+### Sequence Builder Polish
+
+- Delay steps now use **seconds** instead of milliseconds for readability
+- Step list shows friendly device names and command labels instead of raw IDs
+- Properly styled dropdowns matching the rest of the plugin
+
+### Under the Hood
+
+- Typed `sendPIDatasource` contract makes it a compile-time error to ship a PI datasource response without `status: "ok" | "empty" | "error"` — the bug class behind the v2.2.0 regressions can't silently recur
+- E2E test suite expanded from 33 to 118 tests across all 17 Property Inspectors
+- PR template now requires concrete hardware-dogfood descriptions; weekly stale-review workflow surfaces unanswered issues
 
 ## What's New / Release Notes (v2.2.0)
 
