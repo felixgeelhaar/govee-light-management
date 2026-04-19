@@ -1,6 +1,8 @@
-# Elgato Marketplace Store Listing — v2.3.1
+# Elgato Marketplace Store Listing — v2.4.0
 
-Use this content when submitting v2.3.1 to the Elgato Maker Console.
+Use this content when submitting v2.4.0 to the Elgato Maker Console.
+This is a cumulative rollup of every improvement shipped since the
+currently-approved marketplace version (v2.1.3).
 
 ---
 
@@ -59,6 +61,52 @@ The API key is entered once and shared across all actions. No accounts, no serve
 ### Compatibility
 
 Works with all Govee lights that support the Govee Developer API, including LED strips, bulbs, light bars, floor lamps, and RGB IC strip lights. Supports Stream Deck, Stream Deck MK.2, Stream Deck XL, Stream Deck Mini, Stream Deck Neo, Stream Deck Pedal, and Stream Deck+.
+
+---
+
+## What's New / Release Notes (v2.4.0)
+
+**Cumulative rollup: 6 new actions, dozens of fixes, and the quality infrastructure to keep them working**
+
+v2.4.0 bundles every improvement shipped since the v2.1.3 marketplace version into one coherent release.
+
+### New Actions (6)
+
+- **Snapshot** — Recall your Govee-app-saved light presets with one button press. The dropdown auto-populates from each device's available snapshots.
+- **Schedule** — Time-based automation for any light or group. Three trigger modes: daily at HH:MM, weekly on selected days, or delay-after-press. Schedules persist across plugin restarts.
+- **Sequence** — Chain multiple light commands with configurable delays between steps (in seconds now, not milliseconds). Visual step builder with device names and friendly command labels. Press to run, press again to cancel mid-sequence.
+- **Custom Effect** — Play animated RGB effects on your IC strips. Four built-in presets — Rainbow Wave, Pulse, Fade, Strobe — with live preview in the Property Inspector.
+- **Saturation Dial** — Stream Deck+ encoder for color intensity. Rotate to scrub from pure white (0%) to full saturation (100%); press to toggle power. Ideal companion to the Hue Dial.
+- **DIY Scene support inside the Scene action** — Your custom DIY scenes created in the Govee mobile app now appear alongside built-in dynamic scenes, in the same dropdown, labeled `(DIY)` so they're easy to spot.
+
+### New Feature Panel
+
+- **Device Metadata Panel in Property Inspectors** — A new debug section shows the selected device's ID, model, capabilities, and supported commands in a clean structured layout. Click to copy IDs for troubleshooting.
+
+### Major Fixes
+
+- **Property Inspector dropdowns now explain themselves.** Empty dropdowns used to show a misleading "Select a device first" placeholder forever. They now display context-aware messages: "No snapshots found — create one in the Govee mobile app", "This device has no dynamic scenes", "Couldn't load music modes, check your connection", etc. Backend errors are visually distinct from genuine empty states.
+- **Sequence step Device dropdown now populates** (was empty with no way to pick a device).
+- **Custom Effect presets actually load** (dropdown was non-functional on first ship).
+- **DIY scenes reach the correct Govee endpoint** — the underlying API client was querying the wrong path, so DIY dropdowns returned empty for nearly every user.
+- **Accurate offline detection** — `DeviceState.online` now reflects Govee's actual offline capability value instead of always reporting online.
+- **dreamViewToggle and other RGB IC toggles read correct live state** — button title on/off indicators match reality.
+- **Color temperature respects each device's advertised Kelvin range** (was hardcoded 2000–9000K, causing silent rejections on narrow-range devices).
+- **Cloud pseudo-groups filtered out** — entries like `BaseGroup`, `SameModelGroup`, `SameModeGroup` are not controllable through the public API; they used to appear as selectable lights and silently fail every command.
+- **Gradient/nightlight overlays cleared** before solid-color commands so effects don't fight user input.
+- **Full group support** across Music Mode, Feature Toggle, Scene, Snapshot, and all five Stream Deck+ dials.
+
+### Quality Infrastructure
+
+- Typed `sendPIDatasource` response contract makes silent empty-dropdown bugs a compile-time error going forward.
+- E2E test suite expanded from 33 to 118 tests across all 17 Property Inspectors.
+- SDPI invariant tests catch a full class of regression in CI.
+- PR template requires concrete hardware-dogfood descriptions.
+- Weekly stale-review workflow surfaces overdue PRs and issues.
+
+### Upgrade
+
+Transparent upgrade — no settings migration. All existing actions, groups, and saved scenes continue to work exactly as configured. Five new actions appear in the Stream Deck action panel.
 
 ---
 
