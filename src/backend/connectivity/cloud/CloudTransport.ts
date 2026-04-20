@@ -7,6 +7,7 @@ import {
 } from "@felixgeelhaar/govee-api-client";
 
 import type { LightItem, LightState } from "@shared/types";
+import { UNSUPPORTED_CLOUD_GROUP_MODELS } from "@shared/cloud-groups";
 import type { ITransport } from "../ITransport";
 import {
   ControlCommand,
@@ -32,12 +33,6 @@ const factory: ClientFactory = {
     });
   },
 };
-
-const UNSUPPORTED_CLOUD_GROUP_MODELS = new Set([
-  "BaseGroup",
-  "SameModelGroup",
-  "SameModeGroup",
-]);
 
 export class CloudTransport implements ITransport {
   readonly descriptor: TransportDescriptor = {

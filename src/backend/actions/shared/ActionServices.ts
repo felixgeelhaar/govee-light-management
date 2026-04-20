@@ -1073,14 +1073,22 @@ export class ActionServices {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
-    return this.lightRepository.getDynamicScenes(light);
+    return withTimeout(
+      this.lightRepository.getDynamicScenes(light),
+      PI_HANDLER_TIMEOUT_MS,
+      "Dynamic scenes fetch",
+    );
   }
 
   async getDiyScenes(light: Light): Promise<DiyScene[]> {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
-    return this.lightRepository.getDiyScenes(light);
+    return withTimeout(
+      this.lightRepository.getDiyScenes(light),
+      PI_HANDLER_TIMEOUT_MS,
+      "DIY scenes fetch",
+    );
   }
 
   async applyDynamicScene(light: Light, scene: LightScene): Promise<void> {
@@ -1101,7 +1109,11 @@ export class ActionServices {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
-    return this.lightRepository.getSnapshots(light);
+    return withTimeout(
+      this.lightRepository.getSnapshots(light),
+      PI_HANDLER_TIMEOUT_MS,
+      "Snapshots fetch",
+    );
   }
 
   async applySnapshot(light: Light, snapshot: Snapshot): Promise<void> {
@@ -1310,7 +1322,11 @@ export class ActionServices {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
-    return this.lightRepository.getMusicModes(deviceId);
+    return withTimeout(
+      this.lightRepository.getMusicModes(deviceId),
+      PI_HANDLER_TIMEOUT_MS,
+      "Music modes fetch",
+    );
   }
 
   async getToggleFeatures(
@@ -1319,7 +1335,11 @@ export class ActionServices {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
-    return this.lightRepository.getToggleFeatures(deviceId);
+    return withTimeout(
+      this.lightRepository.getToggleFeatures(deviceId),
+      PI_HANDLER_TIMEOUT_MS,
+      "Toggle features fetch",
+    );
   }
 
   private getLiveStateKey(light: Light, operation: string): string {
