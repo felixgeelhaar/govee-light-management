@@ -3,6 +3,9 @@ import {
   Brightness,
   ColorRgb,
   ColorTemperature,
+  DiyScene,
+  LightScene,
+  Snapshot,
 } from "@felixgeelhaar/govee-api-client";
 import { Sequence } from "../domain/entities/Sequence";
 import { SequenceStep, StepType } from "../domain/value-objects/SequenceStep";
@@ -83,6 +86,59 @@ class SequenceServiceImpl {
       step.command === "colorTemperature"
     ) {
       await this.actionServices.controlTarget(target, step.command, value);
+      return;
+    }
+
+    if (step.command === "scene" && step.scenePayload) {
+      const payload = step.scenePayload;
+      const lights =
+        target.type === "light" && target.light
+          ? [target.light]
+          : (target.group?.getControllableLights() ?? []);
+      for (const light of lights) {
+        try {
+          if (payload.kind === "diy") {
+            const scene = new DiyScene(
+              payload.id,
+              payload.paramId,
+              payload.name,
+            );
+            await this.actionServices.applyDiyScene(light, scene);
+          } else {
+            const scene = new LightScene(
+              payload.id,
+              payload.paramId,
+              payload.name,
+            );
+            await this.actionServices.applyDynamicScene(light, scene);
+          }
+        } catch (error) {
+          streamDeck.logger?.warn(
+            `Sequence scene step failed for ${light.name}:`,
+            error,
+          );
+        }
+      }
+      return;
+    }
+
+    if (step.command === "snapshot" && step.snapshotPayload) {
+      const payload = step.snapshotPayload;
+      const snapshot = new Snapshot(payload.id, payload.paramId, payload.name);
+      const lights =
+        target.type === "light" && target.light
+          ? [target.light]
+          : (target.group?.getControllableLights() ?? []);
+      for (const light of lights) {
+        try {
+          await this.actionServices.applySnapshot(light, snapshot);
+        } catch (error) {
+          streamDeck.logger?.warn(
+            `Sequence snapshot step failed for ${light.name}:`,
+            error,
+          );
+        }
+      }
     }
   }
 
