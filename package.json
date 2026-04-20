@@ -1,6 +1,6 @@
 {
   "name": "govee-light-management",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "Enterprise-grade Stream Deck plugin for managing Govee lights with advanced group functionality",
   "main": "com.felixgeelhaar.govee-light-management.sdPlugin/bin/plugin.js",
   "scripts": {
