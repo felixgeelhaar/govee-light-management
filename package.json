@@ -60,7 +60,7 @@
     "vitest": "^4.1.4"
   },
   "dependencies": {
-    "@elgato/streamdeck": "^2.0.4",
+    "@elgato/streamdeck": "^2.1.0",
     "@felixgeelhaar/govee-api-client": "^3.3.3",
     "zod": "4.3.5"
   },
