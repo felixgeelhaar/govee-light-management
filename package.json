@@ -31,6 +31,7 @@
   "type": "module",
   "devDependencies": {
     "@elgato/cli": "^1.7.3",
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.59.1",
     "@rollup/plugin-alias": "^6.0.0",
     "@rollup/plugin-commonjs": "^29.0.2",
@@ -45,7 +46,7 @@
     "@vitest/coverage-v8": "^4.1.4",
     "@vitest/ui": "^4.1.4",
     "chokidar": "5.0.0",
-    "eslint": "9.39.2",
+    "eslint": "10.2.1",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "husky": "9.1.7",
