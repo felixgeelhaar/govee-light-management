@@ -15,7 +15,6 @@ import {
 
 type ColorTempDialSettings = BaseDialSettings;
 
-/** Color temperature range in Kelvin */
 const MIN_KELVIN = 2000;
 const MAX_KELVIN = 9000;
 const DEFAULT_KELVIN = 4500;
@@ -26,22 +25,24 @@ const DEFAULT_KELVIN_RANGE: KelvinRange = {
   precision: DEFAULT_STEP_KELVIN,
 };
 
-/** Default bar colors from layouts/color-temp.json (gbar) */
-const DEFAULT_BAR_FILL = "#FFFFFF"; // white indicator
-const DEFAULT_BAR_BG = "0:#FFB347,1:#A8D8EA"; // warm→cool gradient
+const DEFAULT_BAR_FILL = "#FFFFFF";
+const DEFAULT_BAR_BG = "0:#FFB347,1:#A8D8EA";
 
 @action({ UUID: "com.felixgeelhaar.govee-light-management.colortemp-dial" })
 export class ColorTempDialAction extends BaseDialAction<ColorTempDialSettings> {
   private tempMap = new Map<string, number>();
   private tempRangeMap = new Map<string, KelvinRange>();
+  private displayModeMap = new Map<string, "single" | "group" | "mixed">();
 
   protected initValueMaps(ctx: string): void {
     if (!this.tempMap.has(ctx)) this.tempMap.set(ctx, DEFAULT_KELVIN);
+    if (!this.displayModeMap.has(ctx)) this.displayModeMap.set(ctx, "single");
   }
 
   protected cleanupValueMaps(ctx: string): void {
     this.tempMap.delete(ctx);
     this.tempRangeMap.delete(ctx);
+    this.displayModeMap.delete(ctx);
   }
 
   override async onDialRotate(
@@ -55,6 +56,7 @@ export class ColorTempDialAction extends BaseDialAction<ColorTempDialSettings> {
       this.tempMap.get(ctx) ?? this.getDefaultKelvinForRange(range);
     const next = normalizeKelvin(current + ev.payload.ticks * step, range);
     this.tempMap.set(ctx, next);
+    this.suppressLiveSync(ctx);
 
     await this.updateDisplay(ev.action, settings);
 
@@ -66,7 +68,6 @@ export class ColorTempDialAction extends BaseDialAction<ColorTempDialSettings> {
         await this.services.ensureServices(apiKey);
         const target = await this.services.resolveTarget(settings);
         if (!target) return;
-        // Clear overlay modes for single lights and groups (see #170).
         await this.services.ensurePreparedForTarget(ctx, target);
         const finalKelvin = normalizeKelvin(
           this.tempMap.get(ctx) ?? next,
@@ -113,8 +114,23 @@ export class ColorTempDialAction extends BaseDialAction<ColorTempDialSettings> {
       const range = await this.getTemperatureRange(settings, ctx);
       const target = await this.services.resolveTarget(settings);
       if (target?.type === "light" && target.light) {
+        this.displayModeMap.set(ctx, "single");
+        if (target.light.colorTemperature) {
+          this.tempMap.set(
+            ctx,
+            normalizeKelvin(target.light.colorTemperature.kelvin, range),
+          );
+        }
         const synced = await this.services.syncLightState(target.light);
         if (!synced) {
+          const fallbackKelvin = target.light.colorTemperature?.kelvin;
+          if (
+            typeof fallbackKelvin === "number" &&
+            fallbackKelvin > 0 &&
+            this.powerMap.get(ctx) === false
+          ) {
+            this.powerMap.set(ctx, true);
+          }
           return;
         }
         this.powerMap.set(ctx, target.light.isOn);
@@ -124,6 +140,41 @@ export class ColorTempDialAction extends BaseDialAction<ColorTempDialSettings> {
             normalizeKelvin(target.light.colorTemperature.kelvin, range),
           );
         }
+      } else if (target?.type === "group" && target.group) {
+        const lights = target.group.getControllableLights();
+        const kelvinValues: number[] = [];
+        let anyOn = false;
+        let anyOff = false;
+
+        for (const light of lights) {
+          try {
+            await this.services.syncLightState(light);
+          } catch {
+            // Best effort per light.
+          }
+          if (light.isOn) anyOn = true;
+          else anyOff = true;
+          if (light.isOn && light.colorTemperature) {
+            kelvinValues.push(
+              normalizeKelvin(light.colorTemperature.kelvin, range),
+            );
+          }
+        }
+
+        this.powerMap.set(ctx, anyOn);
+        if (kelvinValues.length > 0) {
+          const average = Math.round(
+            kelvinValues.reduce((sum, kelvin) => sum + kelvin, 0) /
+              kelvinValues.length,
+          );
+          this.tempMap.set(ctx, normalizeKelvin(average, range));
+        }
+
+        const uniqueValues = new Set(
+          kelvinValues.map((value) => Math.round(value)),
+        );
+        const mixed = (anyOn && anyOff) || uniqueValues.size > 1;
+        this.displayModeMap.set(ctx, mixed ? "mixed" : "group");
       }
     } catch {
       // Best effort - keep defaults
@@ -142,14 +193,16 @@ export class ColorTempDialAction extends BaseDialAction<ColorTempDialSettings> {
       this.tempMap.get(ctx) ?? this.getDefaultKelvinForRange(range);
     const isOn = this.powerMap.get(ctx) ?? true;
     const barValue = kelvinToBarValue(kelvin, range.min, range.max);
-    const title = isOn ? `${kelvin}K` : "Off";
+    const displayMode = this.displayModeMap.get(ctx) ?? "single";
+    const indicator =
+      displayMode === "mixed" ? "🔀 " : displayMode === "group" ? "👥 " : "";
+    const title = !isOn ? "Off" : `${indicator}${kelvin}K`;
 
     await action.setFeedback({
       label: "Temperature",
       value: title,
       bar: { value: isOn ? barValue : 0 },
     });
-    await action.setTitle(title);
   }
 
   private async getTemperatureRange(

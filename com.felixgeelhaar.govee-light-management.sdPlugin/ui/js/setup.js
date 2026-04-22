@@ -22,6 +22,16 @@ document.addEventListener("DOMContentLoaded", () => {
     "SameModelGroup",
     "SameModeGroup",
   ]);
+  const GROUP_DIAL_DESCRIPTIONS = {
+    "Brightness Dial":
+      "For groups, the dial shows the average brightness across the selected lights.",
+    "Color Temperature Dial":
+      "For groups, the dial shows the average colour temperature across the selected lights.",
+    "Color Hue Dial":
+      "For groups, the dial shows a blended colour position across the selected lights.",
+    "Saturation Dial":
+      "For groups, the dial shows the average colour richness across the selected lights.",
+  };
   let latestSettings = {};
   let selectedDeviceDebug = null;
   let selectedDeviceDebugId = "";
@@ -85,6 +95,16 @@ document.addEventListener("DOMContentLoaded", () => {
   function getSelectedDeviceId() {
     const selectedDeviceId = latestSettings?.selectedDeviceId;
     return typeof selectedDeviceId === "string" ? selectedDeviceId : "";
+  }
+
+  function getCurrentDialGroupDescription() {
+    const pageTitle = document.title || "";
+    for (const [key, value] of Object.entries(GROUP_DIAL_DESCRIPTIONS)) {
+      if (pageTitle.includes(key)) {
+        return value;
+      }
+    }
+    return "";
   }
 
   function isDebugExpanded() {
@@ -652,6 +672,10 @@ document.addEventListener("DOMContentLoaded", () => {
     unsupportedHint.id = "deviceUnsupported";
     unsupportedHint.className = "field-hint error hidden";
     deviceSelect.parentNode.insertBefore(unsupportedHint, deviceSelect.nextSibling);
+    const groupHint = document.createElement("div");
+    groupHint.id = "deviceGroupHint";
+    groupHint.className = "field-hint info hidden";
+    unsupportedHint.parentNode.insertBefore(groupHint, unsupportedHint.nextSibling);
 
     function getSelectedModel(selectedDeviceId) {
       if (typeof selectedDeviceId !== "string") return "";
@@ -678,6 +702,23 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    function updateGroupHint() {
+      const selectedDeviceId =
+        deviceSelect.value ||
+        (typeof latestSettings?.selectedDeviceId === "string"
+          ? latestSettings.selectedDeviceId
+          : "");
+      const description = getCurrentDialGroupDescription();
+
+      if (selectedDeviceId.startsWith("group:") && description) {
+        groupHint.textContent = description;
+        groupHint.className = "field-hint info";
+      } else {
+        groupHint.textContent = "";
+        groupHint.className = "field-hint info hidden";
+      }
+    }
+
     const rerenderDebug = () => {
       const selectedDeviceId = deviceSelect.value || "";
       resetSelectedDeviceDebug(selectedDeviceId);
@@ -686,6 +727,7 @@ document.addEventListener("DOMContentLoaded", () => {
         selectedDeviceId,
       };
       updateUnsupportedHint();
+      updateGroupHint();
       renderDebugInfo();
       requestSelectedDeviceDebug(client);
     };
@@ -724,6 +766,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const hint = document.getElementById("deviceTimeout");
         if (hint) hint.remove();
         updateUnsupportedHint();
+        updateGroupHint();
         renderDebugInfo();
         requestSelectedDeviceDebug(client);
         unsubscribeMessages();
@@ -731,6 +774,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     updateUnsupportedHint();
+    updateGroupHint();
   }
 
   // ── Field Status Hints ──

@@ -17,23 +17,23 @@ type SegmentColorDialSettings = BaseDialSettings & {
   saturation?: number;
 };
 
-/** Default bar colors from layouts/segment.json (gbar) */
-const DEFAULT_BAR_FILL = "#FFFFFF"; // white indicator
+const DEFAULT_BAR_FILL = "#FFFFFF";
 const DEFAULT_BAR_BG =
-  "0:#FF0000,0.17:#FFFF00,0.33:#00FF00,0.5:#00FFFF,0.67:#0000FF,0.83:#FF00FF,1:#FF0000"; // rainbow
+  "0:#FF0000,0.17:#FFFF00,0.33:#00FF00,0.5:#00FFFF,0.67:#0000FF,0.83:#FF00FF,1:#FF0000";
 
 @action({
   UUID: "com.felixgeelhaar.govee-light-management.segment-color-dial",
 })
+
+/**
+ * Govee's cloud API does not expose per-segment color state, so the
+ * last selected hue is remembered in this static cache keyed by
+ * `deviceId|segmentIndex`. This lets the dial restore the user's
+ * prior hue when it reappears on a different page/context, since
+ * `ActionServices.lightStateSnapshots` (which caches whole-light
+ * state) cannot answer segment-level queries.
+ */
 export class SegmentColorDialAction extends BaseDialAction<SegmentColorDialSettings> {
-  /**
-   * Govee's cloud API does not expose per-segment color state, so the
-   * last selected hue is remembered in this static cache keyed by
-   * `deviceId|segmentIndex`. This lets the dial restore the user's
-   * prior hue when it reappears on a different page/context, since
-   * `ActionServices.lightStateSnapshots` (which caches whole-light
-   * state) cannot answer segment-level queries.
-   */
   private static segmentHueCache = new Map<
     string,
     { hue: number; isOn: boolean }
@@ -76,6 +76,7 @@ export class SegmentColorDialAction extends BaseDialAction<SegmentColorDialSetti
         isOn: this.powerMap.get(ctx) ?? true,
       });
     }
+    this.suppressLiveSync(ctx);
 
     await this.updateDisplay(ev.action, settings);
 
@@ -130,7 +131,6 @@ export class SegmentColorDialAction extends BaseDialAction<SegmentColorDialSetti
 
     const saturation = clamp(settings.saturation ?? 100, 0, 100);
     const color = hsvToRgb(hue, saturation, 100);
-    // UI stores 1-based index (1–15), translate to 0-based (0–14) for the API
     const segmentIndex = clamp((settings.segmentIndex ?? 1) - 1, 0, 14);
     streamDeck.logger.trace("segment.dial.apply", {
       deviceId: target.light.deviceId,
@@ -162,7 +162,7 @@ export class SegmentColorDialAction extends BaseDialAction<SegmentColorDialSetti
 
   /**
    * Sync power state only. The Govee API does not expose per-segment color
-   * state, so hue always starts at the default (0 deg). Only power can be synced.
+   * state, so hue always starts at the default (0 °). Only power can be synced.
    */
   protected async syncLiveState(
     ctx: string,
@@ -207,18 +207,13 @@ export class SegmentColorDialAction extends BaseDialAction<SegmentColorDialSetti
     const ctx = action.id || "default";
     const hue = this.hueMap.get(ctx) ?? 0;
     const isOn = this.powerMap.get(ctx) ?? true;
-    // Display 1-based segment number to match the UI
     const segmentDisplay = settings.segmentIndex ?? 1;
-    const title = isOn
-      ? `S${segmentDisplay}\n${hue}`
-      : `S${segmentDisplay}\nOff`;
 
     await action.setFeedback({
       label: `Segment ${segmentDisplay}`,
-      value: isOn ? `${hue}°` : "Off",
+      value: isOn ? `${hue} °` : "Off",
       bar: { value: isOn ? Math.round((hue / 360) * 100) : 0 },
     });
-    await action.setTitle(title);
   }
 
   private getCacheKey(settings: SegmentColorDialSettings): string | null {

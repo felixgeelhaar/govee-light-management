@@ -29,8 +29,10 @@ import streamDeck from "@elgato/streamdeck";
 
 export class GoveeLightRepository implements ILightRepository {
   private client: GoveeClient;
+  private readonly apiKey: string;
 
   constructor(apiKey: string, enableRetries = true) {
+    this.apiKey = apiKey;
     this.client = new GoveeClient({
       apiKey,
       enableRetries,

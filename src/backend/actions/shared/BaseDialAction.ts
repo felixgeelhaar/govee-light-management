@@ -28,6 +28,7 @@ export abstract class BaseDialAction<
   TSettings extends BaseDialSettings,
 > extends SingletonAction<TSettings> {
   private static readonly LIVE_SYNC_INTERVAL_MS = 3000;
+  private static readonly POST_INTERACTION_SYNC_SUPPRESS_MS = 8000;
 
   protected services = new ActionServices();
   protected powerMap = new Map<string, boolean>();
@@ -38,6 +39,7 @@ export abstract class BaseDialAction<
   private settingsMap = new Map<string, TSettings>();
   private liveSyncTimers = new Map<string, ReturnType<typeof setInterval>>();
   private liveSyncInFlight = new Set<string>();
+  private liveSyncSuppressedUntil = new Map<string, number>();
 
   // ── Lifecycle ──────────────────────────────────────────────────
 
@@ -65,6 +67,7 @@ export abstract class BaseDialAction<
     this.settingsMap.delete(ctx);
     this.stopLiveSync(ctx);
     this.liveSyncInFlight.delete(ctx);
+    this.liveSyncSuppressedUntil.delete(ctx);
     this.services.cleanupDialTimers(ctx);
     // Force the next rotation to re-issue overlay-clearing toggles
     // (see ActionServices.ensurePreparedForSolidColor / issue #170).
@@ -124,6 +127,7 @@ export abstract class BaseDialAction<
 
     // Optimistic update
     this.powerMap.set(ctx, !originalIsOn);
+    this.suppressLiveSync(ctx);
 
     try {
       await this.services.controlTarget(target, originalIsOn ? "off" : "on");
@@ -213,6 +217,13 @@ export abstract class BaseDialAction<
     return this.settingsMap.get(ctx) ?? fallback;
   }
 
+  protected suppressLiveSync(
+    ctx: string,
+    durationMs = BaseDialAction.POST_INTERACTION_SYNC_SUPPRESS_MS,
+  ): void {
+    this.liveSyncSuppressedUntil.set(ctx, Date.now() + durationMs);
+  }
+
   private startLiveSync(ctx: string): void {
     this.stopLiveSync(ctx);
     this.liveSyncTimers.set(
@@ -240,6 +251,12 @@ export abstract class BaseDialAction<
       this.liveSyncInFlight.has(ctx) ||
       this.services.isDialInteractionActive(ctx)
     ) {
+      return;
+    }
+
+    const suppressedUntil = this.liveSyncSuppressedUntil.get(ctx) ?? 0;
+    if (suppressedUntil > Date.now()) {
+      await this.updateDisplay(action, settings);
       return;
     }
 
