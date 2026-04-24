@@ -22,12 +22,13 @@ Marketplace gallery images are generated from HTML templates using Chrome headle
 | File                 | Purpose                  | Status     | Resolution | Last Updated |
 | -------------------- | ------------------------ | ---------- | ---------- | ------------ |
 | `1-hero.png`         | Hero shot with headline  | ✅ Ready   | 1920×1080  | Apr 13, 2026 |
-| `2-actions.png`      | All 8 keypad actions     | ✅ Ready   | 1920×1080  | Apr 14, 2026 |
+| `2-actions.png`      | All 12 keypad actions    | ✅ Ready   | 1920×1080  | Apr 14, 2026 |
 | `3-dials.png`        | All 5 Stream Deck+ dials | ✅ Updated | 1920×1080  | Apr 17, 2026 |
 | `4-setup.png`        | 3-step setup walkthrough | ✅ Ready   | 1920×1080  | Apr 9, 2026  |
 | `5-v21-features.png` | New in v2.1 features     | ✅ Ready   | 1920×1080  | Apr 14, 2026 |
+| `6-v22-features.png` | New in v2.2 features     | ✅ Ready   | 1920×1080  | Apr 17, 2026 |
 
-**Upload all 5 images to Elgato Marketplace** — minimum 3 required, but all 5 provide complete feature showcase.
+**Upload all 6 images to Elgato Marketplace** — minimum 3 required, but all 6 provide complete feature showcase.
 
 ### Icon Assets (SVG)
 
@@ -42,6 +43,10 @@ Located in `docs/gallery/assets/`:
 - `scene.svg` — Scene action (new in v2.1)
 - `music-mode.svg` — Music Mode action (new in v2.1)
 - `toggle.svg` — Feature Toggle action (new in v2.1)
+- `snapshot.svg` — Snapshot action (new in v2.1.4)
+- `schedule.svg` — Schedule action (new in v2.2)
+- `sequence.svg` — Sequence action (new in v2.2)
+- `custom-effect.svg` — Custom Effect action (new in v2.2)
 - `light.svg` — Logo/brand icon
 
 **Dial Icons:**

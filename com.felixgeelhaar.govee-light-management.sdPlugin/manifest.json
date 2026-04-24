@@ -134,13 +134,13 @@
     {
       "Name": "Schedule",
       "UUID": "com.felixgeelhaar.govee-light-management.schedule",
-      "Icon": "imgs/actions/toggle/icon",
+      "Icon": "imgs/actions/schedule/icon",
       "Tooltip": "Schedule a light action to run at a specific time or on a recurring basis",
       "PropertyInspectorPath": "ui/schedule.html",
       "Controllers": ["Keypad"],
       "States": [
         {
-          "Image": "imgs/actions/toggle/key",
+          "Image": "imgs/actions/schedule/key",
           "TitleAlignment": "bottom"
         }
       ]
@@ -148,13 +148,13 @@
     {
       "Name": "Sequence",
       "UUID": "com.felixgeelhaar.govee-light-management.sequence",
-      "Icon": "imgs/actions/toggle/icon",
+      "Icon": "imgs/actions/sequence/icon",
       "Tooltip": "Run a multi-step sequence of light actions with delays",
       "PropertyInspectorPath": "ui/sequence.html",
       "Controllers": ["Keypad"],
       "States": [
         {
-          "Image": "imgs/actions/toggle/key",
+          "Image": "imgs/actions/sequence/key",
           "TitleAlignment": "bottom"
         }
       ]
@@ -162,13 +162,13 @@
     {
       "Name": "Custom Effect",
       "UUID": "com.felixgeelhaar.govee-light-management.custom-effect",
-      "Icon": "imgs/actions/segment-color/icon",
+      "Icon": "imgs/actions/custom-effect/icon",
       "Tooltip": "Play a custom RGB animation effect on an IC strip",
       "PropertyInspectorPath": "ui/custom-effect.html",
       "Controllers": ["Keypad"],
       "States": [
         {
-          "Image": "imgs/actions/segment-color/key",
+          "Image": "imgs/actions/custom-effect/key",
           "TitleAlignment": "bottom"
         }
       ]

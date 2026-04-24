@@ -253,11 +253,11 @@ Upload from `docs/gallery/` (all 1920x1080):
 | File                 | Slide                                           |
 | -------------------- | ----------------------------------------------- |
 | `1-hero.png`         | Hero — "Tactile smart light control"            |
-| `2-actions.png`      | All 8 keypad actions grid                       |
+| `2-actions.png`      | All 12 keypad actions grid                      |
 | `3-dials.png`        | Stream Deck+ dial layouts (5 dials)             |
 | `4-setup.png`        | 3-step setup walkthrough                        |
 | `5-v21-features.png` | New in v2.1 — Scene, Music Mode, Feature Toggle |
-| `6-dials-guide.png`  | Dial features — Brightness, Temp, Hue, Sat, Seg |
+| `6-v22-features.png` | New in v2.2 — Schedule, Sequence, Custom Effect |
 
 ---
 
