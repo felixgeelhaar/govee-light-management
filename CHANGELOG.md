@@ -4,7 +4,7 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
-## [Unreleased]
+## [2.5.0] - 2026-04-24
 
 ### Internal refactor — Clean Architecture alignment
 
@@ -14,9 +14,14 @@ No user-facing changes. Groundwork for future features and easier maintenance.
 - **DeviceService moved to the application layer.** `DeviceService` relocated from `domain/services/` to `application/services/` — it's an application service (orchestrates transports + caching + telemetry), not a domain service, and now sits in the correct layer of the architecture.
 - **Datasource option value objects.** New `DiySceneOption`, `DynamicSceneOption`, `MusicModeOption`, and `SnapshotOption` value objects standardize how Property-Inspector dropdown options are modeled across actions.
 - **Mapper consolidation.** `SegmentColorMapper` was deleted; its trivial passthrough is now inlined at the single call site. Unused static helpers trimmed from `SceneMapper` and `MusicModeMapper`.
-- **Test coverage for new value objects.** Added isolated unit tests for `Brightness`, `ColorRgb`, `ColorTemperature`, `SnapshotOption`, and `LightValueMapper` (bidirectional round-trip).
 
-All existing behavior preserved. Plugin + manifest versions will be bumped at release time.
+### Testing
+
+- 59 new unit tests for the new value objects and the `LightValueMapper` bidirectional round-trip (480 → **539 unit tests**). E2E suite unchanged at 128 tests.
+
+### Compatibility
+
+- Fully backward-compatible with 2.4.3. No settings migration. All existing actions, groups, schedules, scenes, and custom effects continue to work identically.
 
 ---
 
