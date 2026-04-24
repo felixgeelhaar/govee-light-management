@@ -79,7 +79,7 @@ Generates pixel-perfect PNG files from HTML templates:
 cd docs/gallery
 
 # Generate all images at once
-for page in 1-hero 2-actions 3-dials 4-setup 5-v21-features; do
+for page in 1-hero 2-actions 3-dials 4-setup 5-v21-features 6-v22-features; do
   /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
     --headless --disable-gpu --hide-scrollbars \
     --window-size=1920,1080 \
@@ -126,7 +126,7 @@ If automation doesn't work:
 
 - **Format:** PNG (1920×1080)
 - **File size:** <2MB each (typically 600-800KB)
-- **Count:** Minimum 3, recommended 5
+- **Count:** Minimum 3, recommended 6
 - **Language:** English (text/headers visible)
 - **No cropping:** Show complete information
 - **Quality:** No compression artifacts
@@ -139,7 +139,7 @@ If automation doesn't work:
    - Stream Deck branding
 
 2. **2-actions.png** — Feature grid
-   - All 8 keypad actions displayed
+   - All 12 keypad actions displayed
    - Icons with labels
    - Clear visual hierarchy
 
@@ -155,10 +155,16 @@ If automation doesn't work:
    - Step 3: Configure action
    - Numbered steps with icons
 
-5. **5-v21-features.png** — What's new
+5. **5-v21-features.png** — What's new in v2.1
    - Scene action highlight
    - Music Mode feature
    - Feature Toggle capability
+   - Version number
+
+6. **6-v22-features.png** — What's new in v2.2
+   - Schedule action highlight
+   - Sequence action
+   - Custom Effect
    - Version number
 
 ---
@@ -215,6 +221,7 @@ Shared CSS variables in `shared.css`:
    - 3-dials.png
    - 4-setup.png
    - 5-v21-features.png
+   - 6-v22-features.png
 
 3. Verify preview looks correct
 4. Save changes
