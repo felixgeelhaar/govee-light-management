@@ -6,4 +6,3 @@
 
 export { SceneMapper } from "./SceneMapper";
 export { MusicModeMapper } from "./MusicModeMapper";
-export { SegmentColorMapper } from "./SegmentColorMapper";

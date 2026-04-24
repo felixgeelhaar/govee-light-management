@@ -92,8 +92,8 @@ describe("GoveeLightRepository DIY scene support", () => {
   });
 
   it("delegates getDiyScenes to the API client with the light device id and model", async () => {
-    const diyScenes = [{ id: 123, paramId: 123, name: "Custom Glow" }];
-    clientMocks.getDiyScenes.mockResolvedValue(diyScenes);
+    const apiScenes = [{ id: 123, paramId: 123, name: "Custom Glow" }];
+    clientMocks.getDiyScenes.mockResolvedValue(apiScenes);
 
     const repository = new GoveeLightRepository("api-key");
     const result = await repository.getDiyScenes(light);
@@ -102,20 +102,22 @@ describe("GoveeLightRepository DIY scene support", () => {
       light.deviceId,
       light.model,
     );
-    expect(result).toBe(diyScenes);
+    expect(result.map((item) => item.toJSON())).toEqual([
+      { id: 123, paramId: 123, name: "Custom Glow" },
+    ]);
   });
 
   it("delegates setDiyScene to the API client with the selected scene", async () => {
-    const scene = { id: 456, paramId: 456, name: "DIY Sunset" };
+    const apiScene = { id: 456, paramId: 456, name: "DIY Sunset" };
     clientMocks.setDiyScene.mockResolvedValue(undefined);
 
     const repository = new GoveeLightRepository("api-key");
-    await repository.setDiyScene(light, scene as any);
+    await repository.setDiyScene(light, apiScene as any);
 
     expect(clientMocks.setDiyScene).toHaveBeenCalledWith(
       light.deviceId,
       light.model,
-      scene,
+      expect.objectContaining({ id: 456, paramId: 456, name: "DIY Sunset" }),
     );
   });
 });

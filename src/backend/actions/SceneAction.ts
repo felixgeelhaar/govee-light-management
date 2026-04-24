@@ -9,7 +9,8 @@ import {
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
-import { DiyScene, LightScene } from "@felixgeelhaar/govee-api-client";
+import { DynamicSceneOption } from "../domain/value-objects/DynamicSceneOption";
+import { DiySceneOption } from "../domain/value-objects/DiySceneOption";
 import {
   ActionServices,
   sendPIDatasource,
@@ -77,7 +78,11 @@ export class SceneAction extends SingletonAction<SceneSettings> {
       const stopSpinner = this.services.showSpinner(ev.action);
       try {
         if (sceneKind === "diy") {
-          const scene = new DiyScene(parsed.id, parsed.paramId, parsed.name);
+          const scene = DiySceneOption.create(
+            parsed.id,
+            parsed.paramId,
+            parsed.name,
+          );
           if (target.type === "light" && target.light) {
             await this.services.applyDiyScene(target.light, scene);
           } else if (target.type === "group" && target.group) {
@@ -93,7 +98,11 @@ export class SceneAction extends SingletonAction<SceneSettings> {
             }
           }
         } else {
-          const scene = new LightScene(parsed.id, parsed.paramId, parsed.name);
+          const scene = DynamicSceneOption.create(
+            parsed.id,
+            parsed.paramId,
+            parsed.name,
+          );
           if (target.type === "light" && target.light) {
             await this.services.applyDynamicScene(target.light, scene);
           } else if (target.type === "group" && target.group) {

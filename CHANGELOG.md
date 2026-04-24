@@ -4,6 +4,153 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
+## [Unreleased]
+
+### Internal refactor — Clean Architecture alignment
+
+No user-facing changes. Groundwork for future features and easier maintenance.
+
+- **Domain now owns its own value objects.** `Brightness`, `ColorRgb`, and `ColorTemperature` are defined inside `src/backend/domain/value-objects/` instead of leaking `@felixgeelhaar/govee-api-client` types throughout the domain and action layers. A new `LightValueMapper` (`src/backend/infrastructure/mappers/LightValueMapper.ts`) handles the domain ↔ API translation at the infrastructure boundary.
+- **DeviceService moved to the application layer.** `DeviceService` relocated from `domain/services/` to `application/services/` — it's an application service (orchestrates transports + caching + telemetry), not a domain service, and now sits in the correct layer of the architecture.
+- **Datasource option value objects.** New `DiySceneOption`, `DynamicSceneOption`, `MusicModeOption`, and `SnapshotOption` value objects standardize how Property-Inspector dropdown options are modeled across actions.
+- **Mapper consolidation.** `SegmentColorMapper` was deleted; its trivial passthrough is now inlined at the single call site. Unused static helpers trimmed from `SceneMapper` and `MusicModeMapper`.
+- **Test coverage for new value objects.** Added isolated unit tests for `Brightness`, `ColorRgb`, `ColorTemperature`, `SnapshotOption`, and `LightValueMapper` (bidirectional round-trip).
+
+All existing behavior preserved. Plugin + manifest versions will be bumped at release time.
+
+---
+
+## [2.4.3] - 2026-04-20
+
+### Fixed
+
+- **DreamView toggle command routing.** DreamView toggle commands were being sent to Govee with the wrong capability type (`devices.capabilities.dreamViewToggle` instead of `devices.capabilities.toggle`), so the command never applied on-device. Fix lands upstream in `@felixgeelhaar/govee-api-client` 3.3.3, which now maps `dreamViewToggle` explicitly and adds a suffix-based fallback (`*Toggle` → `toggle`, `*Scene` → `mode`) so future Govee toggle/mode instances route correctly with no further client patches.
+
+### Dependencies
+
+- Bumped `@felixgeelhaar/govee-api-client` from 3.3.2 to **3.3.3**.
+
+### Release notes
+
+Marketplace stays on 2.4.0 (in review); 2.4.3 is the GitHub patch for users affected by the DreamView command-route bug. Also rolls up the internal quality refactors from #204 (shared cloud-group constant, extracted music-mode parser, Property-Inspector fetch timeouts).
+
+---
+
+## [2.4.2] - 2026-04-20
+
+### Added
+
+- **Number input alongside sliders for direct value entry** ([#200](https://github.com/felixgeelhaar/govee-light-management/issues/200)). Property Inspectors can now opt in via `data-number-input`; a compact number input appears next to the slider and stays in sync with it. Values are clamped to min/max and snapped to step on commit. Opted-in PIs: Brightness (0–100%), Color Temperature (0–100% mapped to device range), Saturation Dial stepSize (1–25%).
+
+### Testing
+
+- 10 new E2E tests: input presence, min/max/step inheritance, slider/input sync, clamping, and confirmation that PIs without `data-number-input` are unaffected (118 → **128 E2E tests**).
+
+### Compatibility
+
+- Fully non-breaking. Dial PIs, music-mode sensitivity, schedule duration, and any PI that doesn't opt in behave identically to 2.4.1.
+
+---
+
+## [2.4.1] - 2026-04-20
+
+### Fixed
+
+- **Snapshot buttons now actually change light state** ([#198](https://github.com/felixgeelhaar/govee-light-management/issues/198)). Snapshot actions showed the green confirmation mark but never applied the snapshot on-device. Fix lands upstream in `@felixgeelhaar/govee-api-client` 3.3.2, which sends `SnapshotCommand` as a bare numeric ID (matching the DIY scene fix pattern from 3.3.0). `CommandFactory` accepts both shapes on deserialization so existing configured snapshot buttons continue to load without migration.
+
+### Dependencies
+
+- Bumped `@felixgeelhaar/govee-api-client` from 3.3.1 to **3.3.2**.
+
+### Release notes
+
+Marketplace stays on 2.4.0 (in review); 2.4.1 is the GitHub patch for users affected by #198.
+
+---
+
+## [2.4.0] - 2026-04-19
+
+### Release type
+
+Cumulative marketplace rollup. No new code versus 2.3.2 — this is a single coherent version bundling everything shipped since the marketplace-approved 2.1.3, so the Elgato Maker Console review happens once instead of seven times.
+
+### Bundled since 2.1.3
+
+- **From 2.1.4**: dial state sync, overlay-mode clearing before solid-color commands.
+- **From 2.2.0**: Schedule, Sequence, and Custom Effect actions; color palettes and recent-colors tracking; device classifier and capability registry.
+- **From 2.3.0**: DIY scenes in the Scene action; device metadata panel in every PI; typed `sendPIDatasource` datasource contract; E2E suite expanded from 33 to 118 tests across all 17 PIs.
+- **From 2.3.1**: DIY-endpoint fix and online-capability parsing in `@felixgeelhaar/govee-api-client` 3.3.0.
+- **From 2.3.2**: generic `DeviceState.getToggle(instance)` fix so DreamView toggle live state reads correctly.
+
+### Test counts
+
+- **Plugin**: 492 unit + 118 E2E tests.
+- **Client** (`@felixgeelhaar/govee-api-client`): 691 tests (up from 677 at the start of the cycle).
+
+### Dependencies
+
+- `@felixgeelhaar/govee-api-client` on **3.3.1**.
+
+### Upgrade notes
+
+Coming from 2.1.3 (marketplace): no settings migration required. Six new actions appear in the Stream Deck action panel; existing actions, groups, schedules, and saved scenes carry over. Coming from an intermediate 2.3.x on GitHub: transparent upgrade.
+
+---
+
+## [2.3.2] - 2026-04-18
+
+### Fixed
+
+- **DreamView toggle live state reads correctly** ([#197](https://github.com/felixgeelhaar/govee-light-management/pull/197)). `GoveeLightRepository.getToggleState` had a switch that hardcoded `nightlightToggle` / `gradientToggle` / `sceneStageToggle`; the default branch returned undefined, so the Toggle action's button title always showed the wrong on/off indicator for `dreamViewToggle` (the RGB IC DreamView feature). `@felixgeelhaar/govee-api-client` 3.3.1 exposes every toggle instance via a generic `DeviceState.getToggle(instance)`; the repository now uses that single call so DreamView reads correctly and any future toggle instance Govee adds works with zero plugin changes.
+
+### Dependencies
+
+- Bumped `@felixgeelhaar/govee-api-client` from 3.3.0 to **3.3.1**.
+
+---
+
+## [2.3.1] - 2026-04-18
+
+### Fixed
+
+- **DIY scenes actually load** ([#194](https://github.com/felixgeelhaar/govee-light-management/pull/194)). 2.3.0 advertised DIY scene support, but the installed client (3.2.0) hit `/router/api/v1/device/scenes` — the wrong endpoint for DIY. For most users, DIY scene dropdowns in 2.3.0 silently returned empty. `@felixgeelhaar/govee-api-client` 3.3.0 fixes the DIY endpoint (`/router/api/v1/device/diy-scenes`), tolerates mixed scene value shapes, adds a capability-based snapshot fallback for H61E5-class devices, and starts parsing the Govee `online` capability so `DeviceState.online` reflects the actual reported state instead of being hardcoded to `true`.
+
+### Dependencies
+
+- Bumped `@felixgeelhaar/govee-api-client` from 3.2.0 to **3.3.0**.
+
+### Release notes
+
+Version bumps and dep upgrade only — no plugin code changes. 492 unit + 118 E2E tests pass.
+
+---
+
+## [2.3.0] - 2026-04-18
+
+### Added
+
+- **DIY scenes in the Scene action** ([#181](https://github.com/felixgeelhaar/govee-light-management/pull/181)). Govee-app DIY scene creations now appear in the Scene action dropdown alongside built-in dynamic scenes, labeled with `(DIY)` so they're easy to spot.
+- **Device metadata panel** ([#175](https://github.com/felixgeelhaar/govee-light-management/pull/175)). New debug section in every Property Inspector with click-to-copy device IDs, capability lists, and raw model strings — makes it much easier to file useful bug reports.
+
+### Fixed
+
+- **Property Inspector dropdowns surface real status** ([#182](https://github.com/felixgeelhaar/govee-light-management/pull/182), [#185](https://github.com/felixgeelhaar/govee-light-management/pull/185)). Dropdowns now explain _why_ a list is empty (no device selected vs. device has no options vs. API error) instead of the misleading "Select a device first" placeholder. Covers Scene, Snapshot, Music Mode, Toggle, Device, and Custom Effect dropdowns.
+- **Sequence builder polish and Custom Effect fix** ([#184](https://github.com/felixgeelhaar/govee-light-management/pull/184)). Custom Effect presets now load (datasource wiring mismatch fixed). Sequence delay steps use seconds instead of milliseconds; step list shows friendly device names and command labels instead of raw IDs; dropdowns match plugin styling.
+- **Cloud pseudo-groups filtered from discovery** ([#189](https://github.com/felixgeelhaar/govee-light-management/pull/189), closes [#186](https://github.com/felixgeelhaar/govee-light-management/issues/186), [#188](https://github.com/felixgeelhaar/govee-light-management/issues/188)). `BaseGroup`, `SameModelGroup`, and `SameModeGroup` entries were selectable as lights but silently failed every command. Removed from discovery; clear error hint if a stale selection still points at one.
+- **Snapshot and Music Mode dropdowns on capability-driven devices** ([#187](https://github.com/felixgeelhaar/govee-light-management/pull/187)). Devices like the H61E5 expose options through nested capability fields rather than the simpler scenes endpoint.
+- **Sequence step Device dropdown populates** ([#193](https://github.com/felixgeelhaar/govee-light-management/pull/193), closes [#190](https://github.com/felixgeelhaar/govee-light-management/issues/190)). Was missing the `setting` binding SDPI needs to fire its datasource subscription.
+
+### Quality & process
+
+- **Typed `sendPIDatasource` contract** ([#191](https://github.com/felixgeelhaar/govee-light-management/pull/191)). Every Property-Inspector datasource response must include an explicit `status: "ok" | "empty" | "error"` — it's now a compile-time error to ship one without. E2E suite expanded from 33 to **118 tests across all 17 PIs**, including SDPI invariants (every `sdpi-select` with a datasource has a `setting` attribute).
+- **PR template hardware-dogfood section + weekly stale-review sweep workflow** ([#192](https://github.com/felixgeelhaar/govee-light-management/pull/192)). Contributors now describe concrete end-to-end testing on real Govee hardware; a weekly workflow flags PRs/issues where a maintainer response is overdue by 7+ days.
+
+### Housekeeping
+
+- `package-lock.json` version synced from a stale 2.1.3 to match `package.json`.
+
+---
+
 ## [2.2.0] - 2026-04-17
 
 ### Major Features — 5 new capabilities across 3 new actions
@@ -409,21 +556,6 @@ New infrastructure mappers:
 - Comprehensive test suite
 - ESLint + Prettier formatting
 - Husky pre-commit hooks
-
----
-
-## [Unreleased]
-
-### Ideas for Future Releases
-
-- LAN connectivity for local network control
-- WebSocket support for real-time updates
-- Scheduled actions and timers
-- Enhanced color picker with presets
-- Custom effect creation
-- Cloud sync for configurations
-- Multi-platform support
-- Third-party plugin SDK
 
 ---
 

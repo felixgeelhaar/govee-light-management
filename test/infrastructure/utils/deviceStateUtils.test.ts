@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ColorTemperature } from "@felixgeelhaar/govee-api-client";
+import { ColorTemperature } from "@/backend/domain/value-objects/ColorTemperature";
 import { streamDeck } from "@elgato/streamdeck";
 import {
   __resetSafeGetColorTemperatureLogGate,

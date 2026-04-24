@@ -1,9 +1,9 @@
 import { streamDeck } from "@elgato/streamdeck";
-import { ColorRgb } from "@felixgeelhaar/govee-api-client";
 import { EffectPlayer } from "../domain/services/EffectPlayer";
 import { EffectPresets } from "../domain/services/EffectPresets";
 import { RgbEffect } from "../domain/entities/RgbEffect";
 import { EffectFrame } from "../domain/value-objects/EffectFrame";
+import { ColorRgb } from "../domain/value-objects/ColorRgb";
 import { SegmentColor } from "../domain/value-objects/SegmentColor";
 import { ActionServices } from "../actions/shared/ActionServices";
 import { globalSettingsService } from "./GlobalSettingsService";

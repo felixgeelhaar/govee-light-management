@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { SegmentColor } from '@/backend/domain/value-objects/SegmentColor';
-import { ColorRgb } from '@felixgeelhaar/govee-api-client';
+import { ColorRgb } from '@/backend/domain/value-objects/ColorRgb';
 
 describe('SegmentColor Value Object', () => {
   describe('Creation', () => {

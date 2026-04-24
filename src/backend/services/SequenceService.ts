@@ -1,12 +1,10 @@
 import { streamDeck } from "@elgato/streamdeck";
-import {
-  Brightness,
-  ColorRgb,
-  ColorTemperature,
-  DiyScene,
-  LightScene,
-  Snapshot,
-} from "@felixgeelhaar/govee-api-client";
+import { Brightness } from "../domain/value-objects/Brightness";
+import { ColorRgb } from "../domain/value-objects/ColorRgb";
+import { ColorTemperature } from "../domain/value-objects/ColorTemperature";
+import { DynamicSceneOption } from "../domain/value-objects/DynamicSceneOption";
+import { DiySceneOption } from "../domain/value-objects/DiySceneOption";
+import { SnapshotOption } from "../domain/value-objects/SnapshotOption";
 import { Sequence } from "../domain/entities/Sequence";
 import { SequenceStep, StepType } from "../domain/value-objects/SequenceStep";
 import { SequenceExecutor } from "../domain/services/SequenceExecutor";
@@ -98,14 +96,14 @@ class SequenceServiceImpl {
       for (const light of lights) {
         try {
           if (payload.kind === "diy") {
-            const scene = new DiyScene(
+            const scene = DiySceneOption.create(
               payload.id,
               payload.paramId,
               payload.name,
             );
             await this.actionServices.applyDiyScene(light, scene);
           } else {
-            const scene = new LightScene(
+            const scene = DynamicSceneOption.create(
               payload.id,
               payload.paramId,
               payload.name,
@@ -124,7 +122,11 @@ class SequenceServiceImpl {
 
     if (step.command === "snapshot" && step.snapshotPayload) {
       const payload = step.snapshotPayload;
-      const snapshot = new Snapshot(payload.id, payload.paramId, payload.name);
+      const snapshot = SnapshotOption.create(
+        payload.id,
+        payload.paramId,
+        payload.name,
+      );
       const lights =
         target.type === "light" && target.light
           ? [target.light]

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ColorRgb } from "@felixgeelhaar/govee-api-client";
+import { ColorRgb } from "@/backend/domain/value-objects/ColorRgb";
 import {
   hsvToRgb,
   rgbToHue,

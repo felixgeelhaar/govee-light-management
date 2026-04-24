@@ -10,6 +10,7 @@ import {
 import type { JsonValue } from "@elgato/utils";
 import { ActionServices, type BaseSettings } from "./shared/ActionServices";
 import { hsvToRgb } from "./shared/color-utils";
+import { ColorRgb } from "../domain/value-objects/ColorRgb";
 import { SegmentColor } from "../domain/value-objects/SegmentColor";
 
 type SegmentColorSettings = BaseSettings & {
@@ -125,7 +126,10 @@ export class SegmentColorAction extends SingletonAction<SegmentColorSettings> {
           hue = (360 * band) / maxColors;
           break;
       }
-      segments.push(SegmentColor.create(start + i, hsvToRgb(hue, 100, 100)));
+      const color = hsvToRgb(hue, 100, 100);
+      segments.push(
+        SegmentColor.create(start + i, new ColorRgb(color.r, color.g, color.b)),
+      );
     }
     return segments;
   }

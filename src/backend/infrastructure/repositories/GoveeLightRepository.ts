@@ -1,8 +1,5 @@
 import {
   GoveeClient,
-  ColorRgb,
-  ColorTemperature,
-  Brightness,
   GoveeDevice,
   LightScene,
   DiyScene,
@@ -10,11 +7,20 @@ import {
   MusicMode,
   SegmentColor as ApiSegmentColor,
 } from "@felixgeelhaar/govee-api-client";
+import { DynamicSceneOption } from "../../domain/value-objects/DynamicSceneOption";
+import { DiySceneOption } from "../../domain/value-objects/DiySceneOption";
+import { SnapshotOption } from "../../domain/value-objects/SnapshotOption";
+import { MusicModeOption } from "../../domain/value-objects/MusicModeOption";
+
 import { ILightRepository } from "../../domain/repositories/ILightRepository";
 import { Light, LightState } from "../../domain/entities";
 import { Scene } from "../../domain/value-objects/Scene";
 import { SegmentColor } from "../../domain/value-objects/SegmentColor";
+import { Brightness } from "../../domain/value-objects/Brightness";
+import { ColorRgb } from "../../domain/value-objects/ColorRgb";
+import { ColorTemperature } from "../../domain/value-objects/ColorTemperature";
 import { SceneMapper } from "../mappers/SceneMapper";
+import { LightValueMapper } from "../mappers/LightValueMapper";
 import { MusicModeMapper } from "../mappers/MusicModeMapper";
 import { MusicModeConfig } from "../../domain/value-objects/MusicModeConfig";
 import {
@@ -145,7 +151,11 @@ export class GoveeLightRepository implements ILightRepository {
         light.updateState({ isOn: false, brightness });
         return;
       }
-      await this.client.setBrightness(light.deviceId, light.model, brightness);
+      await this.client.setBrightness(
+        light.deviceId,
+        light.model,
+        LightValueMapper.toApiBrightness(brightness),
+      );
       light.updateState({ brightness });
     } catch (error) {
       if (isValidationError(error)) {
@@ -167,7 +177,11 @@ export class GoveeLightRepository implements ILightRepository {
 
   async setColor(light: Light, color: ColorRgb): Promise<void> {
     try {
-      await this.client.setColor(light.deviceId, light.model, color);
+      await this.client.setColor(
+        light.deviceId,
+        light.model,
+        LightValueMapper.toApiColor(color),
+      );
       light.updateState({ color, colorTemperature: undefined });
     } catch (error) {
       if (isValidationError(error)) {
@@ -195,7 +209,7 @@ export class GoveeLightRepository implements ILightRepository {
       await this.client.setColorTemperature(
         light.deviceId,
         light.model,
-        colorTemperature,
+        LightValueMapper.toApiColorTemperature(colorTemperature),
       );
       light.updateState({ colorTemperature, color: undefined });
     } catch (error) {
@@ -224,7 +238,7 @@ export class GoveeLightRepository implements ILightRepository {
       await this.client.turnOnWithBrightness(
         light.deviceId,
         light.model,
-        brightness,
+        LightValueMapper.toApiBrightness(brightness),
       );
       light.updateState({ isOn: true, brightness });
       streamDeck.logger.info(
@@ -257,8 +271,8 @@ export class GoveeLightRepository implements ILightRepository {
       await this.client.turnOnWithColor(
         light.deviceId,
         light.model,
-        color,
-        brightness,
+        LightValueMapper.toApiColor(color),
+        brightness ? LightValueMapper.toApiBrightness(brightness) : undefined,
       );
       light.updateState({
         isOn: true,
@@ -298,8 +312,8 @@ export class GoveeLightRepository implements ILightRepository {
       await this.client.turnOnWithColorTemperature(
         light.deviceId,
         light.model,
-        colorTemperature,
-        brightness,
+        LightValueMapper.toApiColorTemperature(colorTemperature),
+        brightness ? LightValueMapper.toApiBrightness(brightness) : undefined,
       );
       light.updateState({
         isOn: true,
@@ -345,20 +359,21 @@ export class GoveeLightRepository implements ILightRepository {
       // Extract brightness if available
       const brightness = deviceState.getBrightness();
       if (brightness) {
-        newState.brightness = brightness;
+        newState.brightness = LightValueMapper.toDomainBrightness(brightness);
       }
 
       // Extract color if available
       const color = deviceState.getColor();
       if (color) {
-        newState.color = color;
+        newState.color = LightValueMapper.toDomainColor(color);
         newState.colorTemperature = undefined;
       }
 
       // Extract color temperature if available (tolerates malformed 0K payloads)
       const colorTemperature = safeGetColorTemperature(deviceState, light.name);
       if (colorTemperature) {
-        newState.colorTemperature = colorTemperature;
+        newState.colorTemperature =
+          LightValueMapper.toDomainColorTemperature(colorTemperature);
         newState.color = undefined;
       }
 
@@ -413,9 +428,13 @@ export class GoveeLightRepository implements ILightRepository {
     }
   }
 
-  async setLightScene(light: Light, scene: LightScene): Promise<void> {
+  async setLightScene(light: Light, scene: DynamicSceneOption): Promise<void> {
     try {
-      await this.client.setLightScene(light.deviceId, light.model, scene);
+      await this.client.setLightScene(
+        light.deviceId,
+        light.model,
+        new LightScene(scene.id, scene.paramId, scene.name),
+      );
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
@@ -433,9 +452,13 @@ export class GoveeLightRepository implements ILightRepository {
     }
   }
 
-  async setDiyScene(light: Light, scene: DiyScene): Promise<void> {
+  async setDiyScene(light: Light, scene: DiySceneOption): Promise<void> {
     try {
-      await this.client.setDiyScene(light.deviceId, light.model, scene);
+      await this.client.setDiyScene(
+        light.deviceId,
+        light.model,
+        new DiyScene(scene.id, scene.paramId, scene.name),
+      );
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
@@ -453,9 +476,15 @@ export class GoveeLightRepository implements ILightRepository {
     }
   }
 
-  async getDynamicScenes(light: Light): Promise<LightScene[]> {
+  async getDynamicScenes(light: Light): Promise<DynamicSceneOption[]> {
     try {
-      return await this.client.getDynamicScenes(light.deviceId, light.model);
+      const scenes = await this.client.getDynamicScenes(
+        light.deviceId,
+        light.model,
+      );
+      return scenes.map((scene) =>
+        DynamicSceneOption.create(scene.id, scene.paramId, scene.name),
+      );
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
@@ -473,9 +502,15 @@ export class GoveeLightRepository implements ILightRepository {
     }
   }
 
-  async getDiyScenes(light: Light): Promise<DiyScene[]> {
+  async getDiyScenes(light: Light): Promise<DiySceneOption[]> {
     try {
-      return await this.client.getDiyScenes(light.deviceId, light.model);
+      const scenes = await this.client.getDiyScenes(
+        light.deviceId,
+        light.model,
+      );
+      return scenes.map((scene) =>
+        DiySceneOption.create(scene.id, scene.paramId, scene.name),
+      );
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
@@ -493,9 +528,15 @@ export class GoveeLightRepository implements ILightRepository {
     }
   }
 
-  async getSnapshots(light: Light): Promise<Snapshot[]> {
+  async getSnapshots(light: Light): Promise<SnapshotOption[]> {
     try {
-      return await this.client.getSnapshots(light.deviceId, light.model);
+      const snapshots = await this.client.getSnapshots(
+        light.deviceId,
+        light.model,
+      );
+      return snapshots.map((snapshot) =>
+        SnapshotOption.create(snapshot.id, snapshot.paramId, snapshot.name),
+      );
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
@@ -513,9 +554,13 @@ export class GoveeLightRepository implements ILightRepository {
     }
   }
 
-  async applySnapshot(light: Light, snapshot: Snapshot): Promise<void> {
+  async applySnapshot(light: Light, snapshot: SnapshotOption): Promise<void> {
     try {
-      await this.client.setSnapshot(light.deviceId, light.model, snapshot);
+      await this.client.setSnapshot(
+        light.deviceId,
+        light.model,
+        new Snapshot(snapshot.id, snapshot.paramId, snapshot.name),
+      );
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
@@ -547,7 +592,12 @@ export class GoveeLightRepository implements ILightRepository {
       for (const seg of segments) {
         const key = `${seg.color.r},${seg.color.g},${seg.color.b}`;
         const group = colorGroups.get(key) ?? [];
-        group.push(new ApiSegmentColor(seg.segmentIndex, seg.color));
+        group.push(
+          new ApiSegmentColor(
+            seg.segmentIndex,
+            LightValueMapper.toApiColor(seg.color),
+          ),
+        );
         colorGroups.set(key, group);
       }
       for (const apiSegments of colorGroups.values()) {
@@ -634,9 +684,16 @@ export class GoveeLightRepository implements ILightRepository {
     }
   }
 
-  async setMusicModeRaw(light: Light, musicMode: MusicMode): Promise<void> {
+  async setMusicModeRaw(
+    light: Light,
+    musicMode: MusicModeOption,
+  ): Promise<void> {
     try {
-      await this.client.setMusicMode(light.deviceId, light.model, musicMode);
+      await this.client.setMusicMode(
+        light.deviceId,
+        light.model,
+        new MusicMode(musicMode.modeId, musicMode.sensitivity),
+      );
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(

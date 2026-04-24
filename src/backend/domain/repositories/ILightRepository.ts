@@ -1,12 +1,14 @@
 import { Light } from "../entities/Light";
-import {
-  ColorRgb,
-  ColorTemperature,
-  Brightness,
-} from "@felixgeelhaar/govee-api-client";
 import { Scene } from "../value-objects/Scene";
 import { SegmentColor } from "../value-objects/SegmentColor";
 import { MusicModeConfig } from "../value-objects/MusicModeConfig";
+import { Brightness } from "../value-objects/Brightness";
+import { ColorRgb } from "../value-objects/ColorRgb";
+import { ColorTemperature } from "../value-objects/ColorTemperature";
+import { DynamicSceneOption } from "../value-objects/DynamicSceneOption";
+import { DiySceneOption } from "../value-objects/DiySceneOption";
+import { SnapshotOption } from "../value-objects/SnapshotOption";
+import { MusicModeOption } from "../value-objects/MusicModeOption";
 
 export interface ILightRepository {
   /**
@@ -103,30 +105,26 @@ export interface ILightRepository {
   /**
    * Get available dynamic scenes for a specific device
    */
-  getDynamicScenes(
-    light: Light,
-  ): Promise<import("@felixgeelhaar/govee-api-client").LightScene[]>;
+  getDynamicScenes(light: Light): Promise<DynamicSceneOption[]>;
 
   /**
    * Get available DIY scenes for a specific device
    */
-  getDiyScenes(
-    light: Light,
-  ): Promise<import("@felixgeelhaar/govee-api-client").DiyScene[]>;
+  getDiyScenes(light: Light): Promise<DiySceneOption[]>;
 
   /**
-   * Apply a dynamic LightScene directly (bypasses domain Scene mapper)
+   * Apply a dynamic scene option directly (bypasses domain Scene mapper)
    */
-  setLightScene(
-    light: Light,
-    scene: import("@felixgeelhaar/govee-api-client").LightScene,
-  ): Promise<void>;
+  setLightScene(light: Light, scene: DynamicSceneOption): Promise<void>;
 
   /**
-   * Apply a DIY scene directly
+   * Apply a DIY scene option directly
    */
-  setDiyScene(
-    light: Light,
-    scene: import("@felixgeelhaar/govee-api-client").DiyScene,
-  ): Promise<void>;
+  setDiyScene(light: Light, scene: DiySceneOption): Promise<void>;
+
+  getSnapshots(light: Light): Promise<SnapshotOption[]>;
+
+  applySnapshot(light: Light, snapshot: SnapshotOption): Promise<void>;
+
+  setMusicModeRaw(light: Light, musicMode: MusicModeOption): Promise<void>;
 }

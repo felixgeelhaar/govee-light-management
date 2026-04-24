@@ -8,7 +8,7 @@ import {
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
-import { Brightness } from "@felixgeelhaar/govee-api-client";
+import { Brightness } from "../domain/value-objects/Brightness";
 import { ActionServices, type BaseSettings } from "./shared/ActionServices";
 import { telemetryService } from "../services/TelemetryService";
 

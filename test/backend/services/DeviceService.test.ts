@@ -3,7 +3,7 @@ import type {
   DeviceDiscoveryResult,
   DeviceStateResult,
 } from "@/backend/connectivity/types";
-import { DeviceService } from "@/backend/domain/services/DeviceService";
+import { DeviceService } from "@/backend/application/services/DeviceService";
 import { telemetryService } from "@/backend/services/TelemetryService";
 
 const createOrchestratorMock = () => ({

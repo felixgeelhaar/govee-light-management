@@ -1,8 +1,9 @@
-import { DiyScene, LightScene } from "@felixgeelhaar/govee-api-client";
+import { DynamicSceneOption } from "../domain/value-objects/DynamicSceneOption";
+import { DiySceneOption } from "../domain/value-objects/DiySceneOption";
 
 export function buildSceneItems(
-  dynamicScenes: LightScene[],
-  diyScenes: DiyScene[],
+  dynamicScenes: DynamicSceneOption[],
+  diyScenes: DiySceneOption[],
 ) {
   return [
     ...dynamicScenes.map((scene) => ({

@@ -60,27 +60,6 @@ export class SceneMapper {
   }
 
   /**
-   * Get all supported API scenes
-   *
-   * Returns factory methods for all LightScene presets available in govee-api-client.
-   * This includes scenes not currently in the domain layer.
-   *
-   * @returns Array of all available LightScene instances
-   */
-  static getAllApiScenes(): LightScene[] {
-    return [
-      LightScene.sunrise(),
-      LightScene.sunset(),
-      LightScene.rainbow(),
-      LightScene.aurora(),
-      LightScene.candlelight(),
-      LightScene.nightlight(),
-      LightScene.romantic(),
-      LightScene.blinking(),
-    ];
-  }
-
-  /**
    * Check if a domain scene is supported by the API
    *
    * @param scene - Domain scene to check
@@ -95,14 +74,5 @@ export class SceneMapper {
       "nightlight",
     ];
     return supportedIds.includes(scene.id);
-  }
-
-  /**
-   * Get supported domain scene IDs
-   *
-   * @returns Array of scene IDs that can be mapped to API
-   */
-  static getSupportedSceneCodes(): string[] {
-    return ["sunrise", "sunset", "rainbow", "aurora", "nightlight"];
   }
 }

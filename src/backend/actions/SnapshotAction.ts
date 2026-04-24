@@ -9,7 +9,7 @@ import {
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
-import { Snapshot } from "@felixgeelhaar/govee-api-client";
+import { SnapshotOption } from "../domain/value-objects/SnapshotOption";
 import {
   ActionServices,
   sendPIDatasource,
@@ -69,7 +69,11 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
         paramId: number;
         name: string;
       };
-      const snapshot = new Snapshot(parsed.id, parsed.paramId, parsed.name);
+      const snapshot = SnapshotOption.create(
+        parsed.id,
+        parsed.paramId,
+        parsed.name,
+      );
 
       const stopSpinner = this.services.showSpinner(ev.action);
       try {

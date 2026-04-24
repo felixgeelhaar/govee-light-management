@@ -9,7 +9,7 @@ import {
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
-import { MusicMode } from "@felixgeelhaar/govee-api-client";
+import { MusicModeOption } from "../domain/value-objects/MusicModeOption";
 import {
   ActionServices,
   sendPIDatasource,
@@ -68,7 +68,7 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
         name: string;
         modeId: number;
       };
-      const musicMode = new MusicMode(
+      const musicMode = MusicModeOption.create(
         parsed.modeId,
         settings.sensitivity ?? 50,
       );

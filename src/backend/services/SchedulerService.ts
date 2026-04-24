@@ -1,9 +1,7 @@
 import { streamDeck } from "@elgato/streamdeck";
-import {
-  Brightness,
-  ColorRgb,
-  ColorTemperature,
-} from "@felixgeelhaar/govee-api-client";
+import { Brightness } from "../domain/value-objects/Brightness";
+import { ColorRgb } from "../domain/value-objects/ColorRgb";
+import { ColorTemperature } from "../domain/value-objects/ColorTemperature";
 import { ScheduleService } from "../domain/services/ScheduleService";
 import { ScheduledAction } from "../domain/entities/ScheduledAction";
 import { SchedulerEngine } from "../infrastructure/SchedulerEngine";

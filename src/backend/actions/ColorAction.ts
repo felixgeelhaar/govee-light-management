@@ -8,7 +8,7 @@ import {
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
-import { ColorRgb } from "@felixgeelhaar/govee-api-client";
+import { ColorRgb } from "../domain/value-objects/ColorRgb";
 import { ActionServices, type BaseSettings } from "./shared/ActionServices";
 import { telemetryService } from "../services/TelemetryService";
 import { ColorPaletteService } from "../domain/services/ColorPaletteService";

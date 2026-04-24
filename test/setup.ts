@@ -125,15 +125,6 @@ vi.mock('@felixgeelhaar/govee-api-client', () => {
     ) {}
   }
 
-  // Mock SegmentColor class (matches placeholder in SegmentColorMapper.ts)
-  class MockSegmentColor {
-    constructor(
-      public readonly index: number,
-      public readonly color: any,
-      public readonly brightness?: any
-    ) {}
-  }
-
   return {
     GoveeApiClient: vi.fn().mockImplementation(() => ({
       getDevices: vi.fn().mockResolvedValue([]),
@@ -149,8 +140,7 @@ vi.mock('@felixgeelhaar/govee-api-client', () => {
     ColorRgb: MockColorRgb,
     ColorTemperature: MockColorTemperature,
     LightScene: MockLightScene,
-    MusicMode: MockMusicMode,
-    SegmentColor: MockSegmentColor
+    MusicMode: MockMusicMode
   };
 });
 

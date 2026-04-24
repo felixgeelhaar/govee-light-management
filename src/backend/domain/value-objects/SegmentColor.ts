@@ -6,7 +6,7 @@
  * and effects like rainbow gradients, multi-color scenes, etc.
  */
 
-import { ColorRgb } from "@felixgeelhaar/govee-api-client";
+import { ColorRgb } from "./ColorRgb";
 
 export class SegmentColor {
   private constructor(

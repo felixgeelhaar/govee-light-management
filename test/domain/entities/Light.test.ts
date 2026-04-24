@@ -10,7 +10,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Light } from '@/backend/domain/entities/Light';
 import { LightState } from '@/backend/domain/value-objects/LightState';
-import { Brightness } from '@felixgeelhaar/govee-api-client';
+import { Brightness } from '@/backend/domain/value-objects/Brightness';
 
 describe('Light Entity', () => {
   let light: Light;

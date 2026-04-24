@@ -1,8 +1,6 @@
-import {
-  ColorRgb,
-  ColorTemperature,
-  Brightness,
-} from "@felixgeelhaar/govee-api-client";
+import { Brightness } from "../value-objects/Brightness";
+import { ColorRgb } from "../value-objects/ColorRgb";
+import { ColorTemperature } from "../value-objects/ColorTemperature";
 import { LightState } from "../value-objects/LightState";
 
 /**

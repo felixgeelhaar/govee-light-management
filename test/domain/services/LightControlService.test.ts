@@ -9,7 +9,9 @@ import { LightControlService } from '@/backend/domain/services/LightControlServi
 import { Light } from '@/backend/domain/entities/Light';
 import { LightGroup } from '@/backend/domain/entities/LightGroup';
 import { LightState } from '@/backend/domain/value-objects/LightState';
-import { Brightness, ColorRgb, ColorTemperature } from '@felixgeelhaar/govee-api-client';
+import { Brightness } from '@/backend/domain/value-objects/Brightness';
+import { ColorRgb } from '@/backend/domain/value-objects/ColorRgb';
+import { ColorTemperature } from '@/backend/domain/value-objects/ColorTemperature';
 
 // Mock the light repository to match ILightRepository interface
 const mockLightRepository = {

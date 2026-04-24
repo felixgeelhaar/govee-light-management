@@ -7,6 +7,7 @@ import type { JsonObject } from "@elgato/utils";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { hsvToRgb, rgbToHue } from "./shared/color-utils";
 import { clamp } from "./shared/validation";
+import { ColorRgb } from "../domain/value-objects/ColorRgb";
 
 type ColorHueDialSettings = BaseDialSettings & {
   saturation?: number;
@@ -56,7 +57,11 @@ export class ColorHueDialAction extends BaseDialAction<ColorHueDialSettings> {
         const finalHue = this.hueMap.get(ctx) ?? next;
         const saturation = clamp(settings.saturation ?? 100, 0, 100);
         const color = hsvToRgb(finalHue, saturation, 100);
-        await this.services.controlTarget(target, "color", color);
+        await this.services.controlTarget(
+          target,
+          "color",
+          new ColorRgb(color.r, color.g, color.b),
+        );
       },
       undefined,
       {

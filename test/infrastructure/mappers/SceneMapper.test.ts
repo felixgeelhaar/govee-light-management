@@ -79,35 +79,6 @@ describe('SceneMapper', () => {
     });
   });
 
-  describe('getAllApiScenes', () => {
-    it('should return all available API scenes', () => {
-      const scenes = SceneMapper.getAllApiScenes();
-
-      expect(scenes).toHaveLength(8);
-      // Skip instanceof check (placeholder class !== mock class)
-    });
-
-    it('should include scenes not in domain layer', () => {
-      const scenes = SceneMapper.getAllApiScenes();
-      const sceneNames = scenes.map((s) => s.name);
-
-      expect(sceneNames).toContain('Candlelight');
-      expect(sceneNames).toContain('Romantic');
-      expect(sceneNames).toContain('Blinking');
-    });
-
-    it('should include all domain-supported scenes', () => {
-      const scenes = SceneMapper.getAllApiScenes();
-      const sceneNames = scenes.map((s) => s.name);
-
-      expect(sceneNames).toContain('Sunrise');
-      expect(sceneNames).toContain('Sunset');
-      expect(sceneNames).toContain('Rainbow');
-      expect(sceneNames).toContain('Aurora');
-      expect(sceneNames).toContain('Nightlight');
-    });
-  });
-
   describe('isSupported', () => {
     it('should return true for supported sunrise scene', () => {
       const scene = Scene.sunrise();
@@ -145,18 +116,4 @@ describe('SceneMapper', () => {
     });
   });
 
-  describe('getSupportedSceneCodes', () => {
-    it('should return array of supported scene codes', () => {
-      const codes = SceneMapper.getSupportedSceneCodes();
-
-      expect(codes).toEqual(['sunrise', 'sunset', 'rainbow', 'aurora', 'nightlight']);
-    });
-
-    it('should not include movie or reading', () => {
-      const codes = SceneMapper.getSupportedSceneCodes();
-
-      expect(codes).not.toContain('movie');
-      expect(codes).not.toContain('reading');
-    });
-  });
 });

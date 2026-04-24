@@ -1,10 +1,14 @@
-import { ColorRgb } from "@felixgeelhaar/govee-api-client";
+type RgbLike = {
+  r: number;
+  g: number;
+  b: number;
+};
 
 /**
  * Extract hue (0-360) from an RGB ColorRgb instance.
  * Returns 0 for achromatic colors (grays).
  */
-export function rgbToHue(color: ColorRgb): number {
+export function rgbToHue(color: RgbLike): number {
   const r = color.r / 255;
   const g = color.g / 255;
   const b = color.b / 255;
@@ -39,7 +43,7 @@ export function rgbToHue(color: ColorRgb): number {
  * round-trips faithfully, but a light whose RGB was set directly (e.g.
  * via hex picker) reports whatever saturation the chosen color has.
  */
-export function rgbToSaturation(color: ColorRgb): number {
+export function rgbToSaturation(color: RgbLike): number {
   const r = color.r / 255;
   const g = color.g / 255;
   const b = color.b / 255;
@@ -56,7 +60,7 @@ export function rgbToSaturation(color: ColorRgb): number {
  * @param s Saturation percentage (0-100)
  * @param v Value/brightness percentage (0-100)
  */
-export function hsvToRgb(h: number, s: number, v: number): ColorRgb {
+export function hsvToRgb(h: number, s: number, v: number): RgbLike {
   const sn = s / 100,
     vn = v / 100;
   const c = vn * sn;
@@ -84,9 +88,9 @@ export function hsvToRgb(h: number, s: number, v: number): ColorRgb {
     r = c;
     b = x;
   }
-  return new ColorRgb(
-    Math.round((r + m) * 255),
-    Math.round((g + m) * 255),
-    Math.round((b + m) * 255),
-  );
+  return {
+    r: Math.round((r + m) * 255),
+    g: Math.round((g + m) * 255),
+    b: Math.round((b + m) * 255),
+  };
 }

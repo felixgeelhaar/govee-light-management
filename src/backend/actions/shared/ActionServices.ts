@@ -10,17 +10,12 @@ import { LightControlService } from "../../domain/services/LightControlService";
 import { Light, LightCapabilities } from "../../domain/entities/Light";
 import { LightGroup } from "../../domain/entities/LightGroup";
 import type { LightState } from "../../domain/value-objects/LightState";
-import {
-  Brightness,
-  ColorRgb,
-  ColorTemperature,
-  LightScene,
-  DiyScene,
-  Snapshot,
-  MusicMode,
-} from "@felixgeelhaar/govee-api-client";
+import { DynamicSceneOption } from "../../domain/value-objects/DynamicSceneOption";
+import { DiySceneOption } from "../../domain/value-objects/DiySceneOption";
+import { SnapshotOption } from "../../domain/value-objects/SnapshotOption";
+import { MusicModeOption } from "../../domain/value-objects/MusicModeOption";
 
-import { DeviceService } from "../../domain/services/DeviceService";
+import { DeviceService } from "../../application/services/DeviceService";
 import {
   TransportOrchestrator,
   TransportKind,
@@ -30,6 +25,9 @@ import { globalSettingsService } from "../../services/GlobalSettingsService";
 import { StreamDeckLightGroupRepository } from "../../infrastructure/repositories/StreamDeckLightGroupRepository";
 import { LightGroupService } from "../../domain/services/LightGroupService";
 import { SegmentColor } from "../../domain/value-objects/SegmentColor";
+import { Brightness as DomainBrightness } from "../../domain/value-objects/Brightness";
+import { ColorRgb as DomainColorRgb } from "../../domain/value-objects/ColorRgb";
+import { ColorTemperature as DomainColorTemperature } from "../../domain/value-objects/ColorTemperature";
 import { isIgnorableLiveStateError, isValidationError } from "./validation";
 
 /** Default timeout for API calls in PI handlers (10 seconds) */
@@ -157,6 +155,12 @@ async function sendPIDatasource<E extends string>(
   response: PIDatasourceResponse<E>,
 ): Promise<void> {
   await sendToPI(actionId, response as unknown as Record<string, unknown>);
+}
+
+function toDomainControlValue(
+  value?: DomainBrightness | DomainColorRgb | DomainColorTemperature,
+): DomainBrightness | DomainColorRgb | DomainColorTemperature | undefined {
+  return value ?? undefined;
 }
 
 export { sendToPI, sendPIDatasource };
@@ -1009,7 +1013,7 @@ export class ActionServices {
   async controlTarget(
     target: DeviceTarget,
     command: "on" | "off" | "brightness" | "color" | "colorTemperature",
-    value?: Brightness | ColorRgb | ColorTemperature,
+    value?: DomainBrightness | DomainColorRgb | DomainColorTemperature,
     maxRetries = 3,
   ): Promise<void> {
     if (!this.lightControlService) {
@@ -1022,14 +1026,14 @@ export class ActionServices {
           await this.lightControlService!.controlLight(
             target.light,
             command,
-            value,
+            toDomainControlValue(value),
           );
           this.rememberLightState(target.light);
         } else if (target.type === "group" && target.group) {
           await this.lightControlService!.controlGroup(
             target.group,
             command,
-            value,
+            toDomainControlValue(value),
           );
         }
       } catch (error) {
@@ -1069,7 +1073,7 @@ export class ActionServices {
     await this.lightRepository.setSegmentColors(light, segments);
   }
 
-  async getDynamicScenes(light: Light): Promise<LightScene[]> {
+  async getDynamicScenes(light: Light): Promise<DynamicSceneOption[]> {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
@@ -1080,7 +1084,7 @@ export class ActionServices {
     );
   }
 
-  async getDiyScenes(light: Light): Promise<DiyScene[]> {
+  async getDiyScenes(light: Light): Promise<DiySceneOption[]> {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
@@ -1091,21 +1095,24 @@ export class ActionServices {
     );
   }
 
-  async applyDynamicScene(light: Light, scene: LightScene): Promise<void> {
+  async applyDynamicScene(
+    light: Light,
+    scene: DynamicSceneOption,
+  ): Promise<void> {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
     await this.lightRepository.setLightScene(light, scene);
   }
 
-  async applyDiyScene(light: Light, scene: DiyScene): Promise<void> {
+  async applyDiyScene(light: Light, scene: DiySceneOption): Promise<void> {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
     await this.lightRepository.setDiyScene(light, scene);
   }
 
-  async getSnapshots(light: Light): Promise<Snapshot[]> {
+  async getSnapshots(light: Light): Promise<SnapshotOption[]> {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
@@ -1116,7 +1123,7 @@ export class ActionServices {
     );
   }
 
-  async applySnapshot(light: Light, snapshot: Snapshot): Promise<void> {
+  async applySnapshot(light: Light, snapshot: SnapshotOption): Promise<void> {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
@@ -1309,7 +1316,10 @@ export class ActionServices {
     );
   }
 
-  async applyMusicModeRaw(light: Light, musicMode: MusicMode): Promise<void> {
+  async applyMusicModeRaw(
+    light: Light,
+    musicMode: MusicModeOption,
+  ): Promise<void> {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }

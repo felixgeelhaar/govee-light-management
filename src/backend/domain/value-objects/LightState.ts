@@ -1,8 +1,6 @@
-import {
-  ColorRgb,
-  ColorTemperature,
-  Brightness,
-} from "@felixgeelhaar/govee-api-client";
+import { Brightness } from "./Brightness";
+import { ColorRgb } from "./ColorRgb";
+import { ColorTemperature } from "./ColorTemperature";
 
 export interface LightState {
   isOn: boolean;

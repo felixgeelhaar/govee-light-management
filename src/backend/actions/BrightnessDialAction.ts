@@ -4,7 +4,7 @@ import {
   type DialRotateEvent,
 } from "@elgato/streamdeck";
 import type { JsonObject } from "@elgato/utils";
-import { Brightness } from "@felixgeelhaar/govee-api-client";
+import { Brightness } from "../domain/value-objects/Brightness";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { clamp } from "./shared/validation";
 

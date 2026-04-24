@@ -8,7 +8,7 @@ import {
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
-import { ColorTemperature } from "@felixgeelhaar/govee-api-client";
+import { ColorTemperature } from "../domain/value-objects/ColorTemperature";
 import { ActionServices, type BaseSettings } from "./shared/ActionServices";
 import {
   kelvinFromPercent,

@@ -10,6 +10,7 @@ import type { JsonObject } from "@elgato/utils";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { hsvToRgb } from "./shared/color-utils";
 import { clamp } from "./shared/validation";
+import { ColorRgb } from "../domain/value-objects/ColorRgb";
 import { SegmentColor } from "../domain/value-objects/SegmentColor";
 
 type SegmentColorDialSettings = BaseDialSettings & {
@@ -140,7 +141,10 @@ export class SegmentColorDialAction extends BaseDialAction<SegmentColorDialSetti
       saturation,
     });
     await this.services.setSegmentColors(target.light, [
-      SegmentColor.create(segmentIndex, color),
+      SegmentColor.create(
+        segmentIndex,
+        new ColorRgb(color.r, color.g, color.b),
+      ),
     ]);
   }
 
