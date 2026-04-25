@@ -4,6 +4,32 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
+## [2.6.0] - 2026-04-25
+
+### Added
+
+- **Sequence step builder now supports the full command palette** ([#199](https://github.com/felixgeelhaar/govee-light-management/issues/199)). The Sequence action shipped with only four step commands (On / Off / Toggle / Brightness), so users couldn't compose a "set my default preset" button when wrapped inside Stream Deck's Button Logic action — Button Logic can't nest a Multi-Action, so the Sequence had to stand alone. The step builder now exposes 12 commands matching the keypad action set: Color (hex picker), Color Temperature (Kelvin), Apply Scene (dynamic + DIY, queried per-light), Apply Snapshot, Music Mode (mode + sensitivity), Feature Toggle (gradient / nightlight / DreamView with on/off), Segment Color (per-segment hex), and Play Effect (Rainbow Wave, Pulse, Fade, Strobe, etc.). Each step targets its own light or group, and the Property Inspector refreshes scene/snapshot/music/toggle dropdowns when the step's selected light changes. Existing Sequence settings deserialize unchanged — full backward compatibility.
+
+### Fixed
+
+- **Active RGB effects now stop when any control action fires.** When a Custom Effect (Pulse, Rainbow Wave, Strobe, …) was looping on a light and the user pressed e.g. their On/Off button, the effect kept running — each new frame would re-wake the just-turned-off light because the effect player had no awareness of unrelated commands targeting the same device. The cancel-and-drain hook now runs at every user-command chokepoint (`controlTarget`, `setSegmentColors`, `applyDynamicScene`, `applyDiyScene`, `applySnapshot`, `toggleFeatureRaw`, `applyMusicModeRaw`) so the last in-flight effect frame fully drains before the follow-up command lands. "Off" really turns the light off now.
+- **Marketing gallery assets aligned with the gradient key icon design.** Seven gallery SVGs (scene, snapshot, music-mode, toggle, schedule, sequence, custom-effect) shipped as plain monochrome white while the rest of the set used the gradient + glow + dark-rounded-rect key style. Half the keypad grid in `2-actions.png` sparkled and half looked flat — fixed by converting the white SVGs to the established design and regenerating the affected PNGs at 1920×1080. Also fixes one upstream design-system violation: `imgs/actions/snapshot/key.svg` was identical to its monochrome `icon.svg` (every other action's `key.svg` ships the gradient variant).
+
+### Dependencies
+
+- Bumped `@felixgeelhaar/govee-api-client` from 3.3.3 to **3.3.4**, which picks up two upstream fixes:
+  - Segmented capability state was silently dropped for every device — `'segment_color_setting'.includes('color_setting')` matched the wrong branch in the cloud-state parser, so `getSegmentColors()` and `getSegmentBrightness()` always returned undefined. RGB IC strips now report their per-segment state correctly.
+  - Defensive parsing for malformed capability payloads ([govee-api-client#27](https://github.com/felixgeelhaar/govee-api-client/pull/27), thanks @JoArchie). When Govee returns valid power/brightness alongside fields like `colorTemperatureK: 0` or `lightScene: {}`, the rest of the state response no longer gets rejected — partial-state recovery surfaces the valid fields to actions instead of leaving them blank.
+
+### Tests
+
+- 16 new domain unit tests for the four new Sequence step types (factory validation + JSON round-trip + backward-compat).
+- 14 new E2E invariants for the Sequence Property Inspector — locks in the full 12-command palette and the 12 per-command input rows so a regression that breaks the builder UI can't ship silently. Backend would still accept the payload; it's the builder that becomes unreachable.
+- 10 new tests around effect auto-cancel: drain semantics on `EffectPlayer.cancelAndWait()` and cancel-before-dispatch invocation order at every chokepoint.
+- 567 unit tests passing (was 539 in 2.5.0), 30 feature-PI E2E tests passing, zero TypeScript errors, zero lint errors.
+
+---
+
 ## [2.5.0] - 2026-04-24
 
 ### Internal refactor — Clean Architecture alignment
