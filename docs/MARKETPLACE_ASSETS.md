@@ -19,16 +19,16 @@ Marketplace gallery images are generated from HTML templates using Chrome headle
 
 ### Gallery Images (Required for Marketplace)
 
-| File                 | Purpose                  | Status     | Resolution | Last Updated |
-| -------------------- | ------------------------ | ---------- | ---------- | ------------ |
-| `1-hero.png`         | Hero shot with headline  | ✅ Ready   | 1920×1080  | Apr 13, 2026 |
-| `2-actions.png`      | All 12 keypad actions    | ✅ Ready   | 1920×1080  | Apr 14, 2026 |
-| `3-dials.png`        | All 5 Stream Deck+ dials | ✅ Updated | 1920×1080  | Apr 17, 2026 |
-| `4-setup.png`        | 3-step setup walkthrough | ✅ Ready   | 1920×1080  | Apr 9, 2026  |
-| `5-v21-features.png` | New in v2.1 features     | ✅ Ready   | 1920×1080  | Apr 14, 2026 |
-| `6-v22-features.png` | New in v2.2 features     | ✅ Ready   | 1920×1080  | Apr 17, 2026 |
+| File                 | Purpose                  | Status                                         | Resolution | Last Updated |
+| -------------------- | ------------------------ | ---------------------------------------------- | ---------- | ------------ |
+| `1-hero.png`         | Hero shot with headline  | ✅ Ready                                       | 1920×1080  | Apr 24, 2026 |
+| `2-actions.png`      | All 12 keypad actions    | ✅ Updated for v2.6.0 (gradient icons aligned) | 1920×1080  | Apr 24, 2026 |
+| `3-dials.png`        | All 5 Stream Deck+ dials | ✅ Ready                                       | 1920×1080  | Apr 24, 2026 |
+| `4-setup.png`        | 3-step setup walkthrough | ✅ Ready                                       | 1920×1080  | Apr 24, 2026 |
+| `5-v21-features.png` | New in v2.1 features     | ✅ Updated for v2.6.0 (gradient icons aligned) | 1920×1080  | Apr 24, 2026 |
+| `6-v22-features.png` | New in v2.2 features     | ✅ Updated for v2.6.0 (gradient icons aligned) | 1920×1080  | Apr 24, 2026 |
 
-**Upload all 6 images to Elgato Marketplace** — minimum 3 required, but all 6 provide complete feature showcase.
+**Upload all 6 images to Elgato Marketplace** — minimum 3 required, but all 6 provide complete feature showcase. All six were regenerated 2026-04-24 against the corrected gradient gallery SVGs (see commit `1f9d3f7`); no further regeneration needed for the v2.6.0 marketplace submission.
 
 ### Icon Assets (SVG)
 

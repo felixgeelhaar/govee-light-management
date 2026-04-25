@@ -1,8 +1,8 @@
-# Elgato Marketplace Store Listing — v2.4.0
+# Elgato Marketplace Store Listing — v2.6.0
 
-Use this content when submitting v2.4.0 to the Elgato Maker Console.
+Use this content when submitting v2.6.0 to the Elgato Maker Console.
 This is a cumulative rollup of every improvement shipped since the
-currently-approved marketplace version (v2.1.3).
+currently-approved marketplace version (v2.4.0).
 
 ---
 
@@ -61,6 +61,56 @@ The API key is entered once and shared across all actions. No accounts, no serve
 ### Compatibility
 
 Works with all Govee lights that support the Govee Developer API, including LED strips, bulbs, light bars, floor lamps, and RGB IC strip lights. Supports Stream Deck, Stream Deck MK.2, Stream Deck XL, Stream Deck Mini, Stream Deck Neo, Stream Deck Pedal, and Stream Deck+.
+
+---
+
+## What's New / Release Notes (v2.6.0)
+
+**The Sequence action grows up; effects no longer fight with your other buttons; segmented lights finally read their own state**
+
+v2.6.0 bundles every user-visible improvement since v2.4.0 (the version currently live on the marketplace) into one submission.
+
+### Sequence step builder — full command palette ([#199](https://github.com/felixgeelhaar/govee-light-management/issues/199))
+
+The Sequence action shipped with only four step commands (On / Off / Toggle / Brightness). That made it impossible to compose a single-button "set my default preset" inside Stream Deck's stock **Button Logic** action — Button Logic can't nest a Multi-Action, so the Sequence has to stand alone.
+
+The step builder now exposes the **full 12-command palette**:
+
+- Color (hex picker), Color Temperature (Kelvin)
+- Apply Scene (dynamic + DIY, queried per-light)
+- Apply Snapshot
+- Music Mode (mode + sensitivity slider)
+- Feature Toggle (gradient / nightlight / DreamView, with on/off)
+- Segment Color (per-segment hex)
+- Play Effect (Rainbow Wave, Pulse, Fade, Strobe, …)
+
+Each step targets its own light or group. The Property Inspector refreshes scene/snapshot/music/toggle dropdowns when the step's selected light changes, so dropdowns always reflect that specific device's capabilities. Existing Sequence settings deserialize unchanged — full backward compatibility.
+
+### Effects auto-cancel when other buttons fire
+
+When a Custom Effect (Pulse, Rainbow Wave, Strobe, …) was looping on a light and you pressed e.g. your On/Off button, the effect kept running — each new frame would re-wake the just-turned-off light because the effect player had no awareness of unrelated commands targeting the same device. **"Off" really turns the light off now.** The cancel-and-drain hook runs at every user-command path (power, brightness, color, color temp, scene, snapshot, music mode, feature toggle, segment color), so the last in-flight effect frame fully drains before your follow-up command lands.
+
+### Segmented light state finally reads correctly
+
+If you have an RGB IC strip that reports per-segment color or brightness, those values were always coming back as undefined — a substring-matching bug in the cloud-state parser routed segmented capabilities into the wrong branch and silently dropped them. Fixed upstream in `govee-api-client` 3.3.4 (which this release pulls in). Plugin code that depends on segmented state — including the new Segment Color Sequence step — now has accurate inputs to work with.
+
+### Partial-state recovery for malformed cloud responses
+
+Govee occasionally returns valid `powerSwitch` / `brightness` alongside garbage fields like `colorTemperatureK: 0` or `lightScene: {}`. The pre-2.6.0 parser threw on the malformed fields and discarded the **entire** response — leaving you without even the valid power and brightness values it could have shown. Each per-field parser is now defensive: bad fields are silently skipped, the rest of the state still surfaces. (Thanks @JoArchie for [govee-api-client #27](https://github.com/felixgeelhaar/govee-api-client/pull/27).)
+
+### Marketplace gallery icons aligned
+
+Seven gallery tile icons (scene, snapshot, music-mode, toggle, schedule, sequence, custom-effect) shipped as plain monochrome white while the rest used the gradient + glow + dark-rounded-rect key style. Half the keypad grid sparkled and half looked flat. All twelve gallery tiles now use the same gradient design — the screenshots in the marketplace gallery are consistent.
+
+### Rolled up from v2.4.1 / v2.4.2 / v2.4.3 (since marketplace baseline)
+
+- **Snapshot buttons now actually change light state** ([#198](https://github.com/felixgeelhaar/govee-light-management/issues/198)). Pre-fix, snapshot actions showed the green confirmation mark but never applied the snapshot on-device. Govee's cloud silently accepted the wrong payload shape with a 200 OK.
+- **Number input alongside sliders** ([#200](https://github.com/felixgeelhaar/govee-light-management/issues/200)). Brightness, Color Temperature, and the Saturation Dial Property Inspectors now show a compact number field next to each slider for direct entry — clamped to range, snapped to step, two-way synced.
+- **DreamView toggle now reaches the device.** DreamView toggle commands were being sent with the wrong capability type, so the command was silently dropped on Govee's side. Fixed defensively (`dreamViewToggle` mapped explicitly) and future-proof (suffix-based fallback so any new `*Toggle` instance routes correctly).
+
+### Upgrade
+
+Transparent upgrade — no settings migration. All existing actions, groups, schedules, scenes, snapshots, sequences, and custom effects continue to work exactly as configured.
 
 ---
 
