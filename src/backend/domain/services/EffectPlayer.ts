@@ -12,25 +12,36 @@ interface PlaybackState {
   resolveDelay?: () => void;
 }
 
+interface PlaybackEntry {
+  state: PlaybackState;
+  /** Resolves once the play-loop for this target has fully exited. */
+  done: Promise<void>;
+}
+
 /**
  * Plays RGB effects on target lights frame-by-frame.
  * Supports concurrent playback on different targets.
  * Handles Once and Loop modes with cancellation support.
  */
 export class EffectPlayer {
-  private playing = new Map<string, PlaybackState>();
+  private playing = new Map<string, PlaybackEntry>();
 
   constructor(private readonly frameHandler: EffectFrameHandler) {}
 
   /**
-   * Play an effect on a target. Cancels any existing playback on that target first.
+   * Play an effect on a target. Cancels any existing playback on that target first
+   * and waits for it to drain so the new effect doesn't race with the old one.
    */
   async play(targetId: string, effect: RgbEffect): Promise<void> {
-    // Cancel any existing playback on this target
-    this.cancel(targetId);
+    // Cancel any existing playback on this target and wait for it to fully stop.
+    await this.cancelAndWait(targetId);
 
     const state: PlaybackState = { cancelled: false };
-    this.playing.set(targetId, state);
+    let resolveDone!: () => void;
+    const done = new Promise<void>((resolve) => {
+      resolveDone = resolve;
+    });
+    this.playing.set(targetId, { state, done });
 
     try {
       do {
@@ -38,25 +49,46 @@ export class EffectPlayer {
       } while (!state.cancelled && effect.loopMode === LoopMode.Loop);
     } finally {
       this.playing.delete(targetId);
+      resolveDone();
     }
   }
 
   /**
-   * Cancel playback on a specific target.
+   * Cancel playback on a specific target. Returns true if a playback was running.
+   * Fire-and-forget: the play-loop exits on its next iteration. Use
+   * {@link cancelAndWait} if you need to know when the last in-flight frame
+   * has finished.
    */
   cancel(targetId: string): boolean {
-    const state = this.playing.get(targetId);
-    if (!state) return false;
+    const entry = this.playing.get(targetId);
+    if (!entry) return false;
 
-    state.cancelled = true;
-    if (state.currentTimer) {
-      clearTimeout(state.currentTimer);
-      state.currentTimer = undefined;
+    entry.state.cancelled = true;
+    if (entry.state.currentTimer) {
+      clearTimeout(entry.state.currentTimer);
+      entry.state.currentTimer = undefined;
     }
-    if (state.resolveDelay) {
-      state.resolveDelay();
-      state.resolveDelay = undefined;
+    if (entry.state.resolveDelay) {
+      entry.state.resolveDelay();
+      entry.state.resolveDelay = undefined;
     }
+    return true;
+  }
+
+  /**
+   * Cancel playback and await the play-loop fully exiting. Resolves immediately
+   * if nothing is playing on the target. Returns true when a playback was cancelled.
+   *
+   * Needed because in-flight frames can still land on the device after a plain
+   * cancel() — if a user then turns the light off, that trailing frame can
+   * re-wake the light. Callers that issue a follow-up command (power, color,
+   * scene, etc.) should await this so the effect fully drains first.
+   */
+  async cancelAndWait(targetId: string): Promise<boolean> {
+    const entry = this.playing.get(targetId);
+    if (!entry) return false;
+    this.cancel(targetId);
+    await entry.done;
     return true;
   }
 

@@ -124,6 +124,41 @@ describe("EffectPlayer", () => {
     });
   });
 
+  describe("cancelAndWait drain", () => {
+    it("resolves only after the play loop fully exits", async () => {
+      const effect = RgbEffect.create({
+        id: "e1",
+        name: "Loop",
+        frames: [
+          EffectFrame.uniform(0, "#FF0000"),
+          EffectFrame.uniform(200, "#00FF00"),
+        ],
+        loopMode: LoopMode.Loop,
+      });
+
+      const playPromise = player.play("target-1", effect);
+      // Let a couple of iterations dispatch so the play loop is deep inside.
+      await vi.advanceTimersByTimeAsync(500);
+
+      const cancelPromise = player.cancelAndWait("target-1");
+      // Before draining: target is still marked as playing.
+      expect(player.isPlaying("target-1")).toBe(true);
+
+      await vi.runAllTimersAsync();
+      const result = await cancelPromise;
+      await playPromise;
+
+      // After drain: target is fully stopped, no further frames could land.
+      expect(result).toBe(true);
+      expect(player.isPlaying("target-1")).toBe(false);
+    });
+
+    it("resolves immediately with false when nothing is playing", async () => {
+      const result = await player.cancelAndWait("nothing-here");
+      expect(result).toBe(false);
+    });
+  });
+
   describe("Independent Targets", () => {
     it("should play different effects on different targets", async () => {
       const effectA = RgbEffect.create({

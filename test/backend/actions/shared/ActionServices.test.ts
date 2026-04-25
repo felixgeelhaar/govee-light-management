@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ActionServices } from "../../../../src/backend/actions/shared/ActionServices";
+import {
+  ActionServices,
+  registerEffectCanceller,
+} from "../../../../src/backend/actions/shared/ActionServices";
 import { Light } from "../../../../src/backend/domain/entities/Light";
+import { LightGroup } from "../../../../src/backend/domain/entities/LightGroup";
 import type { LightState } from "../../../../src/backend/domain/value-objects/LightState";
+import type { DeviceTarget } from "../../../../src/backend/actions/shared/ActionServices";
 
 const makeLight = (opts: {
   deviceId?: string;
@@ -345,6 +350,257 @@ describe("ActionServices.ensurePreparedForTarget", () => {
 
       expect(repo.toggleGradient).not.toHaveBeenCalled();
     } finally {
+      restore();
+    }
+  });
+});
+
+/**
+ * #199 follow-up: Before any user-issued command reaches the device,
+ * ActionServices must cancel any RGB effect playing on the same target and
+ * wait for its last in-flight frame to drain. Otherwise a trailing frame
+ * lands on the device *after* the follow-up (e.g. "turn off") and re-wakes
+ * the light. These tests verify the canceller is invoked through every
+ * chokepoint and uses the correct key format.
+ */
+describe("ActionServices.cancelActiveEffectForTarget", () => {
+  afterEach(() => {
+    registerEffectCanceller(null);
+  });
+
+  it("cancels using light:deviceId|model for single-light targets", async () => {
+    const canceller = vi.fn().mockResolvedValue(true);
+    registerEffectCanceller(canceller);
+    const services = new ActionServices();
+    const light = makeLight({ deviceId: "dev-99", model: "H6159" });
+
+    await services.cancelActiveEffectForTarget({ type: "light", light });
+
+    expect(canceller).toHaveBeenCalledTimes(1);
+    expect(canceller).toHaveBeenCalledWith("light:dev-99|H6159");
+  });
+
+  it("cancels group id plus each member light for group targets", async () => {
+    const canceller = vi.fn().mockResolvedValue(true);
+    registerEffectCanceller(canceller);
+    const services = new ActionServices();
+    const l1 = makeLight({ deviceId: "a", model: "H6001" });
+    const l2 = makeLight({ deviceId: "b", model: "H6002" });
+    const group = LightGroup.create("grp-1", "Living Room", [l1, l2]);
+
+    await services.cancelActiveEffectForTarget({ type: "group", group });
+
+    expect(canceller.mock.calls.map((c) => c[0])).toEqual([
+      "group:grp-1",
+      "light:a|H6001",
+      "light:b|H6002",
+    ]);
+  });
+
+  it("is a safe no-op when no canceller is registered", async () => {
+    registerEffectCanceller(null);
+    const services = new ActionServices();
+    const light = makeLight();
+    // Must not throw.
+    await services.cancelActiveEffectForTarget({ type: "light", light });
+  });
+
+  it("swallows canceller errors so they don't block the user command", async () => {
+    const canceller = vi.fn().mockRejectedValue(new Error("boom"));
+    registerEffectCanceller(canceller);
+    const services = new ActionServices();
+    const light = makeLight();
+
+    await expect(
+      services.cancelActiveEffectForTarget({ type: "light", light }),
+    ).resolves.toBeUndefined();
+    expect(canceller).toHaveBeenCalled();
+  });
+});
+
+/**
+ * Integration-ish: ensure the cancel hook actually fires at each chokepoint.
+ * We mock the repository so repo calls are no-ops, install a canceller spy,
+ * and verify it was called before the repo call landed.
+ */
+describe("ActionServices chokepoint: cancel before user command", () => {
+  type RepoMock = {
+    setSegmentColors: ReturnType<typeof vi.fn>;
+    setLightScene: ReturnType<typeof vi.fn>;
+    setDiyScene: ReturnType<typeof vi.fn>;
+    applySnapshot: ReturnType<typeof vi.fn>;
+    toggleRaw: ReturnType<typeof vi.fn>;
+    setMusicModeRaw: ReturnType<typeof vi.fn>;
+    toggleGradient: ReturnType<typeof vi.fn>;
+    toggleNightlight: ReturnType<typeof vi.fn>;
+  };
+
+  const fullRepo = (): RepoMock => ({
+    setSegmentColors: vi.fn().mockResolvedValue(undefined),
+    setLightScene: vi.fn().mockResolvedValue(undefined),
+    setDiyScene: vi.fn().mockResolvedValue(undefined),
+    applySnapshot: vi.fn().mockResolvedValue(undefined),
+    toggleRaw: vi.fn().mockResolvedValue(undefined),
+    setMusicModeRaw: vi.fn().mockResolvedValue(undefined),
+    toggleGradient: vi.fn().mockResolvedValue(undefined),
+    toggleNightlight: vi.fn().mockResolvedValue(undefined),
+  });
+
+  const installRepo = (repo: RepoMock) => {
+    const shared = (
+      ActionServices as unknown as { _shared: { lightRepository?: unknown } }
+    )._shared;
+    const original = shared.lightRepository;
+    shared.lightRepository = repo;
+    return () => {
+      shared.lightRepository = original;
+    };
+  };
+
+  afterEach(() => {
+    registerEffectCanceller(null);
+  });
+
+  const expectCancelledBefore = async (
+    canceller: ReturnType<typeof vi.fn>,
+    repoFn: ReturnType<typeof vi.fn>,
+    trigger: () => Promise<void>,
+  ) => {
+    await trigger();
+    expect(canceller).toHaveBeenCalled();
+    expect(repoFn).toHaveBeenCalled();
+    // The cancel must happen before (or at latest simultaneously with) the
+    // repo dispatch — vi call ordering uses invocation order.
+    const cancelOrder = canceller.mock.invocationCallOrder[0];
+    const repoOrder = repoFn.mock.invocationCallOrder[0];
+    expect(cancelOrder).toBeLessThan(repoOrder);
+  };
+
+  it("setSegmentColors cancels the light's effect first", async () => {
+    const canceller = vi.fn().mockResolvedValue(true);
+    registerEffectCanceller(canceller);
+    const repo = fullRepo();
+    const restore = installRepo(repo);
+    try {
+      const services = new ActionServices();
+      const light = makeLight({ deviceId: "s1", model: "H61A0" });
+
+      await expectCancelledBefore(canceller, repo.setSegmentColors, () =>
+        services.setSegmentColors(light, []),
+      );
+      expect(canceller).toHaveBeenCalledWith("light:s1|H61A0");
+    } finally {
+      restore();
+    }
+  });
+
+  it("applyDynamicScene cancels first", async () => {
+    const canceller = vi.fn().mockResolvedValue(true);
+    registerEffectCanceller(canceller);
+    const repo = fullRepo();
+    const restore = installRepo(repo);
+    try {
+      const services = new ActionServices();
+      const light = makeLight();
+
+      await expectCancelledBefore(canceller, repo.setLightScene, () =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        services.applyDynamicScene(light, {} as any),
+      );
+    } finally {
+      restore();
+    }
+  });
+
+  it("applySnapshot cancels first", async () => {
+    const canceller = vi.fn().mockResolvedValue(true);
+    registerEffectCanceller(canceller);
+    const repo = fullRepo();
+    const restore = installRepo(repo);
+    try {
+      const services = new ActionServices();
+      const light = makeLight();
+
+      await expectCancelledBefore(canceller, repo.applySnapshot, () =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        services.applySnapshot(light, {} as any),
+      );
+    } finally {
+      restore();
+    }
+  });
+
+  it("toggleFeatureRaw cancels first", async () => {
+    const canceller = vi.fn().mockResolvedValue(true);
+    registerEffectCanceller(canceller);
+    const repo = fullRepo();
+    const restore = installRepo(repo);
+    try {
+      const services = new ActionServices();
+      const light = makeLight();
+
+      await expectCancelledBefore(canceller, repo.toggleRaw, () =>
+        services.toggleFeatureRaw(light, "gradientToggle", true),
+      );
+    } finally {
+      restore();
+    }
+  });
+
+  it("applyMusicModeRaw cancels first", async () => {
+    const canceller = vi.fn().mockResolvedValue(true);
+    registerEffectCanceller(canceller);
+    const repo = fullRepo();
+    const restore = installRepo(repo);
+    try {
+      const services = new ActionServices();
+      const light = makeLight();
+
+      await expectCancelledBefore(canceller, repo.setMusicModeRaw, () =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        services.applyMusicModeRaw(light, {} as any),
+      );
+    } finally {
+      restore();
+    }
+  });
+
+  it("controlTarget cancels first on light targets", async () => {
+    const canceller = vi.fn().mockResolvedValue(true);
+    registerEffectCanceller(canceller);
+    const repo = fullRepo();
+    const restore = installRepo(repo);
+
+    // controlTarget goes through LightControlService, which we can't easily
+    // mock at the shared level without a deeper rewrite. Stub the service
+    // method instead so the test is focused on the cancel-before-dispatch
+    // contract rather than the full control pipeline.
+    const controlService = {
+      controlLight: vi.fn().mockResolvedValue(undefined),
+      controlGroup: vi.fn().mockResolvedValue(undefined),
+    };
+    const shared = (
+      ActionServices as unknown as {
+        _shared: { lightControlService?: unknown };
+      }
+    )._shared;
+    const originalControl = shared.lightControlService;
+    shared.lightControlService = controlService;
+
+    try {
+      const services = new ActionServices();
+      const light = makeLight({ deviceId: "ct", model: "H6159" });
+      const target: DeviceTarget = { type: "light", light };
+
+      await services.controlTarget(target, "off");
+
+      expect(canceller).toHaveBeenCalledWith("light:ct|H6159");
+      expect(controlService.controlLight).toHaveBeenCalled();
+      const cancelOrder = canceller.mock.invocationCallOrder[0];
+      const controlOrder = controlService.controlLight.mock.invocationCallOrder[0];
+      expect(cancelOrder).toBeLessThan(controlOrder);
+    } finally {
+      shared.lightControlService = originalControl;
       restore();
     }
   });

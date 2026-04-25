@@ -5,7 +5,10 @@ import { RgbEffect } from "../domain/entities/RgbEffect";
 import { EffectFrame } from "../domain/value-objects/EffectFrame";
 import { ColorRgb } from "../domain/value-objects/ColorRgb";
 import { SegmentColor } from "../domain/value-objects/SegmentColor";
-import { ActionServices } from "../actions/shared/ActionServices";
+import {
+  ActionServices,
+  registerEffectCanceller,
+} from "../actions/shared/ActionServices";
 import { globalSettingsService } from "./GlobalSettingsService";
 
 /**
@@ -38,6 +41,16 @@ class EffectServiceImpl {
     return this.player.cancel(targetId);
   }
 
+  /**
+   * Cancel playback and wait for the play-loop to fully drain. Callers issuing
+   * a follow-up device command (power off, color change, scene apply, etc.)
+   * must await this so the last in-flight frame can't re-wake the light after
+   * the follow-up has landed.
+   */
+  async cancelAndWait(targetId: string): Promise<boolean> {
+    return this.player.cancelAndWait(targetId);
+  }
+
   isPlaying(targetId: string): boolean {
     return this.player.isPlaying(targetId);
   }
@@ -53,6 +66,10 @@ class EffectServiceImpl {
   /**
    * Apply a single frame to the target light by converting per-segment
    * colors to SegmentColor commands.
+   *
+   * Bypasses `ActionServices.setSegmentColors` and goes straight to the repo
+   * so the "cancel active effect before user command" guard on the public
+   * setSegmentColors path doesn't self-cancel this very playback loop.
    */
   private async renderFrame(
     targetId: string,
@@ -72,8 +89,16 @@ class EffectServiceImpl {
       SegmentColor.create(index, ColorRgb.fromHex(hex)),
     );
 
+    const repo = this.actionServices.lightRepository;
+    if (!repo) {
+      streamDeck.logger?.warn(
+        "Effect frame skipped: light repository not initialized",
+      );
+      return;
+    }
+
     try {
-      await this.actionServices.setSegmentColors(target.light, segments);
+      await repo.setSegmentColors(target.light, segments);
     } catch (error) {
       streamDeck.logger?.warn("Failed to render effect frame:", error);
     }
@@ -81,3 +106,8 @@ class EffectServiceImpl {
 }
 
 export const effectService = new EffectServiceImpl();
+
+// Register the late-bound cancel hook that ActionServices chokepoints call
+// before issuing user commands, so in-flight effect frames drain before a
+// follow-up power/color/scene/etc. command lands on the device.
+registerEffectCanceller((targetId) => effectService.cancelAndWait(targetId));

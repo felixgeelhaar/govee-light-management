@@ -165,6 +165,21 @@ function toDomainControlValue(
 
 export { sendToPI, sendPIDatasource };
 
+/**
+ * Late-bound effect-cancellation hook. EffectService registers its
+ * `cancelAndWait` here at module-load time (see EffectService.ts). Using
+ * late binding instead of a direct import avoids the circular module cycle
+ * (EffectService already imports ActionServices to drive device resolution).
+ *
+ * When null (e.g. in unit tests that don't load EffectService), the
+ * chokepoint guards below become no-ops, which is the safe default.
+ */
+type EffectCanceller = (targetId: string) => Promise<boolean>;
+let effectCanceller: EffectCanceller | null = null;
+export function registerEffectCanceller(fn: EffectCanceller | null): void {
+  effectCanceller = fn;
+}
+
 export interface DeviceTarget {
   type: "light" | "group";
   light?: Light;
@@ -1007,6 +1022,57 @@ export class ActionServices {
   }
 
   /**
+   * Cancel any RGB effect currently playing on the given target before a user
+   * command lands. Must be awaited so the last in-flight effect frame drains
+   * before the follow-up command reaches the device — otherwise a trailing
+   * frame can re-wake a just-turned-off light.
+   *
+   * For single lights: cancels the effect keyed by `light:deviceId|model`
+   * (matches what EffectService.playEffect is keyed by).
+   * For groups: iterates the group's controllable lights and cancels each.
+   * Both keys are also tried directly in case an effect was addressed by the
+   * group's composite id (future-proofing).
+   */
+  async cancelActiveEffectForTarget(target: DeviceTarget): Promise<void> {
+    if (!effectCanceller) return;
+    const targetIds: string[] = [];
+    if (target.type === "light" && target.light) {
+      targetIds.push(`light:${target.light.deviceId}|${target.light.model}`);
+    } else if (target.type === "group" && target.group) {
+      targetIds.push(`group:${target.group.id}`);
+      for (const light of target.group.getControllableLights()) {
+        targetIds.push(`light:${light.deviceId}|${light.model}`);
+      }
+    }
+    for (const id of targetIds) {
+      try {
+        await effectCanceller(id);
+      } catch (error) {
+        streamDeck.logger?.debug(
+          `cancelActiveEffectForTarget: cancel failed for ${id}`,
+          error,
+        );
+      }
+    }
+  }
+
+  /**
+   * Cancel the effect running on a single light. Used by setSegmentColors
+   * which doesn't have a DeviceTarget — just a Light.
+   */
+  private async cancelActiveEffectForLight(light: Light): Promise<void> {
+    if (!effectCanceller) return;
+    try {
+      await effectCanceller(`light:${light.deviceId}|${light.model}`);
+    } catch (error) {
+      streamDeck.logger?.debug(
+        `cancelActiveEffectForLight: cancel failed for ${light.deviceId}|${light.model}`,
+        error,
+      );
+    }
+  }
+
+  /**
    * Execute a control command on either a light or group
    * Includes retry logic with exponential backoff for resilience
    */
@@ -1019,6 +1085,8 @@ export class ActionServices {
     if (!this.lightControlService) {
       throw new Error("Light control service not initialized");
     }
+
+    await this.cancelActiveEffectForTarget(target);
 
     const execute = async (attempt: number): Promise<void> => {
       try {
@@ -1062,6 +1130,10 @@ export class ActionServices {
 
   /**
    * Apply per-segment colors to a single light (RGB IC lights only).
+   *
+   * Cancels any active effect on the target first. EffectService.renderFrame
+   * bypasses this method and goes straight to the repo so it doesn't
+   * self-cancel during its own play-loop.
    */
   async setSegmentColors(
     light: Light,
@@ -1070,6 +1142,7 @@ export class ActionServices {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
+    await this.cancelActiveEffectForLight(light);
     await this.lightRepository.setSegmentColors(light, segments);
   }
 
@@ -1102,6 +1175,7 @@ export class ActionServices {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
+    await this.cancelActiveEffectForLight(light);
     await this.lightRepository.setLightScene(light, scene);
   }
 
@@ -1109,6 +1183,7 @@ export class ActionServices {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
+    await this.cancelActiveEffectForLight(light);
     await this.lightRepository.setDiyScene(light, scene);
   }
 
@@ -1127,6 +1202,7 @@ export class ActionServices {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
+    await this.cancelActiveEffectForLight(light);
     await this.lightRepository.applySnapshot(light, snapshot);
   }
 
@@ -1138,6 +1214,7 @@ export class ActionServices {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
+    await this.cancelActiveEffectForLight(light);
     await this.lightRepository.toggleRaw(light, instance, enabled);
   }
 
@@ -1323,6 +1400,7 @@ export class ActionServices {
     if (!this.lightRepository) {
       throw new Error("Light repository not initialized");
     }
+    await this.cancelActiveEffectForLight(light);
     await this.lightRepository.setMusicModeRaw(light, musicMode);
   }
 
