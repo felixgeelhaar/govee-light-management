@@ -99,3 +99,87 @@ for (const {
     });
   });
 }
+
+/**
+ * #199 invariant: the Sequence step builder must expose the full command
+ * palette (color / color-temperature / scene / snapshot / music mode /
+ * feature toggle / segment color / effect) with a per-command input row
+ * wired up. When the command dropdown changes, exactly one input row is
+ * visible. Regressions here are invisible — the backend would accept the
+ * payload but users couldn't build the step — so this test locks in the
+ * UI surface.
+ */
+test.describe("Sequence builder: all command rows present", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/ui/sequence.html");
+  });
+
+  const REQUIRED_COMMAND_VALUES = [
+    "on",
+    "off",
+    "toggle",
+    "brightness",
+    "color",
+    "colorTemperature",
+    "scene",
+    "snapshot",
+    "music-mode",
+    "feature-toggle",
+    "segment-color",
+    "effect",
+  ];
+
+  // sdpi-select moves its declared <option> children into its shadow DOM at
+  // construction, so Playwright's descendant locator can't find them in the
+  // light DOM. Instead we verify the command-value palette against the page
+  // HTML source — which is what the user sees on load and what ships.
+  test("command dropdown exposes every expected value", async ({ page }) => {
+    const html = await page.content();
+    for (const value of REQUIRED_COMMAND_VALUES) {
+      expect(html).toContain(`value="${value}"`);
+    }
+  });
+
+  const REQUIRED_ROWS = [
+    "row-brightness",
+    "row-color",
+    "row-colortemp",
+    "row-scene",
+    "row-snapshot",
+    "row-music-mode",
+    "row-music-sensitivity",
+    "row-toggle-feature",
+    "row-toggle-state",
+    "row-segment-index",
+    "row-segment-color",
+    "row-effect",
+  ];
+
+  for (const id of REQUIRED_ROWS) {
+    test(`per-command row #${id} is present in the builder`, async ({
+      page,
+    }) => {
+      await expect(page.locator(`#${id}`)).toBeAttached();
+    });
+  }
+
+  test("scene/snapshot/music/toggle/effect selects bind to their datasources", async ({
+    page,
+  }) => {
+    await expect(
+      page.locator('#stepScene[datasource="getScenes"]'),
+    ).toBeAttached();
+    await expect(
+      page.locator('#stepSnapshot[datasource="getSnapshots"]'),
+    ).toBeAttached();
+    await expect(
+      page.locator('#stepMusicMode[datasource="getMusicModes"]'),
+    ).toBeAttached();
+    await expect(
+      page.locator('#stepToggleFeature[datasource="getToggleFeatures"]'),
+    ).toBeAttached();
+    await expect(
+      page.locator('#stepEffect[datasource="getEffects"]'),
+    ).toBeAttached();
+  });
+});

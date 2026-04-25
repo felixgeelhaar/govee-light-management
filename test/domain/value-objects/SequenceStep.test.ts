@@ -246,6 +246,185 @@ describe("SequenceStep", () => {
     });
   });
 
+  describe("Music Mode Step (#199)", () => {
+    it("creates a music-mode step with payload", () => {
+      const step = SequenceStep.musicMode("light:dev|H6159", "light", {
+        modeId: 3,
+        name: "Rhythm",
+        sensitivity: 70,
+      });
+      expect(step.type).toBe(StepType.Action);
+      expect(step.command).toBe("music-mode");
+      expect(step.musicModePayload?.modeId).toBe(3);
+      expect(step.musicModePayload?.sensitivity).toBe(70);
+    });
+
+    it("rejects non-positive mode id", () => {
+      expect(() =>
+        SequenceStep.musicMode("light:dev|H6159", "light", {
+          modeId: 0,
+          name: "x",
+          sensitivity: 50,
+        }),
+      ).toThrow(/Invalid music mode id/);
+    });
+
+    it("rejects out-of-range sensitivity", () => {
+      expect(() =>
+        SequenceStep.musicMode("light:dev|H6159", "light", {
+          modeId: 3,
+          name: "Rhythm",
+          sensitivity: 150,
+        }),
+      ).toThrow(/sensitivity must be 0-100/);
+    });
+
+    it("direct action(command:'music-mode') without payload throws", () => {
+      expect(() =>
+        SequenceStep.action({
+          targetId: "light:dev|H6159",
+          targetType: "light",
+          command: "music-mode",
+        }),
+      ).toThrow(/Music mode step requires musicModePayload/);
+    });
+
+    it("round-trips music-mode step via JSON preserving payload", () => {
+      const original = SequenceStep.musicMode("group:g1", "group", {
+        modeId: 5,
+        name: "Energic",
+        sensitivity: 80,
+      });
+      const restored = SequenceStep.fromJSON(original.toJSON());
+      expect(restored.command).toBe("music-mode");
+      expect(restored.musicModePayload).toEqual({
+        modeId: 5,
+        name: "Energic",
+        sensitivity: 80,
+      });
+    });
+  });
+
+  describe("Feature Toggle Step (#199)", () => {
+    it("creates a feature-toggle step with payload", () => {
+      const step = SequenceStep.featureToggle("light:dev|H6159", "light", {
+        instance: "gradientToggle",
+        name: "Gradient",
+        enabled: true,
+      });
+      expect(step.command).toBe("feature-toggle");
+      expect(step.togglePayload?.instance).toBe("gradientToggle");
+      expect(step.togglePayload?.enabled).toBe(true);
+    });
+
+    it("rejects empty instance", () => {
+      expect(() =>
+        SequenceStep.featureToggle("light:dev|H6159", "light", {
+          instance: "",
+          name: "x",
+          enabled: false,
+        }),
+      ).toThrow(/instance cannot be empty/);
+    });
+
+    it("round-trips feature-toggle step via JSON", () => {
+      const original = SequenceStep.featureToggle("light:dev|H6159", "light", {
+        instance: "nightlightToggle",
+        name: "Nightlight",
+        enabled: false,
+      });
+      const restored = SequenceStep.fromJSON(original.toJSON());
+      expect(restored.togglePayload).toEqual({
+        instance: "nightlightToggle",
+        name: "Nightlight",
+        enabled: false,
+      });
+    });
+  });
+
+  describe("Segment Color Step (#199)", () => {
+    it("creates a segment-color step with per-segment hex overrides", () => {
+      const step = SequenceStep.segmentColor("light:dev|H6159", "light", {
+        segments: [
+          { index: 0, hex: "#FF0000" },
+          { index: 1, hex: "#00FF00" },
+        ],
+      });
+      expect(step.command).toBe("segment-color");
+      expect(step.segmentColorPayload?.segments).toHaveLength(2);
+    });
+
+    it("rejects empty segment list", () => {
+      expect(() =>
+        SequenceStep.segmentColor("light:dev|H6159", "light", {
+          segments: [],
+        }),
+      ).toThrow(/at least one segment/);
+    });
+
+    it("rejects out-of-range segment index", () => {
+      expect(() =>
+        SequenceStep.segmentColor("light:dev|H6159", "light", {
+          segments: [{ index: 15, hex: "#FF0000" }],
+        }),
+      ).toThrow(/Segment index must be an integer 0-14/);
+    });
+
+    it("rejects invalid hex color", () => {
+      expect(() =>
+        SequenceStep.segmentColor("light:dev|H6159", "light", {
+          segments: [{ index: 0, hex: "red" }],
+        }),
+      ).toThrow(/Segment hex color invalid/);
+    });
+
+    it("round-trips segment-color step via JSON", () => {
+      const original = SequenceStep.segmentColor("light:dev|H6159", "light", {
+        segments: [
+          { index: 0, hex: "#FF0000" },
+          { index: 14, hex: "#0000FF" },
+        ],
+      });
+      const restored = SequenceStep.fromJSON(original.toJSON());
+      expect(restored.segmentColorPayload?.segments).toEqual([
+        { index: 0, hex: "#FF0000" },
+        { index: 14, hex: "#0000FF" },
+      ]);
+    });
+  });
+
+  describe("Effect Step (#199)", () => {
+    it("creates an effect step with preset id", () => {
+      const step = SequenceStep.effect("light:dev|H6159", "light", {
+        presetId: "rainbow-wave",
+        name: "Rainbow Wave",
+      });
+      expect(step.command).toBe("effect");
+      expect(step.effectPayload?.presetId).toBe("rainbow-wave");
+    });
+
+    it("rejects empty preset id", () => {
+      expect(() =>
+        SequenceStep.effect("light:dev|H6159", "light", {
+          presetId: "",
+          name: "x",
+        }),
+      ).toThrow(/preset id/);
+    });
+
+    it("round-trips effect step via JSON", () => {
+      const original = SequenceStep.effect("light:dev|H6159", "light", {
+        presetId: "pulse",
+        name: "Pulse",
+      });
+      const restored = SequenceStep.fromJSON(original.toJSON());
+      expect(restored.effectPayload).toEqual({
+        presetId: "pulse",
+        name: "Pulse",
+      });
+    });
+  });
+
   describe("Backwards-compat: legacy JSON (no new fields) still deserializes", () => {
     it("action step without scenePayload/snapshotPayload fields loads cleanly", () => {
       // Persisted settings from pre-#199 versions never had these fields.

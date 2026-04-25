@@ -5,11 +5,14 @@ import { ColorTemperature } from "../domain/value-objects/ColorTemperature";
 import { DynamicSceneOption } from "../domain/value-objects/DynamicSceneOption";
 import { DiySceneOption } from "../domain/value-objects/DiySceneOption";
 import { SnapshotOption } from "../domain/value-objects/SnapshotOption";
+import { MusicModeOption } from "../domain/value-objects/MusicModeOption";
+import { SegmentColor } from "../domain/value-objects/SegmentColor";
 import { Sequence } from "../domain/entities/Sequence";
 import { SequenceStep, StepType } from "../domain/value-objects/SequenceStep";
 import { SequenceExecutor } from "../domain/services/SequenceExecutor";
 import { ActionServices } from "../actions/shared/ActionServices";
 import { globalSettingsService } from "./GlobalSettingsService";
+import { effectService } from "./EffectService";
 
 /**
  * Plugin-level service coordinating sequence execution.
@@ -141,6 +144,103 @@ class SequenceServiceImpl {
           );
         }
       }
+      return;
+    }
+
+    if (step.command === "music-mode" && step.musicModePayload) {
+      const payload = step.musicModePayload;
+      const musicMode = MusicModeOption.create(
+        payload.modeId,
+        payload.sensitivity,
+      );
+      const lights =
+        target.type === "light" && target.light
+          ? [target.light]
+          : (target.group?.getControllableLights() ?? []);
+      for (const light of lights) {
+        try {
+          await this.actionServices.applyMusicModeRaw(light, musicMode);
+        } catch (error) {
+          streamDeck.logger?.warn(
+            `Sequence music-mode step failed for ${light.name}:`,
+            error,
+          );
+        }
+      }
+      return;
+    }
+
+    if (step.command === "feature-toggle" && step.togglePayload) {
+      const payload = step.togglePayload;
+      const lights =
+        target.type === "light" && target.light
+          ? [target.light]
+          : (target.group?.getControllableLights() ?? []);
+      for (const light of lights) {
+        try {
+          await this.actionServices.toggleFeatureRaw(
+            light,
+            payload.instance,
+            payload.enabled,
+          );
+        } catch (error) {
+          streamDeck.logger?.warn(
+            `Sequence feature-toggle step failed for ${light.name}:`,
+            error,
+          );
+        }
+      }
+      return;
+    }
+
+    if (step.command === "segment-color" && step.segmentColorPayload) {
+      const payload = step.segmentColorPayload;
+      const segments: SegmentColor[] = payload.segments.map((seg) =>
+        SegmentColor.create(seg.index, ColorRgb.fromHex(seg.hex)),
+      );
+      const lights =
+        target.type === "light" && target.light
+          ? [target.light]
+          : (target.group?.getControllableLights() ?? []);
+      for (const light of lights) {
+        try {
+          await this.actionServices.setSegmentColors(light, segments);
+        } catch (error) {
+          streamDeck.logger?.warn(
+            `Sequence segment-color step failed for ${light.name}:`,
+            error,
+          );
+        }
+      }
+      return;
+    }
+
+    if (step.command === "effect" && step.effectPayload) {
+      const payload = step.effectPayload;
+      const preset = effectService.getPresetById(payload.presetId);
+      if (!preset) {
+        streamDeck.logger?.warn(
+          `Sequence effect step skipped: preset '${payload.presetId}' not found`,
+        );
+        return;
+      }
+      // Effects run on single lights only. For groups, kick off playback on
+      // each controllable light. Fire-and-forget so sequence progression isn't
+      // blocked by a looping effect — the user can cancel it manually later.
+      const lights =
+        target.type === "light" && target.light
+          ? [target.light]
+          : (target.group?.getControllableLights() ?? []);
+      for (const light of lights) {
+        const targetId = `light:${light.deviceId}|${light.model}`;
+        void effectService.playEffect(targetId, preset).catch((error) => {
+          streamDeck.logger?.warn(
+            `Sequence effect step failed for ${light.name}:`,
+            error,
+          );
+        });
+      }
+      return;
     }
   }
 

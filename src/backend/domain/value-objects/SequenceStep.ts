@@ -13,7 +13,11 @@ export type StepCommand =
   | "color"
   | "colorTemperature"
   | "scene"
-  | "snapshot";
+  | "snapshot"
+  | "music-mode"
+  | "feature-toggle"
+  | "segment-color"
+  | "effect";
 
 /** Structured payload for a scene step (dynamic or user-created DIY). */
 export interface ScenePayload {
@@ -30,6 +34,36 @@ export interface SnapshotPayload {
   name: string;
 }
 
+/** Structured payload for a music-mode step. */
+export interface MusicModePayload {
+  modeId: number;
+  name: string;
+  /** Audio sensitivity (0-100). */
+  sensitivity: number;
+}
+
+/** Structured payload for a feature-toggle step (nightlight / gradient / DreamView / etc.). */
+export interface TogglePayload {
+  /** Govee capability instance, e.g. "gradientToggle". */
+  instance: string;
+  /** Human-readable label for display. */
+  name: string;
+  /** Target state to apply. */
+  enabled: boolean;
+}
+
+/** Structured payload for a segment-color step (RGB IC lights only). */
+export interface SegmentColorPayload {
+  /** Per-segment overrides: 1-15 segments, values 0-14. */
+  segments: Array<{ index: number; hex: string }>;
+}
+
+/** Structured payload for an RGB effect preset step. */
+export interface EffectPayload {
+  presetId: string;
+  name: string;
+}
+
 export interface ActionStepProps {
   targetId: string;
   targetType: StepTarget;
@@ -37,6 +71,10 @@ export interface ActionStepProps {
   commandValue?: number | string;
   scenePayload?: ScenePayload;
   snapshotPayload?: SnapshotPayload;
+  musicModePayload?: MusicModePayload;
+  togglePayload?: TogglePayload;
+  segmentColorPayload?: SegmentColorPayload;
+  effectPayload?: EffectPayload;
 }
 
 export interface SequenceStepJSON {
@@ -47,6 +85,10 @@ export interface SequenceStepJSON {
   commandValue?: number | string;
   scenePayload?: ScenePayload;
   snapshotPayload?: SnapshotPayload;
+  musicModePayload?: MusicModePayload;
+  togglePayload?: TogglePayload;
+  segmentColorPayload?: SegmentColorPayload;
+  effectPayload?: EffectPayload;
   durationMs?: number;
 }
 
@@ -58,7 +100,9 @@ export interface SequenceStepJSON {
  *  - Power: "on", "off", "toggle"
  *  - Scalar-valued: "brightness" (0-100), "color" (hex string),
  *    "colorTemperature" (kelvin number)
- *  - Structured: "scene" (uses scenePayload), "snapshot" (uses snapshotPayload)
+ *  - Structured: "scene" (scenePayload), "snapshot" (snapshotPayload),
+ *    "music-mode" (musicModePayload), "feature-toggle" (togglePayload),
+ *    "segment-color" (segmentColorPayload), "effect" (effectPayload)
  *
  * The structured payload shape is used for commands whose domain value
  * doesn't fit a simple scalar. Older JSON blobs without these fields
@@ -74,6 +118,10 @@ export class SequenceStep {
       commandValue?: number | string;
       scenePayload?: ScenePayload;
       snapshotPayload?: SnapshotPayload;
+      musicModePayload?: MusicModePayload;
+      togglePayload?: TogglePayload;
+      segmentColorPayload?: SegmentColorPayload;
+      effectPayload?: EffectPayload;
       durationMs?: number;
     },
   ) {}
@@ -90,6 +138,18 @@ export class SequenceStep {
     if (props.command === "snapshot" && !props.snapshotPayload) {
       throw new Error("Snapshot step requires snapshotPayload");
     }
+    if (props.command === "music-mode" && !props.musicModePayload) {
+      throw new Error("Music mode step requires musicModePayload");
+    }
+    if (props.command === "feature-toggle" && !props.togglePayload) {
+      throw new Error("Feature toggle step requires togglePayload");
+    }
+    if (props.command === "segment-color" && !props.segmentColorPayload) {
+      throw new Error("Segment color step requires segmentColorPayload");
+    }
+    if (props.command === "effect" && !props.effectPayload) {
+      throw new Error("Effect step requires effectPayload");
+    }
     return new SequenceStep(StepType.Action, {
       targetId: props.targetId,
       targetType: props.targetType,
@@ -97,6 +157,10 @@ export class SequenceStep {
       commandValue: props.commandValue,
       scenePayload: props.scenePayload,
       snapshotPayload: props.snapshotPayload,
+      musicModePayload: props.musicModePayload,
+      togglePayload: props.togglePayload,
+      segmentColorPayload: props.segmentColorPayload,
+      effectPayload: props.effectPayload,
     });
   }
 
@@ -132,6 +196,93 @@ export class SequenceStep {
       targetType,
       command: "snapshot",
       snapshotPayload: payload,
+    });
+  }
+
+  static musicMode(
+    targetId: string,
+    targetType: StepTarget,
+    payload: MusicModePayload,
+  ): SequenceStep {
+    if (!Number.isInteger(payload.modeId) || payload.modeId <= 0) {
+      throw new Error(`Invalid music mode id: ${payload.modeId}`);
+    }
+    if (
+      !Number.isFinite(payload.sensitivity) ||
+      payload.sensitivity < 0 ||
+      payload.sensitivity > 100
+    ) {
+      throw new Error(
+        `Music mode sensitivity must be 0-100 (got ${payload.sensitivity})`,
+      );
+    }
+    return SequenceStep.action({
+      targetId,
+      targetType,
+      command: "music-mode",
+      musicModePayload: payload,
+    });
+  }
+
+  static featureToggle(
+    targetId: string,
+    targetType: StepTarget,
+    payload: TogglePayload,
+  ): SequenceStep {
+    if (!payload.instance || payload.instance.trim() === "") {
+      throw new Error("Feature toggle instance cannot be empty");
+    }
+    return SequenceStep.action({
+      targetId,
+      targetType,
+      command: "feature-toggle",
+      togglePayload: payload,
+    });
+  }
+
+  static segmentColor(
+    targetId: string,
+    targetType: StepTarget,
+    payload: SegmentColorPayload,
+  ): SequenceStep {
+    if (!Array.isArray(payload.segments) || payload.segments.length === 0) {
+      throw new Error("Segment color step requires at least one segment");
+    }
+    for (const segment of payload.segments) {
+      if (
+        !Number.isInteger(segment.index) ||
+        segment.index < 0 ||
+        segment.index > 14
+      ) {
+        throw new Error(
+          `Segment index must be an integer 0-14 (got ${segment.index})`,
+        );
+      }
+      if (!/^#[0-9A-Fa-f]{6}$/.test(segment.hex)) {
+        throw new Error(`Segment hex color invalid: ${segment.hex}`);
+      }
+    }
+    return SequenceStep.action({
+      targetId,
+      targetType,
+      command: "segment-color",
+      segmentColorPayload: payload,
+    });
+  }
+
+  static effect(
+    targetId: string,
+    targetType: StepTarget,
+    payload: EffectPayload,
+  ): SequenceStep {
+    if (!payload.presetId || payload.presetId.trim() === "") {
+      throw new Error("Effect step requires a preset id");
+    }
+    return SequenceStep.action({
+      targetId,
+      targetType,
+      command: "effect",
+      effectPayload: payload,
     });
   }
 
@@ -171,6 +322,22 @@ export class SequenceStep {
     return this.data.snapshotPayload;
   }
 
+  get musicModePayload(): MusicModePayload | undefined {
+    return this.data.musicModePayload;
+  }
+
+  get togglePayload(): TogglePayload | undefined {
+    return this.data.togglePayload;
+  }
+
+  get segmentColorPayload(): SegmentColorPayload | undefined {
+    return this.data.segmentColorPayload;
+  }
+
+  get effectPayload(): EffectPayload | undefined {
+    return this.data.effectPayload;
+  }
+
   // ─── Delay Step Properties ───────────────────────────────
 
   get durationMs(): number | undefined {
@@ -188,6 +355,10 @@ export class SequenceStep {
       commandValue: this.data.commandValue,
       scenePayload: this.data.scenePayload,
       snapshotPayload: this.data.snapshotPayload,
+      musicModePayload: this.data.musicModePayload,
+      togglePayload: this.data.togglePayload,
+      segmentColorPayload: this.data.segmentColorPayload,
+      effectPayload: this.data.effectPayload,
       durationMs: this.data.durationMs,
     };
   }
@@ -201,6 +372,10 @@ export class SequenceStep {
         commandValue: json.commandValue,
         scenePayload: json.scenePayload,
         snapshotPayload: json.snapshotPayload,
+        musicModePayload: json.musicModePayload,
+        togglePayload: json.togglePayload,
+        segmentColorPayload: json.segmentColorPayload,
+        effectPayload: json.effectPayload,
       });
     }
     return SequenceStep.delay(json.durationMs!);
