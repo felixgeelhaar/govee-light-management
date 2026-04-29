@@ -234,6 +234,34 @@
 	color: #ff6b6b;
 }
 
+/* ── Injected PI controls ── */
+
+/* Change API Key button: fill the value column and stay centered */
+#editApiKeyBtn {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	background: #464646;
+	border: none;
+	border-radius: 3px;
+	color: #d8d8d8;
+	cursor: pointer;
+	font-size: 12px;
+	padding: 5px 12px;
+	text-align: center;
+}
+
+#editApiKeyBtn:hover {
+	background: #555;
+}
+
+/* Metadata details: fill the value column so the label stays aligned */
+.metadata-details {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+}
+
 /* Slider paired with a direct-entry number input (#200). */
 .range-with-number {
 	display: flex;

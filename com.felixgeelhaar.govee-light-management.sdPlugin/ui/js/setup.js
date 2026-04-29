@@ -385,7 +385,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const button = document.createElement("button");
     button.type = "button";
     button.id = "editApiKeyBtn";
-    button.className = "sdpi-item-value group-cancel-btn";
+    button.className = "sdpi-item-value";
     button.textContent = "Change API Key";
     button.addEventListener("click", () => {
       failedElem.classList.add("hidden");
