@@ -4,6 +4,21 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
+## [2.6.1] - 2026-04-29
+
+### Fixed
+
+- **Cross-action power state sync** ([#228](https://github.com/felixgeelhaar/govee-light-management/issues/228)). When Brightness, Color, Color Temperature, Scene, Snapshot, Segment Color, or Music Mode commands turned a light on, the repository only updated the specific property (e.g. `brightness`) but left `isOn` unchanged. The OnOff button and dials still saw `isOn: false` from their shared snapshot, so they showed the wrong indicator (○ instead of ●). Every display/control command now correctly marks `isOn: true` so state propagates across all actions.
+- **`verifyLivePowerState` false-negative** ([#228](https://github.com/felixgeelhaar/govee-light-management/issues/228)). After sending a power command, the code polled the API up to 3×200ms to verify the state changed. If Govee's cloud hadn't updated yet (very common), it threw an error which caused a red alert on the Stream Deck key and reverted the cached state to the old value — leaving the title out of sync. Now logs a warning and trusts the optimistic state; periodic live-sync corrects any drift.
+- **Property Inspector alignment** — "Change API Key" button and "Metadata" dropdown were not filling the SDPI value column, causing them to appear misaligned with their labels. Added dedicated CSS so both span the full value width and stay centered.
+
+### Tests
+
+- 11 new regression tests covering all repository control commands that should set `isOn=true` after success, plus verification that feature toggles (nightlight, gradient) do not touch `isOn`.
+- 578 unit tests passing, zero TypeScript errors, zero lint errors.
+
+---
+
 ## [2.6.0] - 2026-04-25
 
 ### Added
