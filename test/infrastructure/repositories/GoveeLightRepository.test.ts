@@ -85,6 +85,7 @@ describe("GoveeLightRepository DIY scene support", () => {
     deviceId: "30:36:D0:C8:05:46:4B:40",
     model: "H61E5",
     name: "Desk light",
+    updateState: vi.fn(),
   } as any;
 
   beforeEach(() => {
