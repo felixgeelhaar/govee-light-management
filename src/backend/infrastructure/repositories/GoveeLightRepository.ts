@@ -156,13 +156,13 @@ export class GoveeLightRepository implements ILightRepository {
         light.model,
         LightValueMapper.toApiBrightness(brightness),
       );
-      light.updateState({ brightness });
+      light.updateState({ isOn: true, brightness });
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
           `Brightness command sent but response validation failed for ${light.name}`,
         );
-        light.updateState({ brightness });
+        light.updateState({ isOn: true, brightness });
         return;
       }
       streamDeck.logger.error(
@@ -182,13 +182,13 @@ export class GoveeLightRepository implements ILightRepository {
         light.model,
         LightValueMapper.toApiColor(color),
       );
-      light.updateState({ color, colorTemperature: undefined });
+      light.updateState({ isOn: true, color, colorTemperature: undefined });
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
           `Color command sent but response validation failed for ${light.name}`,
         );
-        light.updateState({ color, colorTemperature: undefined });
+        light.updateState({ isOn: true, color, colorTemperature: undefined });
         return;
       }
       streamDeck.logger.error(
@@ -211,13 +211,13 @@ export class GoveeLightRepository implements ILightRepository {
         light.model,
         LightValueMapper.toApiColorTemperature(colorTemperature),
       );
-      light.updateState({ colorTemperature, color: undefined });
+      light.updateState({ isOn: true, colorTemperature, color: undefined });
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
           `Color temperature command sent but response validation failed for ${light.name}`,
         );
-        light.updateState({ colorTemperature, color: undefined });
+        light.updateState({ isOn: true, colorTemperature, color: undefined });
         return;
       }
       streamDeck.logger.error(
@@ -411,11 +411,13 @@ export class GoveeLightRepository implements ILightRepository {
     try {
       const apiScene = SceneMapper.toApiLightScene(scene);
       await this.client.setLightScene(light.deviceId, light.model, apiScene);
+      light.updateState({ isOn: true });
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
           `Scene command sent but response validation failed for ${light.name}`,
         );
+        light.updateState({ isOn: true });
         return;
       }
       streamDeck.logger.error(
@@ -435,11 +437,13 @@ export class GoveeLightRepository implements ILightRepository {
         light.model,
         new LightScene(scene.id, scene.paramId, scene.name),
       );
+      light.updateState({ isOn: true });
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
           `Scene command sent but response validation failed for ${light.name}`,
         );
+        light.updateState({ isOn: true });
         return;
       }
       streamDeck.logger.error(
@@ -459,11 +463,13 @@ export class GoveeLightRepository implements ILightRepository {
         light.model,
         new DiyScene(scene.id, scene.paramId, scene.name),
       );
+      light.updateState({ isOn: true });
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
           `DIY scene command sent but response validation failed for ${light.name}`,
         );
+        light.updateState({ isOn: true });
         return;
       }
       streamDeck.logger.error(
@@ -561,11 +567,13 @@ export class GoveeLightRepository implements ILightRepository {
         light.model,
         new Snapshot(snapshot.id, snapshot.paramId, snapshot.name),
       );
+      light.updateState({ isOn: true });
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
           `Snapshot command sent but response validation failed for ${light.name}`,
         );
+        light.updateState({ isOn: true });
         return;
       }
       streamDeck.logger.error(
@@ -607,12 +615,14 @@ export class GoveeLightRepository implements ILightRepository {
           apiSegments,
         );
       }
+      light.updateState({ isOn: true });
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger?.warn(
           "Segment colors set (ignored validation error)",
           error,
         );
+        light.updateState({ isOn: true });
         return;
       }
       throw error;
@@ -623,11 +633,13 @@ export class GoveeLightRepository implements ILightRepository {
     try {
       const apiMode = MusicModeMapper.toApiMusicMode(config);
       await this.client.setMusicMode(light.deviceId, light.model, apiMode);
+      light.updateState({ isOn: true });
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
           `Music mode command sent but response validation failed for ${light.name}`,
         );
+        light.updateState({ isOn: true });
         return;
       }
       streamDeck.logger.error(
@@ -694,11 +706,13 @@ export class GoveeLightRepository implements ILightRepository {
         light.model,
         new MusicMode(musicMode.modeId, musicMode.sensitivity),
       );
+      light.updateState({ isOn: true });
     } catch (error) {
       if (isValidationError(error)) {
         streamDeck.logger.warn(
           `Music mode command sent but response validation failed for ${light.name}`,
         );
+        light.updateState({ isOn: true });
         return;
       }
       streamDeck.logger.error(

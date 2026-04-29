@@ -1388,9 +1388,17 @@ export class ActionServices {
       return;
     }
 
-    throw new Error(
-      `Power state did not update to ${expected ? "on" : "off"} (actual: ${observedKnownState ? "on" : "off"})`,
-    );
+    // Govee's cloud API can take several seconds to reflect state changes.
+    // Throwing here would show a false alert and revert the optimistic state,
+    // leaving the button title out of sync with the actual light. Warn instead
+    // and let the periodic live-sync correct any drift.
+    streamDeck.logger.warn("light.power.verify.lag", {
+      deviceId: light.deviceId,
+      model: light.model,
+      name: light.name,
+      expected,
+      actual: observedKnownState,
+    });
   }
 
   async applyMusicModeRaw(
