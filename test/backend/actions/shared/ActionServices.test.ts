@@ -605,3 +605,146 @@ describe("ActionServices chokepoint: cancel before user command", () => {
     }
   });
 });
+
+/**
+ * v2.7.0: cross-action group state sync. Before this, controlTarget
+ * only called rememberLightState on the single-light path; toggling a
+ * group from one action left the snapshot store stale and other actions
+ * pointed at the same lights saw old state until their own next API
+ * round-trip. Pin the new behaviour: every controllable member of the
+ * group target gets its post-command state remembered.
+ */
+describe("ActionServices.controlTarget — group state remembering", () => {
+  it("remembers state for each controllable group member after a successful command", async () => {
+    const repo = {
+      toggleGradient: vi.fn().mockResolvedValue(undefined),
+      toggleNightlight: vi.fn().mockResolvedValue(undefined),
+    };
+    const restore = installMockRepo(repo);
+
+    const controlService = {
+      controlLight: vi.fn().mockResolvedValue(undefined),
+      controlGroup: vi.fn().mockResolvedValue(undefined),
+    };
+    const shared = (
+      ActionServices as unknown as {
+        _shared: { lightControlService?: unknown };
+        lightStateSnapshots: Map<string, unknown>;
+        lightStateSyncedAt: Map<string, number>;
+      }
+    )._shared as unknown as {
+      lightControlService?: unknown;
+    };
+    const originalControl = shared.lightControlService;
+    shared.lightControlService = controlService;
+
+    // Reach into the static snapshot stores so we can observe the
+    // rememberLightState side-effect directly.
+    const snapshots = (
+      ActionServices as unknown as {
+        lightStateSnapshots: Map<string, unknown>;
+      }
+    ).lightStateSnapshots;
+    const syncedAt = (
+      ActionServices as unknown as {
+        lightStateSyncedAt: Map<string, number>;
+      }
+    ).lightStateSyncedAt;
+    snapshots.delete("a|H6001");
+    snapshots.delete("b|H6002");
+    syncedAt.delete("a|H6001");
+    syncedAt.delete("b|H6002");
+
+    try {
+      const services = new ActionServices();
+      const l1 = makeLight({ deviceId: "a", model: "H6001" });
+      const l2 = makeLight({ deviceId: "b", model: "H6002" });
+      const group = LightGroup.create("grp-1", "Living Room", [l1, l2]);
+
+      await services.controlTarget({ type: "group", group }, "off");
+
+      expect(controlService.controlGroup).toHaveBeenCalledTimes(1);
+      // Snapshot was written for both members, keyed by deviceId|model.
+      expect(snapshots.has("a|H6001")).toBe(true);
+      expect(snapshots.has("b|H6002")).toBe(true);
+      expect(syncedAt.has("a|H6001")).toBe(true);
+      expect(syncedAt.has("b|H6002")).toBe(true);
+    } finally {
+      shared.lightControlService = originalControl;
+      restore();
+    }
+  });
+});
+
+/**
+ * v2.7.0: persistent partial-failure banner. When a group apply
+ * succeeds for some members and fails for others, showAlert (a 1s
+ * flash) is too easy for a user to miss. The banner setTitle()s the
+ * key with `⚠ N/M failed` for ~30 s before reverting to the supplied
+ * baseline. Reinforces #198 ("no effect at all. Just green confirmation
+ * mark on the button").
+ */
+describe("ActionServices.showPartialFailureBanner", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("sets the banner title and reverts to the base title after the duration", async () => {
+    const services = new ActionServices();
+    const action = { setTitle: vi.fn().mockResolvedValue(undefined) };
+
+    services.showPartialFailureBanner(action, "ctx-1", 1, 3, "Movie", 30_000);
+
+    expect(action.setTitle).toHaveBeenLastCalledWith("Movie\n⚠ 1/3");
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    await Promise.resolve();
+
+    expect(action.setTitle).toHaveBeenLastCalledWith("Movie");
+  });
+
+  it("omits the leading newline when the base title is empty", () => {
+    const services = new ActionServices();
+    const action = { setTitle: vi.fn().mockResolvedValue(undefined) };
+
+    services.showPartialFailureBanner(action, "ctx-1", 2, 5, "", 30_000);
+
+    expect(action.setTitle).toHaveBeenLastCalledWith("⚠ 2/5");
+  });
+
+  it("replaces the previous banner when called again on the same context", async () => {
+    const services = new ActionServices();
+    const action = { setTitle: vi.fn().mockResolvedValue(undefined) };
+
+    services.showPartialFailureBanner(action, "ctx-1", 1, 3, "Movie", 30_000);
+    // Second banner before the first revert fires.
+    services.showPartialFailureBanner(action, "ctx-1", 2, 4, "Sunset", 30_000);
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    await Promise.resolve();
+
+    // Only the second banner's revert lands; the first revert was cancelled.
+    expect(action.setTitle).toHaveBeenLastCalledWith("Sunset");
+  });
+
+  it("clearPartialFailureBanner cancels the pending revert", async () => {
+    const services = new ActionServices();
+    const action = { setTitle: vi.fn().mockResolvedValue(undefined) };
+
+    services.showPartialFailureBanner(action, "ctx-1", 1, 3, "Movie", 30_000);
+    expect(action.setTitle).toHaveBeenLastCalledWith("Movie\n⚠ 1/3");
+
+    services.clearPartialFailureBanner("ctx-1");
+
+    const callsBefore = action.setTitle.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(30_000);
+    await Promise.resolve();
+
+    // No revert call after the timer would have fired.
+    expect(action.setTitle.mock.calls.length).toBe(callsBefore);
+  });
+});
