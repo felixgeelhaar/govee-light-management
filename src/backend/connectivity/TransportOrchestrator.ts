@@ -40,6 +40,10 @@ export class TransportOrchestrator {
     );
 
     const lights = new Map<string, LightItem>();
+    const unsupported = new Map<
+      string,
+      NonNullable<DeviceDiscoveryResult["unsupportedDevices"]>[number]
+    >();
     const fulfilled: DeviceDiscoveryResult[] = [];
 
     for (const outcome of settled) {
@@ -47,6 +51,9 @@ export class TransportOrchestrator {
         fulfilled.push(outcome.value);
         for (const light of outcome.value.lights) {
           lights.set(`${light.deviceId}|${light.model}`, light);
+        }
+        for (const device of outcome.value.unsupportedDevices ?? []) {
+          unsupported.set(`${device.deviceId}|${device.model}`, device);
         }
       }
       // Rejected transports are silently skipped — CloudTransport already
@@ -56,6 +63,8 @@ export class TransportOrchestrator {
 
     return {
       lights: Array.from(lights.values()),
+      unsupportedDevices:
+        unsupported.size > 0 ? Array.from(unsupported.values()) : undefined,
       stale:
         fulfilled.length === 0 || fulfilled.every((result) => result.stale),
     };

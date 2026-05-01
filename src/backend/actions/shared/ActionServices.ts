@@ -131,6 +131,13 @@ export interface PIDatasourceItem {
   value: string;
   /** Optional nested-group items for SDPI optgroup-style dropdowns. */
   children?: PIDatasourceItem[];
+  /**
+   * When true the SDPI dropdown renders the option as `disabled` —
+   * visible to communicate "this exists" but not selectable. Used to
+   * surface Govee cloud groups (BaseGroup, SameModelGroup) that we
+   * cannot control via the API.
+   */
+  disabled?: boolean;
 }
 
 export interface PIDatasourceResponse<E extends string = string> {
@@ -443,7 +450,45 @@ export class ActionServices {
     if (target.type === "group" && target.groupId) {
       if (!this.groupService) return null;
       const group = await this.groupService.findGroupById(target.groupId);
-      if (group) return { type: "group", group };
+      if (group) {
+        // Group members are deserialized from storage with default
+        // state (`isOnline: true, isOn: false`). Hydrate each member
+        // from the device cache + snapshot store so that
+        // `getControllableLights()` actually excludes offline devices
+        // and so that subsequent reads see fresh power/brightness/colour.
+        // Without this every group apply optimistically calls every
+        // member, racks up rate-limit budget on offline devices, and
+        // surfaces a partial-failure banner the user can do nothing
+        // about.
+        if (this.deviceService) {
+          try {
+            const cached =
+              this.deviceService.getCachedLights() ??
+              (await this.deviceService.discover(forceRefresh));
+            for (const light of group.lights) {
+              const item = cached.find(
+                (c) => c.deviceId === light.deviceId && c.model === light.model,
+              );
+              if (item) {
+                light.updateState({ isOnline: item.controllable });
+              } else {
+                // Group references a light that's no longer in the
+                // user's Govee account (deleted from the app, or
+                // discovery failed). Mark it offline so it gets
+                // skipped instead of silently failing every command.
+                light.updateState({ isOnline: false });
+              }
+              this.hydrateFromSnapshot(light);
+            }
+          } catch (error) {
+            streamDeck.logger?.debug(
+              "resolveTarget: group member state hydration failed",
+              error,
+            );
+          }
+        }
+        return { type: "group", group };
+      }
     }
 
     if (
@@ -559,11 +604,17 @@ export class ActionServices {
 
       let discoveryFailed = false;
 
-      // Add lights (with timeout to prevent hanging)
+      // Add lights (with timeout to prevent hanging).
+      // forceRefresh=false reuses DeviceService's 30s cache. SDPI's
+      // `show-refresh` button calls this same datasource handler, so we
+      // can't tell first-open from explicit-refresh — but with TTL=30s
+      // any explicit refresh after the cache window will still hit the
+      // API. Forcing on every open made each PI open block on a
+      // 6-10s `/user/devices` round-trip; trust the TTL instead.
       if (this.deviceService) {
         try {
           const lights = await withTimeout(
-            this.deviceService.discover(true),
+            this.deviceService.discover(false),
             PI_HANDLER_TIMEOUT_MS,
             "Device discovery",
           );
@@ -605,6 +656,28 @@ export class ActionServices {
             label: "Groups",
             value: "",
             children: groupItems,
+          });
+        }
+      }
+
+      // Add cloud groups as disabled options. Govee's API exposes
+      // BaseGroup / SameModelGroup / SameModeGroup entries that look
+      // controllable but in practice ignore every command we send (see
+      // issues #186, #188). Surfacing them grayed-out with an
+      // explanation in the PI hint is more honest than silently
+      // dropping them — users were creating duplicate plugin groups
+      // because they thought their Govee app groups had vanished.
+      if (this.deviceService) {
+        const unsupported = this.deviceService.getCachedUnsupportedDevices();
+        if (unsupported.length > 0) {
+          items.push({
+            label: "Govee cloud groups (control unsupported)",
+            value: "",
+            children: unsupported.map((u) => ({
+              label: `${u.name} (${u.model})`,
+              value: `unsupported:${u.deviceId}|${u.model}`,
+              disabled: true,
+            })),
           });
         }
       }
@@ -665,7 +738,7 @@ export class ActionServices {
       }
 
       const lights = await withTimeout(
-        this.deviceService.discover(true),
+        this.deviceService.discover(false),
         PI_HANDLER_TIMEOUT_MS,
         "Device discovery",
       );
@@ -819,6 +892,57 @@ export class ActionServices {
   private dialTimers = new Map<string, ReturnType<typeof setTimeout>>();
   /** Tracks flash-restore timeouts so they can be cancelled on disappear. */
   private restoreTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  /** Tracks per-context partial-failure banner timers (keyed by action.id). */
+  private partialFailureTimers = new Map<
+    string,
+    ReturnType<typeof setTimeout>
+  >();
+
+  /**
+   * Show a persistent "⚠ N/M failed" banner on a key title, then revert
+   * to the supplied baseline after `durationMs`. Use after group-apply
+   * loops where some members succeeded and some failed — `showAlert`
+   * alone (a 1-second flash) is too easy for a user to miss and treats
+   * every failure as identical noise.
+   *
+   * Calling this while a previous banner is active replaces both the
+   * title and the revert timer, so back-to-back partial failures stay
+   * legible without piling up.
+   */
+
+  showPartialFailureBanner(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    action: any,
+    contextId: string,
+    failedCount: number,
+    totalCount: number,
+    baseTitle: string,
+    durationMs = 30_000,
+  ): void {
+    const existing = this.partialFailureTimers.get(contextId);
+    if (existing) clearTimeout(existing);
+
+    const banner =
+      baseTitle.length > 0
+        ? `${baseTitle}\n⚠ ${failedCount}/${totalCount}`
+        : `⚠ ${failedCount}/${totalCount}`;
+    action.setTitle(banner).catch(() => {});
+
+    this.partialFailureTimers.set(
+      contextId,
+      setTimeout(() => {
+        this.partialFailureTimers.delete(contextId);
+        action.setTitle(baseTitle).catch(() => {});
+      }, durationMs),
+    );
+  }
+
+  /** Cancel a partial-failure banner timer (call from onWillDisappear). */
+  clearPartialFailureBanner(contextId: string): void {
+    const timer = this.partialFailureTimers.get(contextId);
+    if (timer) clearTimeout(timer);
+    this.partialFailureTimers.delete(contextId);
+  }
   deferDialAction(
     contextId: string,
     callback: () => Promise<void>,
@@ -1103,6 +1227,14 @@ export class ActionServices {
             command,
             toDomainControlValue(value),
           );
+          // Persist post-command state for each group member so other
+          // actions pointed at the same lights see the new power /
+          // brightness / colour value via the shared snapshot cache.
+          // Without this, toggling a group from one action leaves the
+          // dial state stale until the live-sync timer next refreshes.
+          for (const light of target.group.getControllableLights()) {
+            this.rememberLightState(light);
+          }
         }
       } catch (error) {
         // Don't retry on validation errors - these are likely API issues

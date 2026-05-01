@@ -35,8 +35,8 @@ export class SceneAction extends SingletonAction<SceneSettings> {
     await ev.action.setTitle(this.getTitle(ev.payload.settings));
   }
 
-  override onWillDisappear(_ev: WillDisappearEvent<SceneSettings>): void {
-    // No state to clean up
+  override onWillDisappear(ev: WillDisappearEvent<SceneSettings>): void {
+    this.services.clearPartialFailureBanner(ev.action.id);
   }
 
   override async onDidReceiveSettings(
@@ -76,6 +76,9 @@ export class SceneAction extends SingletonAction<SceneSettings> {
       };
       const sceneKind = parsed.kind === "diy" ? "diy" : "dynamic";
       const stopSpinner = this.services.showSpinner(ev.action);
+      let anySucceeded = false;
+      let failedCount = 0;
+      let totalCount = 0;
       try {
         if (sceneKind === "diy") {
           const scene = DiySceneOption.create(
@@ -85,11 +88,16 @@ export class SceneAction extends SingletonAction<SceneSettings> {
           );
           if (target.type === "light" && target.light) {
             await this.services.applyDiyScene(target.light, scene);
+            anySucceeded = true;
           } else if (target.type === "group" && target.group) {
-            for (const light of target.group.getControllableLights()) {
+            const members = target.group.getControllableLights();
+            totalCount = members.length;
+            for (const light of members) {
               try {
                 await this.services.applyDiyScene(light, scene);
+                anySucceeded = true;
               } catch (error) {
+                failedCount++;
                 streamDeck.logger.warn(
                   `Scene apply failed for group member ${light.name}:`,
                   error,
@@ -105,11 +113,16 @@ export class SceneAction extends SingletonAction<SceneSettings> {
           );
           if (target.type === "light" && target.light) {
             await this.services.applyDynamicScene(target.light, scene);
+            anySucceeded = true;
           } else if (target.type === "group" && target.group) {
-            for (const light of target.group.getControllableLights()) {
+            const members = target.group.getControllableLights();
+            totalCount = members.length;
+            for (const light of members) {
               try {
                 await this.services.applyDynamicScene(light, scene);
+                anySucceeded = true;
               } catch (error) {
+                failedCount++;
                 streamDeck.logger.warn(
                   `Scene apply failed for group member ${light.name}:`,
                   error,
@@ -120,6 +133,19 @@ export class SceneAction extends SingletonAction<SceneSettings> {
         }
       } finally {
         stopSpinner();
+      }
+      if (!anySucceeded) {
+        await ev.action.showAlert();
+        return;
+      }
+      if (failedCount > 0 && totalCount > 0) {
+        this.services.showPartialFailureBanner(
+          ev.action,
+          ev.action.id,
+          failedCount,
+          totalCount,
+          this.getTitle(settings),
+        );
       }
       await ev.action.showOk();
     } catch (error) {

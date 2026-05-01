@@ -12,6 +12,7 @@ import { hsvToRgb } from "./shared/color-utils";
 import { clamp } from "./shared/validation";
 import { ColorRgb } from "../domain/value-objects/ColorRgb";
 import { SegmentColor } from "../domain/value-objects/SegmentColor";
+import type { Light } from "../domain/entities/Light";
 
 type SegmentColorDialSettings = BaseDialSettings & {
   segmentIndex?: number;
@@ -117,35 +118,74 @@ export class SegmentColorDialAction extends BaseDialAction<SegmentColorDialSetti
     }
     await this.services.ensureServices(apiKey);
     const target = await this.services.resolveTarget(settings);
-    if (!target || target.type !== "light" || !target.light) {
+    if (!target) {
       streamDeck.logger.warn(
         `Segment color: could not resolve target for device ${settings.selectedDeviceId}`,
       );
       throw new Error("Could not resolve target device");
     }
-    if (!target.light.supportsSegmentedColor()) {
-      streamDeck.logger.warn(
-        `Segment color: selected light ${target.light.name} (${target.light.model}) does not support segmented color`,
-      );
-      throw new Error("Selected light does not support segmented color");
-    }
 
     const saturation = clamp(settings.saturation ?? 100, 0, 100);
     const color = hsvToRgb(hue, saturation, 100);
     const segmentIndex = clamp((settings.segmentIndex ?? 1) - 1, 0, 14);
-    streamDeck.logger.trace("segment.dial.apply", {
-      deviceId: target.light.deviceId,
-      model: target.light.model,
-      segmentIndex,
-      hue,
-      saturation,
-    });
-    await this.services.setSegmentColors(target.light, [
+    const segments = [
       SegmentColor.create(
         segmentIndex,
         new ColorRgb(color.r, color.g, color.b),
       ),
-    ]);
+    ];
+
+    if (target.type === "light" && target.light) {
+      if (!target.light.supportsSegmentedColor()) {
+        streamDeck.logger.warn(
+          `Segment color: selected light ${target.light.name} (${target.light.model}) does not support segmented color`,
+        );
+        throw new Error("Selected light does not support segmented color");
+      }
+      streamDeck.logger.trace("segment.dial.apply", {
+        deviceId: target.light.deviceId,
+        model: target.light.model,
+        segmentIndex,
+        hue,
+        saturation,
+      });
+      await this.services.setSegmentColors(target.light, segments);
+      return;
+    }
+
+    if (target.type === "group" && target.group) {
+      const capable = target.group
+        .getControllableLights()
+        .filter((l) => l.supportsSegmentedColor());
+      if (capable.length === 0) {
+        streamDeck.logger.warn(
+          `Segment color: group ${target.group.name} has no segmented-color-capable members`,
+        );
+        throw new Error("Group has no segmented-color-capable lights");
+      }
+      let anySucceeded = false;
+      for (const light of capable) {
+        try {
+          streamDeck.logger.trace("segment.dial.apply", {
+            deviceId: light.deviceId,
+            model: light.model,
+            segmentIndex,
+            hue,
+            saturation,
+          });
+          await this.services.setSegmentColors(light, segments);
+          anySucceeded = true;
+        } catch (error) {
+          streamDeck.logger.warn(
+            `Segment color: apply failed for group member ${light.name}:`,
+            error,
+          );
+        }
+      }
+      if (!anySucceeded) {
+        throw new Error("Segment color failed for all group members");
+      }
+    }
   }
 
   private async applyCurrentSegmentColor(
@@ -187,8 +227,22 @@ export class SegmentColorDialAction extends BaseDialAction<SegmentColorDialSetti
     try {
       await this.services.ensureServices(apiKey);
       const target = await this.services.resolveTarget(settings);
+      let probeLight: Light | undefined;
       if (target?.type === "light" && target.light) {
-        const isOn = await this.services.getLivePowerState(target.light);
+        probeLight = target.light;
+      } else if (target?.type === "group" && target.group) {
+        // Sample power state from the first segmented-color-capable
+        // member; fall back to the first controllable light so the dial
+        // still tracks group on/off even when no member advertises the
+        // capability (the apply call will alert later).
+        const allMembers = target.group.lights;
+        const members = target.group.getControllableLights();
+        this.hasOfflineMember.set(ctx, members.length < allMembers.length);
+        probeLight =
+          members.find((l) => l.supportsSegmentedColor()) ?? members[0];
+      }
+      if (probeLight) {
+        const isOn = await this.services.getLivePowerState(probeLight);
         if (isOn !== undefined) {
           this.powerMap.set(ctx, isOn);
           if (cacheKey) {

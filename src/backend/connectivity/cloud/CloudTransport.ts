@@ -73,13 +73,17 @@ export class CloudTransport implements ITransport {
   async discoverDevices(): Promise<DeviceDiscoveryResult> {
     try {
       const client = await this.ensureClient();
-      const devices = await client
-        .getControllableDevices()
-        .then((entries) =>
-          entries.filter(
-            (device) => !UNSUPPORTED_CLOUD_GROUP_MODELS.has(device.model),
-          ),
-        );
+      const allEntries = await client.getControllableDevices();
+      const devices = allEntries.filter(
+        (device) => !UNSUPPORTED_CLOUD_GROUP_MODELS.has(device.model),
+      );
+      const unsupportedDevices = allEntries
+        .filter((device) => UNSUPPORTED_CLOUD_GROUP_MODELS.has(device.model))
+        .map((device) => ({
+          deviceId: device.deviceId,
+          model: device.model,
+          name: device.deviceName,
+        }));
       const lights: LightItem[] = devices.map((device) => {
         // Detect advanced capabilities from the device's capability list
         const capInstances = new Set(
@@ -135,7 +139,7 @@ export class CloudTransport implements ITransport {
         };
       });
 
-      return { lights };
+      return { lights, unsupportedDevices };
     } catch (error) {
       // Govee API may return group entries (BaseGroup, SameModeGroup, etc.)
       // that fail strict schema validation. Return empty rather than crashing.

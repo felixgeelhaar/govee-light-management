@@ -18,8 +18,23 @@ export interface TransportHealth {
   error?: Error;
 }
 
+/**
+ * Lightweight descriptor for cloud-side group entries that the plugin
+ * cannot control via the Govee API (BaseGroup, SameModelGroup,
+ * SameModeGroup). Exposed alongside `lights` so the PI can render them
+ * disabled with an explanation, instead of silently filtering them and
+ * leaving users wondering why their Govee app groups don't show up.
+ */
+export interface UnsupportedDevice {
+  deviceId: string;
+  model: string;
+  name: string;
+}
+
 export interface DeviceDiscoveryResult {
   lights: LightItem[];
+  /** Cloud groups returned by Govee that we deliberately do not control. */
+  unsupportedDevices?: UnsupportedDevice[];
   stale?: boolean;
 }
 

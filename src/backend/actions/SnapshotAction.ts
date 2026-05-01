@@ -30,8 +30,8 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
     await ev.action.setTitle(this.getTitle(ev.payload.settings));
   }
 
-  override onWillDisappear(_ev: WillDisappearEvent<SnapshotSettings>): void {
-    // No state to clean up
+  override onWillDisappear(ev: WillDisappearEvent<SnapshotSettings>): void {
+    this.services.clearPartialFailureBanner(ev.action.id);
   }
 
   override async onDidReceiveSettings(
@@ -76,17 +76,24 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
       );
 
       const stopSpinner = this.services.showSpinner(ev.action);
+      let anySucceeded = false;
+      let failedCount = 0;
+      let totalCount = 0;
       try {
         if (target.type === "light" && target.light) {
           await this.services.applySnapshot(target.light, snapshot);
+          anySucceeded = true;
         } else if (target.type === "group" && target.group) {
-          // Apply snapshot to each light in the group.
-          // Groups don't have a single-call path for snapshots,
-          // so iterate the members sequentially.
-          for (const member of target.group.lights) {
+          // Apply snapshot to each controllable group member sequentially.
+          // Groups don't have a single-call path for snapshots.
+          const members = target.group.getControllableLights();
+          totalCount = members.length;
+          for (const member of members) {
             try {
               await this.services.applySnapshot(member, snapshot);
+              anySucceeded = true;
             } catch (error) {
+              failedCount++;
               streamDeck.logger.warn(
                 `Snapshot apply failed for group member ${member.name}:`,
                 error,
@@ -97,6 +104,19 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
         }
       } finally {
         stopSpinner();
+      }
+      if (!anySucceeded) {
+        await ev.action.showAlert();
+        return;
+      }
+      if (failedCount > 0 && totalCount > 0) {
+        this.services.showPartialFailureBanner(
+          ev.action,
+          ev.action.id,
+          failedCount,
+          totalCount,
+          this.getTitle(settings),
+        );
       }
       await ev.action.showOk();
     } catch (error) {

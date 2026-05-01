@@ -3,6 +3,7 @@ import type { LightCapabilities, LightItem } from "@shared/types";
 import {
   type ControlCommand,
   type DeviceStateResult,
+  type UnsupportedDevice,
   TransportOrchestrator,
 } from "../../connectivity";
 import { telemetryService } from "../../services/TelemetryService";
@@ -20,6 +21,7 @@ interface DeviceServiceOptions {
 
 interface CacheEntry {
   lights: LightItem[];
+  unsupportedDevices: UnsupportedDevice[];
   expiresAt: number;
   stale: boolean;
 }
@@ -62,6 +64,7 @@ export class DeviceService {
 
     this.cache = {
       lights: normalized,
+      unsupportedDevices: result.unsupportedDevices ?? [],
       expiresAt: now + this.cacheTtl,
       stale,
     };
@@ -85,6 +88,18 @@ export class DeviceService {
     if (!this.cache) return null;
     if (Date.now() > this.cache.expiresAt) return null;
     return this.cache.lights;
+  }
+
+  /**
+   * Cloud groups returned by Govee that the plugin deliberately does
+   * not control (BaseGroup, SameModelGroup, SameModeGroup). Surfaced so
+   * the PI can render them disabled with an explanation rather than
+   * silently dropping them — see issues #161, #186, #188.
+   */
+  getCachedUnsupportedDevices(): UnsupportedDevice[] {
+    if (!this.cache) return [];
+    if (Date.now() > this.cache.expiresAt) return [];
+    return this.cache.unsupportedDevices;
   }
 
   clearCache(): void {

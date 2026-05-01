@@ -3,6 +3,7 @@ import {
   KeyDownEvent,
   SingletonAction,
   WillAppearEvent,
+  WillDisappearEvent,
   type DidReceiveSettingsEvent,
   type SendToPluginEvent,
   streamDeck,
@@ -32,6 +33,10 @@ export class SegmentColorAction extends SingletonAction<SegmentColorSettings> {
     await ev.action.setTitle(this.getTitle(ev.payload.settings));
   }
 
+  override onWillDisappear(ev: WillDisappearEvent<SegmentColorSettings>): void {
+    this.services.clearPartialFailureBanner(ev.action.id);
+  }
+
   override async onDidReceiveSettings(
     ev: DidReceiveSettingsEvent<SegmentColorSettings>,
   ): Promise<void> {
@@ -51,14 +56,45 @@ export class SegmentColorAction extends SingletonAction<SegmentColorSettings> {
 
     await this.services.ensureServices(apiKey);
     const target = await this.services.resolveTarget(settings);
-    if (!target || target.type !== "light" || !target.light) {
+    if (!target) {
       await ev.action.showAlert();
       return;
     }
 
     try {
       const segments = this.buildSegments(settings);
-      await this.services.setSegmentColors(target.light, segments);
+      if (target.type === "light" && target.light) {
+        await this.services.setSegmentColors(target.light, segments);
+      } else if (target.type === "group" && target.group) {
+        const members = target.group.getControllableLights();
+        let anySucceeded = false;
+        let failedCount = 0;
+        for (const light of members) {
+          try {
+            await this.services.setSegmentColors(light, segments);
+            anySucceeded = true;
+          } catch (error) {
+            failedCount++;
+            streamDeck.logger.warn(
+              `Segment color apply failed for group member ${light.name}:`,
+              error,
+            );
+          }
+        }
+        if (!anySucceeded) {
+          await ev.action.showAlert();
+          return;
+        }
+        if (failedCount > 0 && members.length > 0) {
+          this.services.showPartialFailureBanner(
+            ev.action,
+            ev.action.id,
+            failedCount,
+            members.length,
+            this.getTitle(settings),
+          );
+        }
+      }
       await ev.action.showOk();
     } catch (error) {
       streamDeck.logger.error("Failed to set segment colors:", error);

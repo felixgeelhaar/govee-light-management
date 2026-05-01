@@ -1,6 +1,6 @@
 {
   "Name": "Govee Light Management",
-  "Version": "2.6.1.0",
+  "Version": "2.7.0.0",
   "Author": "Felix Geelhaar",
   "URL": "https://github.com/felixgeelhaar/govee-light-management",
   "SupportURL": "https://github.com/felixgeelhaar/govee-light-management/issues",
@@ -62,20 +62,6 @@
       ]
     },
     {
-      "Name": "Segment Color",
-      "UUID": "com.felixgeelhaar.govee-light-management.segment-color",
-      "Icon": "imgs/actions/segment-color/icon",
-      "Tooltip": "Apply a rainbow, gradient, or solid color across all segments of an RGB IC light",
-      "PropertyInspectorPath": "ui/segment-color.html",
-      "Controllers": ["Keypad"],
-      "States": [
-        {
-          "Image": "imgs/actions/segment-color/key",
-          "TitleAlignment": "bottom"
-        }
-      ]
-    },
-    {
       "Name": "Scene",
       "UUID": "com.felixgeelhaar.govee-light-management.scene",
       "Icon": "imgs/actions/scene/icon",
@@ -118,6 +104,20 @@
       ]
     },
     {
+      "Name": "Segment Color",
+      "UUID": "com.felixgeelhaar.govee-light-management.segment-color",
+      "Icon": "imgs/actions/segment-color/icon",
+      "Tooltip": "Apply a rainbow, gradient, or solid color across all segments of an RGB IC light",
+      "PropertyInspectorPath": "ui/segment-color.html",
+      "Controllers": ["Keypad"],
+      "States": [
+        {
+          "Image": "imgs/actions/segment-color/key",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
       "Name": "Feature Toggle",
       "UUID": "com.felixgeelhaar.govee-light-management.toggle",
       "Icon": "imgs/actions/toggle/icon",
@@ -127,48 +127,6 @@
       "States": [
         {
           "Image": "imgs/actions/toggle/key",
-          "TitleAlignment": "bottom"
-        }
-      ]
-    },
-    {
-      "Name": "Schedule",
-      "UUID": "com.felixgeelhaar.govee-light-management.schedule",
-      "Icon": "imgs/actions/schedule/icon",
-      "Tooltip": "Schedule a light action to run at a specific time or on a recurring basis",
-      "PropertyInspectorPath": "ui/schedule.html",
-      "Controllers": ["Keypad"],
-      "States": [
-        {
-          "Image": "imgs/actions/schedule/key",
-          "TitleAlignment": "bottom"
-        }
-      ]
-    },
-    {
-      "Name": "Sequence",
-      "UUID": "com.felixgeelhaar.govee-light-management.sequence",
-      "Icon": "imgs/actions/sequence/icon",
-      "Tooltip": "Run a multi-step sequence of light actions with delays",
-      "PropertyInspectorPath": "ui/sequence.html",
-      "Controllers": ["Keypad"],
-      "States": [
-        {
-          "Image": "imgs/actions/sequence/key",
-          "TitleAlignment": "bottom"
-        }
-      ]
-    },
-    {
-      "Name": "Custom Effect",
-      "UUID": "com.felixgeelhaar.govee-light-management.custom-effect",
-      "Icon": "imgs/actions/custom-effect/icon",
-      "Tooltip": "Play a custom RGB animation effect on an IC strip",
-      "PropertyInspectorPath": "ui/custom-effect.html",
-      "Controllers": ["Keypad"],
-      "States": [
-        {
-          "Image": "imgs/actions/custom-effect/key",
           "TitleAlignment": "bottom"
         }
       ]
@@ -285,6 +243,48 @@
       "States": [
         {
           "Image": "imgs/actions/segment-color-dial/icon"
+        }
+      ]
+    },
+    {
+      "Name": "Custom Effect",
+      "UUID": "com.felixgeelhaar.govee-light-management.custom-effect",
+      "Icon": "imgs/actions/custom-effect/icon",
+      "Tooltip": "Play a custom RGB animation effect on an IC strip",
+      "PropertyInspectorPath": "ui/custom-effect.html",
+      "Controllers": ["Keypad"],
+      "States": [
+        {
+          "Image": "imgs/actions/custom-effect/key",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Schedule",
+      "UUID": "com.felixgeelhaar.govee-light-management.schedule",
+      "Icon": "imgs/actions/schedule/icon",
+      "Tooltip": "Schedule a light action to run at a specific time or on a recurring basis",
+      "PropertyInspectorPath": "ui/schedule.html",
+      "Controllers": ["Keypad"],
+      "States": [
+        {
+          "Image": "imgs/actions/schedule/key",
+          "TitleAlignment": "bottom"
+        }
+      ]
+    },
+    {
+      "Name": "Sequence",
+      "UUID": "com.felixgeelhaar.govee-light-management.sequence",
+      "Icon": "imgs/actions/sequence/icon",
+      "Tooltip": "Run a multi-step sequence of light actions with delays",
+      "PropertyInspectorPath": "ui/sequence.html",
+      "Controllers": ["Keypad"],
+      "States": [
+        {
+          "Image": "imgs/actions/sequence/key",
+          "TitleAlignment": "bottom"
         }
       ]
     }

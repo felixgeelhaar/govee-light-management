@@ -24,6 +24,72 @@
 	margin: 10px 0 4px;
 }
 
+/* Match sdpi-item's input row height + native list-item marker so the
+   left "Groups" label aligns with the disclosure summary. Same trick
+   used for the Metadata details. */
+.group-manager-details {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.group-manager-details > summary {
+	display: list-item;
+	min-height: 28px;
+	line-height: 28px;
+	cursor: pointer;
+	color: #d8d8d8;
+	font-size: 12px;
+	user-select: none;
+}
+
+.group-manager-body {
+	padding: 4px 0 0;
+}
+
+#groupCreateForm {
+	margin-top: 6px;
+}
+
+#groupCreateForm > sdpi-item {
+	margin-bottom: 4px;
+}
+
+.group-shared-hint {
+	font-size: 11px;
+	color: #9da3ae;
+	line-height: 1.4;
+	padding: 0 0 6px 95px;
+	max-width: 336px;
+	box-sizing: border-box;
+}
+
+.group-list-wrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	box-sizing: border-box;
+	/* Match sdpi-item's fixed-pixel grid (95px label + 241px value)
+	   so "+ New Group" and group rows share the same right edge as
+	   the Name input below. */
+	padding-left: 95px;
+	max-width: 336px;
+	font-family:
+		"Segoe UI", Arial, Roboto, Helvetica sans-serif,
+		"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+	font-size: 9pt;
+	color: #d8d8d8;
+}
+
+.group-list-wrapper .group-row,
+.group-list-wrapper .group-empty {
+	font-weight: normal;
+}
+
+.group-list-wrapper .group-add-btn {
+	align-self: stretch;
+}
+
 .group-row {
 	display: flex;
 	align-items: center;
@@ -255,11 +321,22 @@
 	background: #555;
 }
 
-/* Metadata details: fill the value column so the label stays aligned */
+/* Metadata details: fill the value column and match input height so
+   the left-side sdpi-item label aligns with the disclosure summary.
+   Keep `display: list-item` on summary so the native ▶ marker stays
+   visible — switching summary to flex hides it. Vertical centering
+   comes from line-height matching min-height. */
 .metadata-details {
 	display: block;
 	width: 100%;
 	box-sizing: border-box;
+}
+
+.metadata-details > summary {
+	display: list-item;
+	min-height: 28px;
+	line-height: 28px;
+	cursor: pointer;
 }
 
 /* Slider paired with a direct-entry number input (#200). */

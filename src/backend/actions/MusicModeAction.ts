@@ -31,8 +31,8 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
     await ev.action.setTitle(this.getTitle(ev.payload.settings));
   }
 
-  override onWillDisappear(_ev: WillDisappearEvent<MusicModeSettings>): void {
-    // No state to clean up
+  override onWillDisappear(ev: WillDisappearEvent<MusicModeSettings>): void {
+    this.services.clearPartialFailureBanner(ev.action.id);
   }
 
   override async onDidReceiveSettings(
@@ -73,23 +73,49 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
         settings.sensitivity ?? 50,
       );
       const stopSpinner = this.services.showSpinner(ev.action);
+      let anySucceeded = false;
+      let failedCount = 0;
+      let totalCount = 0;
       try {
         if (target.type === "light" && target.light) {
           await this.services.applyMusicModeRaw(target.light, musicMode);
+          anySucceeded = true;
         } else if (target.type === "group" && target.group) {
-          for (const light of target.group.getControllableLights()) {
+          const members = target.group.getControllableLights();
+          totalCount = members.length;
+          for (const light of members) {
             try {
               await this.services.applyMusicModeRaw(light, musicMode);
+              anySucceeded = true;
             } catch (error) {
+              failedCount++;
               streamDeck.logger.warn(
                 `Music mode apply failed for group member ${light.name}:`,
                 error,
               );
             }
           }
+          if (members.length === 0) {
+            streamDeck.logger.warn(
+              `Music mode: group ${target.group.name} has no controllable lights`,
+            );
+          }
         }
       } finally {
         stopSpinner();
+      }
+      if (!anySucceeded) {
+        await ev.action.showAlert();
+        return;
+      }
+      if (failedCount > 0 && totalCount > 0) {
+        this.services.showPartialFailureBanner(
+          ev.action,
+          ev.action.id,
+          failedCount,
+          totalCount,
+          this.getTitle(settings),
+        );
       }
       await ev.action.showOk();
     } catch (error) {

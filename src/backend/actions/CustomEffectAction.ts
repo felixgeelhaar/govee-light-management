@@ -46,6 +46,18 @@ export class CustomEffectAction extends SingletonAction<CustomEffectSettings> {
       return;
     }
 
+    // RGB IC custom effects render per-segment frames. EffectService only
+    // accepts a single light target — group selections aren't supported
+    // because each member can have a different segment count / layout
+    // and the playback loop would race per-member API rate limits.
+    if (settings.selectedDeviceId.startsWith("group:")) {
+      streamDeck.logger.warn(
+        "Custom effects do not support light groups; pick an individual RGB IC light",
+      );
+      await ev.action.showAlert();
+      return;
+    }
+
     // Toggle: if currently playing, cancel; otherwise start playback
     if (effectService.isPlaying(settings.selectedDeviceId)) {
       effectService.cancel(settings.selectedDeviceId);

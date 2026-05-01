@@ -106,7 +106,9 @@ export class ColorHueDialAction extends BaseDialAction<ColorHueDialSettings> {
           this.hueMap.set(ctx, rgbToHue(target.light.color));
         }
       } else if (target?.type === "group" && target.group) {
+        const allMembers = target.group.lights;
         const lights = target.group.getControllableLights();
+        this.hasOfflineMember.set(ctx, lights.length < allMembers.length);
         const hueValues: number[] = [];
         let anyOn = false;
         let anyOff = false;

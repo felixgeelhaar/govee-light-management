@@ -25,6 +25,13 @@ type ToggleSettings = BaseSettings & {
 export class ToggleAction extends SingletonAction<ToggleSettings> {
   private services = new ActionServices();
   private featureState = new Map<string, boolean>();
+  /**
+   * Per-context press counter. Bumped on every `onKeyDown` so the
+   * `onWillAppear` initial-state read can detect whether a press
+   * landed during its API work and skip overwriting the optimistic
+   * `featureState` with stale data.
+   */
+  private toggleEpoch = new Map<string, number>();
 
   override async onWillAppear(
     ev: WillAppearEvent<ToggleSettings>,
@@ -40,6 +47,10 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
     if (parsed) {
       const apiKey = await this.services.getApiKey(settings);
       if (apiKey && settings.selectedDeviceId) {
+        // Snapshot before slow API work so a press landing during the
+        // call doesn't get overwritten by a stale read.
+        const epochAtStart = this.toggleEpoch.get(ctx) ?? 0;
+        const featureStateAtStart = this.featureState.get(ctx);
         try {
           await this.services.ensureServices(apiKey);
           const target = await this.services.resolveTarget(settings);
@@ -55,6 +66,10 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
         } catch {
           // Best effort - keep default
         }
+        const epochAtEnd = this.toggleEpoch.get(ctx) ?? 0;
+        if (epochAtEnd !== epochAtStart && featureStateAtStart !== undefined) {
+          this.featureState.set(ctx, featureStateAtStart);
+        }
       }
     }
 
@@ -63,6 +78,8 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
 
   override onWillDisappear(ev: WillDisappearEvent<ToggleSettings>): void {
     this.featureState.delete(ev.action.id);
+    this.toggleEpoch.delete(ev.action.id);
+    this.services.clearPartialFailureBanner(ev.action.id);
   }
 
   override async onDidReceiveSettings(
@@ -74,6 +91,9 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
   override async onKeyDown(ev: KeyDownEvent<ToggleSettings>): Promise<void> {
     const { settings } = ev.payload;
     const ctx = ev.action.id;
+    // Bump epoch first so any concurrent `onWillAppear` API read knows
+    // its result is stale by the time it lands.
+    this.toggleEpoch.set(ctx, (this.toggleEpoch.get(ctx) ?? 0) + 1);
 
     const apiKey = await this.services.getApiKey(settings);
     if (!apiKey || !settings.selectedDeviceId) {
@@ -134,6 +154,9 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
       this.featureState.set(ctx, enabled);
 
       const stopSpinner = this.services.showSpinner(ev.action);
+      let anySucceeded = false;
+      let failedCount = 0;
+      let totalCount = 0;
       try {
         if (target.type === "light" && target.light) {
           await this.services.toggleFeatureRaw(
@@ -141,15 +164,20 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
             parsed.instance,
             enabled,
           );
+          anySucceeded = true;
         } else if (target.type === "group" && target.group) {
-          for (const light of target.group.getControllableLights()) {
+          const members = target.group.getControllableLights();
+          totalCount = members.length;
+          for (const light of members) {
             try {
               await this.services.toggleFeatureRaw(
                 light,
                 parsed.instance,
                 enabled,
               );
+              anySucceeded = true;
             } catch (error) {
+              failedCount++;
               streamDeck.logger.warn(
                 `Toggle ${parsed.instance} failed for group member ${light.name}:`,
                 error,
@@ -160,7 +188,23 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
       } finally {
         stopSpinner();
       }
+      if (!anySucceeded) {
+        // Revert optimistic state since nothing actually changed
+        this.featureState.set(ctx, originalState);
+        await ev.action.setTitle(this.getTitle(settings, ctx));
+        await ev.action.showAlert();
+        return;
+      }
       await ev.action.setTitle(this.getTitle(settings, ctx));
+      if (failedCount > 0 && totalCount > 0) {
+        this.services.showPartialFailureBanner(
+          ev.action,
+          ctx,
+          failedCount,
+          totalCount,
+          this.getTitle(settings, ctx),
+        );
+      }
       await ev.action.showOk();
     } catch (error) {
       streamDeck.logger.error("Failed to toggle feature:", error);

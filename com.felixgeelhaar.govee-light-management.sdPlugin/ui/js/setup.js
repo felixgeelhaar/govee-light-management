@@ -499,28 +499,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let devices = [];
 
+    // Groups are a plugin-wide concept (shared across every action),
+    // so collapse the manager into a <details> block by default.
+    // Reduces per-PI visual clutter and signals to users that the
+    // groups they create here will appear in every action's device
+    // dropdown — they don't need to recreate the same group from
+    // every PI.
     container.innerHTML = `
 			<hr class="group-separator" />
 			<sdpi-item label="Groups">
-				<div>
-					<div id="groupList"></div>
-					<button type="button" id="newGroupBtn" class="sdpi-item-value group-add-btn">+ New Group</button>
-				</div>
+				<details id="groupManagerDetails" class="group-manager-details">
+					<summary id="groupManagerSummary">Manage groups…</summary>
+				</details>
 			</sdpi-item>
-			<div id="groupCreateForm" style="display:none">
-				<sdpi-item label="Name">
-					<input id="groupNameInput" type="text" class="sdpi-item-value" placeholder="e.g. Living Room" />
-				</sdpi-item>
-				<sdpi-item label="Lights">
-					<div id="groupLightList" class="light-checklist"></div>
-				</sdpi-item>
-				<div class="group-btn-row">
-					<button type="button" id="saveGroupBtn" class="group-action-btn">Create</button>
-					<button type="button" id="cancelGroupBtn" class="group-cancel-btn">Cancel</button>
+			<div id="groupManagerBody" class="group-manager-body" style="display:none">
+				<div class="group-shared-hint">Groups are shared across every action — create once, use everywhere.</div>
+				<div class="group-list-wrapper">
+					<div id="groupList"></div>
+					<button type="button" id="newGroupBtn" class="group-add-btn">+ New Group</button>
 				</div>
+				<div id="groupCreateForm" style="display:none">
+					<sdpi-item label="Name">
+						<sdpi-textfield id="groupNameInput" placeholder="e.g. Living Room"></sdpi-textfield>
+					</sdpi-item>
+					<sdpi-item label="Lights">
+						<div id="groupLightList" class="light-checklist"></div>
+					</sdpi-item>
+					<div class="group-btn-row">
+						<button type="button" id="saveGroupBtn" class="group-action-btn">Create</button>
+						<button type="button" id="cancelGroupBtn" class="group-cancel-btn">Cancel</button>
+					</div>
+				</div>
+				<div id="groupStatus" class="group-status"></div>
 			</div>
-			<div id="groupStatus" class="group-status"></div>
 		`;
+
+    // Toggle the manager body in sync with the details element so we
+    // get the chevron + collapse/expand UX without putting sdpi-item
+    // form rows inside <details> (which breaks their flex layout).
+    const detailsEl = document.getElementById("groupManagerDetails");
+    const bodyEl = document.getElementById("groupManagerBody");
+    if (detailsEl && bodyEl) {
+      detailsEl.addEventListener("toggle", () => {
+        bodyEl.style.display = detailsEl.open ? "" : "none";
+      });
+    }
 
     const groupList = document.getElementById("groupList");
     const createForm = document.getElementById("groupCreateForm");
@@ -536,8 +559,16 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 3000);
     }
 
+    function updateSummary(count) {
+      const summary = document.getElementById("groupManagerSummary");
+      if (!summary) return;
+      summary.textContent =
+        count === 0 ? "Manage groups" : `Manage groups · ${count}`;
+    }
+
     function renderGroups(groups) {
       groupList.innerHTML = "";
+      updateSummary(groups.length);
       if (groups.length === 0) {
         groupList.innerHTML = '<span class="group-empty">No groups yet</span>';
         return;
@@ -676,6 +707,13 @@ document.addEventListener("DOMContentLoaded", () => {
     groupHint.id = "deviceGroupHint";
     groupHint.className = "field-hint info hidden";
     unsupportedHint.parentNode.insertBefore(groupHint, unsupportedHint.nextSibling);
+    // Persistent count hint when the user has Govee cloud groups in their
+    // account that the plugin can't control. Backed by the disabled-items
+    // optgroup we now include in getDevices payloads.
+    const cloudGroupCountHint = document.createElement("div");
+    cloudGroupCountHint.id = "deviceCloudGroupCount";
+    cloudGroupCountHint.className = "field-hint info hidden";
+    groupHint.parentNode.insertBefore(cloudGroupCountHint, groupHint.nextSibling);
 
     function getSelectedModel(selectedDeviceId) {
       if (typeof selectedDeviceId !== "string") return "";
@@ -759,12 +797,37 @@ document.addEventListener("DOMContentLoaded", () => {
       deviceSelect.parentNode.insertBefore(hint, deviceSelect.nextSibling);
     }, TIMEOUT_MS);
 
+    function countDisabledLeaves(items) {
+      if (!Array.isArray(items)) return 0;
+      let count = 0;
+      for (const it of items) {
+        if (Array.isArray(it.children)) {
+          count += countDisabledLeaves(it.children);
+        } else if (it && it.disabled) {
+          count++;
+        }
+      }
+      return count;
+    }
+
     const unsubscribeMessages = subscribePluginMessages(client, (p) => {
       if (!p || typeof p !== "object") return;
       if (p.event === "getDevices") {
         clearTimeout(timer);
         const hint = document.getElementById("deviceTimeout");
         if (hint) hint.remove();
+        const disabledCount = countDisabledLeaves(p.items);
+        if (disabledCount > 0) {
+          cloudGroupCountHint.textContent =
+            disabledCount === 1
+              ? "1 Govee cloud group is hidden — these are listed but cannot be controlled. Create a plugin group below to combine lights."
+              : disabledCount +
+                " Govee cloud groups are hidden — these are listed but cannot be controlled. Create a plugin group below to combine lights.";
+          cloudGroupCountHint.className = "field-hint info";
+        } else {
+          cloudGroupCountHint.textContent = "";
+          cloudGroupCountHint.className = "field-hint info hidden";
+        }
         updateUnsupportedHint();
         updateGroupHint();
         renderDebugInfo();

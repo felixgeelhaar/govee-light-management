@@ -18,16 +18,30 @@ export function isValidationError(error: unknown): boolean {
 /**
  * Some devices return malformed state payloads for specific fields.
  * Those failures should not be treated as fatal for UI refresh loops.
+ *
+ * Maintained list (each entry tied to an upstream issue or device class):
+ *   - 0K color temperature on certain RGB IC strips.
+ *   - Negative or non-integer scene/snapshot IDs in DIY responses.
+ *   - `e.map is not a function` raised by govee-api-client when a
+ *     non-array value reaches `mapCapabilitiesToStateProperties`'s
+ *     `segmentedColorRgb` / `segmentedBrightness` branch (seen on
+ *     non-IC devices that still advertise the capability descriptor).
+ *     Tracked in govee-api-client; until that ships, treat as ignorable
+ *     so the refresh loop backs off instead of error-spamming.
  */
 export function isIgnorableLiveStateError(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false;
   }
 
+  const msg = error.message;
   return (
-    error.message.includes(
+    msg.includes(
       "Color temperature must be between 1000K and 50000K, got 0K",
-    ) || error.message.includes("ID must be a positive integer")
+    ) ||
+    msg.includes("ID must be a positive integer") ||
+    msg.includes(".map is not a function") ||
+    msg.includes("is not iterable")
   );
 }
 
