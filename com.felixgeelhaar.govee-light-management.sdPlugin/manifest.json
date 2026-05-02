@@ -41,7 +41,6 @@
       "Encoder": {
         "Icon": "imgs/actions/brightness-dial/icon",
         "background": "imgs/actions/brightness-dial/background",
-        "PropertyInspectorPath": "ui/brightness.html",
         "TriggerDescription": {
           "Rotate": "Adjust brightness",
           "Push": "Toggle power",
@@ -72,7 +71,6 @@
       "Encoder": {
         "Icon": "imgs/actions/colorhue-dial/icon",
         "background": "imgs/actions/colorhue-dial/background",
-        "PropertyInspectorPath": "ui/color.html",
         "TriggerDescription": {
           "Rotate": "Change color",
           "Push": "Toggle power",
@@ -103,7 +101,6 @@
       "Encoder": {
         "Icon": "imgs/actions/colortemp-dial/icon",
         "background": "imgs/actions/colortemp-dial/background",
-        "PropertyInspectorPath": "ui/color-temperature.html",
         "TriggerDescription": {
           "Rotate": "Adjust warm/cool",
           "Push": "Toggle power",
@@ -190,7 +187,6 @@
       "Encoder": {
         "Icon": "imgs/actions/segment-color-dial/icon",
         "background": "imgs/actions/segment-color-dial/background",
-        "PropertyInspectorPath": "ui/segment-color.html",
         "TriggerDescription": {
           "Rotate": "Change segment hue",
           "Push": "Apply color to segment",
