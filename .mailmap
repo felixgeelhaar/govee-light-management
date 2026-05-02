@@ -1,0 +1,17 @@
+# Canonical author identities — git log, git shortlog, GitHub contributors graph.
+# Format: Proper Name <proper@email>  Commit Name <commit@email>
+# https://git-scm.com/docs/gitmailmap
+
+# Re-attribute PR #184 (commit bcbc0c0) co-author trailer.
+# `archie@users.noreply.github.com` is GitHub's legacy noreply for login `archie`
+# (display name "Marcus Ljungblad", Co-founder Minut) — not the actual contributor.
+# The real contributor is JoArchie (login JoArchie, joelarchiee@gmail.com).
+JoArchie <joelarchiee@gmail.com> JoArchie <archie@users.noreply.github.com>
+
+# Unify JoArchie's two emails under the @gmail.com identity so the contributor
+# graph counts them as one person, not two.
+JoArchie <joelarchiee@gmail.com> Archie <joel@arxly.uk>
+JoArchie <joelarchiee@gmail.com> Archie <joelarchiee@gmail.com>
+
+# Project owner — single canonical identity.
+Felix Geelhaar <felix@felixgeelhaar.de>
