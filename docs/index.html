@@ -15,7 +15,7 @@
     --bg-3: #151A33;
     --text: #F3F4F6;
     --muted: #9CA3AF;
-    --dim: #6B7280;
+    --dim: #8B92A0;
     --accent-1: #A855F7;
     --accent-2: #6366F1;
     --accent-3: #22D3EE;
@@ -121,6 +121,16 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
   }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+    .badge .dot { animation: none; }
+    .feature:hover, .btn:hover { transform: none; }
+  }
   h1 {
     font-size: clamp(2.5rem, 6vw, 4.5rem);
     font-weight: 800;
@@ -169,6 +179,39 @@
   .btn-secondary:hover {
     border-color: var(--accent-1);
     background: rgba(168,85,247,0.08);
+  }
+  .btn-text {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 12px;
+    color: var(--muted);
+    font-weight: 500; font-size: 0.95rem;
+    transition: color 0.2s;
+  }
+  .btn-text:hover { color: var(--accent-3); }
+  .trust-strip {
+    list-style: none;
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 10px 14px;
+    margin: 28px auto 0;
+    max-width: 720px;
+    padding: 0;
+  }
+  .trust-strip li {
+    display: inline-flex; align-items: center;
+    padding: 7px 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 0.84rem;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.01em;
+  }
+  .trust-strip li::before {
+    content: "✓";
+    color: var(--accent-4);
+    margin-right: 8px;
+    font-weight: 800;
   }
 
   /* Hero visual - mock stream deck */
@@ -316,6 +359,121 @@
     color: var(--muted);
     font-size: 0.95rem;
   }
+  .features-subhead {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 56px 0 24px;
+  }
+  .features-compact { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+
+  /* Hero feature card (Recall) */
+  .feature-hero {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 40px;
+    align-items: center;
+    padding: 44px 48px;
+    background: linear-gradient(135deg, rgba(168,85,247,0.10), rgba(99,102,241,0.06) 50%, rgba(34,211,238,0.06));
+    border-color: rgba(168,85,247,0.30);
+    box-shadow: 0 30px 80px rgba(168,85,247,0.20);
+    margin-bottom: 32px;
+  }
+  .feature-hero .hero-tag {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #fff;
+    background: var(--grad);
+    padding: 6px 14px;
+    border-radius: 999px;
+    margin-bottom: 16px;
+  }
+  .feature-hero h3 {
+    font-size: 1.8rem;
+    margin-bottom: 12px;
+  }
+  .feature-hero p {
+    font-size: 1.05rem;
+    line-height: 1.55;
+  }
+  .feature-hero-mock {
+    background: #0a0c1a;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+  .feature-hero-mock > img {
+    width: 44px; height: 44px; margin-bottom: 12px;
+    filter: drop-shadow(0 6px 18px rgba(168,85,247,0.4));
+  }
+  .picker-mini { display: flex; flex-direction: column; gap: 6px; }
+  .pm-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    font-size: 0.92rem;
+    color: var(--text);
+  }
+  .pm-row.sel {
+    background: rgba(168,85,247,0.15);
+    border-color: rgba(168,85,247,0.5);
+    box-shadow: 0 0 16px rgba(168,85,247,0.2);
+  }
+  @media (max-width: 720px) {
+    .feature-hero { grid-template-columns: 1fr; padding: 32px 24px; }
+  }
+
+  /* Honest-state trust band */
+  .trust-band {
+    margin-top: 64px;
+    padding: 48px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .trust-band-head { text-align: center; margin-bottom: 36px; }
+  .trust-band-head h3 {
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin-top: 8px;
+  }
+  .trust-band-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+  }
+  .tb-item {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 20px;
+    text-align: center;
+  }
+  .tb-glyph {
+    width: 56px; height: 56px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--muted);
+  }
+  .tb-glyph.all-on { color: var(--accent-1); background: rgba(168,85,247,0.15); box-shadow: 0 0 20px rgba(168,85,247,0.3); }
+  .tb-glyph.mixed { color: #f59e0b; background: rgba(245,158,11,0.15); box-shadow: 0 0 20px rgba(245,158,11,0.25); }
+  .tb-glyph.warn { color: #ef4444; background: rgba(239,68,68,0.15); }
+  .tb-t { font-weight: 700; font-size: 1rem; margin-bottom: 6px; color: var(--text); }
+  .tb-s { font-size: 0.86rem; color: var(--muted); line-height: 1.45; }
 
   /* How it works */
   .steps {
@@ -353,6 +511,59 @@
   .step p {
     color: var(--muted);
     font-size: 0.95rem;
+  }
+
+  /* FAQ */
+  .faq-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 16px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .faq-item {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0;
+    transition: border-color 0.2s;
+  }
+  .faq-item:hover { border-color: var(--border-hover); }
+  .faq-item summary {
+    cursor: pointer;
+    padding: 18px 22px;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text);
+    list-style: none;
+    position: relative;
+    padding-right: 48px;
+  }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-item summary::after {
+    content: "+";
+    position: absolute; right: 22px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.4rem;
+    font-weight: 400;
+    color: var(--accent-1);
+    transition: transform 0.2s;
+  }
+  .faq-item[open] summary::after { content: "−"; }
+  .faq-item p {
+    padding: 0 22px 20px;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+  .faq-item code {
+    background: rgba(168,85,247,0.10);
+    border: 1px solid rgba(168,85,247,0.25);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85em;
+    color: var(--accent-3);
   }
 
   /* CTA band */
@@ -401,30 +612,38 @@
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#setup">Setup</a>
+      <a href="#faq">FAQ</a>
       <a href="https://github.com/felixgeelhaar/govee-light-management">GitHub</a>
-      <a class="btn-nav" href="https://marketplace.elgato.com/">Get Plugin</a>
+      <a class="btn-nav" href="https://marketplace.elgato.com/search?query=govee%20light%20management">Install</a>
     </div>
   </div>
 </nav>
 
 <header class="hero">
   <div class="container">
-    <span class="badge"><span class="dot"></span> v2.7 — now on Elgato Marketplace</span>
-    <h1>One press for a saved look.<br><span class="grad">One rotation for the perfect setting.</span></h1>
+    <span class="badge"><span class="dot"></span> v2.7 — fewer actions, more control</span>
+    <h1>Your Govee lights,<br><span class="grad">without the phone.</span></h1>
     <p class="tagline">
-      Recall any scene, dial in any colour, or rotate the brightness — directly from your Stream Deck.
-      Hybrid actions work on both keys and Stream Deck+ dials. The phone stays in your pocket.
+      One press for a saved scene. One rotation for the perfect setting.
+      Five hybrid actions work on both Stream Deck keys and Stream Deck+ dials —
+      so you stop reaching for your phone every time you start a meeting, stream, or movie.
     </p>
     <div class="cta">
-      <a class="btn btn-primary" href="https://marketplace.elgato.com/">
-        Get on Marketplace
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      <a class="btn btn-primary" href="https://marketplace.elgato.com/search?query=govee%20light%20management">
+        Install on Stream Deck
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
-      <a class="btn btn-secondary" href="https://github.com/felixgeelhaar/govee-light-management">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
-        View on GitHub
+      <a class="btn-text" href="https://github.com/felixgeelhaar/govee-light-management">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+        Source on GitHub →
       </a>
     </div>
+    <ul class="trust-strip">
+      <li>Open source · MIT</li>
+      <li>Zero telemetry</li>
+      <li>API key stays on your machine</li>
+      <li>Approved on Elgato Marketplace</li>
+    </ul>
 
     <div class="hero-visual">
       <div class="streamdeck">
@@ -466,54 +685,108 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">What's inside · v2.7</span>
-      <h2>Five hybrid actions,<br>plus the tools you reach for</h2>
-      <p class="section-sub">Each hybrid action works on both Stream Deck keys and Stream Deck+ dials. Drop once, use anywhere.</p>
+      <h2>One action. Key or dial.<br>Done.</h2>
+      <p class="section-sub">Five hybrid actions cover everything you'd reach for, plus a new <strong>Recall</strong> composite that turns any saved look into a single press. Replaces 17 atomic actions from earlier versions.</p>
     </div>
+
+    <!-- Hero feature: Recall -->
+    <div class="feature feature-hero">
+      <div class="feature-hero-text">
+        <span class="hero-tag">New in v2.7 · Headline</span>
+        <h3>Recall — one key, any saved look</h3>
+        <p>Pick from every Govee dynamic scene, your DIY moods, and saved snapshots — in a single dropdown. Drop the action on a key, choose "Sunset" or "Movie night" or "Late-night code" — press to apply. Replaces juggling separate Scene and Snapshot keys for the same job.</p>
+      </div>
+      <div class="feature-hero-mock" aria-hidden="true">
+        <img src="./assets/keys/scene.svg" alt="">
+        <div class="picker-mini">
+          <div class="pm-row"><span>🌅</span> Sunrise</div>
+          <div class="pm-row sel"><span>🌇</span> Sunset</div>
+          <div class="pm-row"><span>🎬</span> Movie night</div>
+          <div class="pm-row"><span>💜</span> Late-night code</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="features-subhead">Five hybrid actions — same UUID on a key or a Stream Deck+ dial</h3>
     <div class="features">
       <div class="feature">
-        <div class="feature-icon"><img src="./assets/keys/scene.svg" alt=""></div>
-        <h3>Recall <span style="color:var(--accent-3);font-size:0.78rem;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;">New</span></h3>
-        <p>One key, any saved look. Picks from every Govee dynamic scene, your DIY moods, and snapshots — in a single dropdown.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon"><img src="./assets/keys/light.svg" alt=""></div>
+        <div class="feature-icon"><img src="./assets/keys/light.svg" alt="" aria-hidden="true"></div>
         <h3>On / Off</h3>
         <p>Toggle a light or a whole group. Three-state title (●/◐/○) with N/M count for groups — never lies about mixed state.</p>
       </div>
       <div class="feature">
-        <div class="feature-icon"><img src="./assets/keys/brightness.svg" alt=""></div>
+        <div class="feature-icon"><img src="./assets/keys/brightness.svg" alt="" aria-hidden="true"></div>
         <h3>Brightness</h3>
-        <p>Press for a fixed %. Drop the same action on a Stream Deck+ dial: rotate to adjust, press to toggle power.</p>
+        <p>Press for a fixed %. Or drop the same action on a Stream Deck+ dial: rotate to adjust, press to toggle power.</p>
       </div>
       <div class="feature">
-        <div class="feature-icon"><img src="./assets/keys/color.svg" alt=""></div>
+        <div class="feature-icon"><img src="./assets/keys/color.svg" alt="" aria-hidden="true"></div>
         <h3>Color</h3>
         <p>Press for a fixed RGB pick. Or rotate the dial through the full hue wheel with live colour feedback on the LCD.</p>
       </div>
       <div class="feature">
-        <div class="feature-icon"><img src="./assets/keys/colortemp.svg" alt=""></div>
+        <div class="feature-icon"><img src="./assets/keys/colortemp.svg" alt="" aria-hidden="true"></div>
         <h3>Color Temperature</h3>
-        <p>Press for a fixed Kelvin. Rotate the dial between 2000K warm candlelight and 9000K crisp daylight on a gradient bar.</p>
+        <p>Press for a fixed Kelvin. Rotate the dial between 2000K warm candlelight and 9000K crisp daylight.</p>
       </div>
       <div class="feature">
-        <div class="feature-icon"><img src="./assets/keys/segment-color.svg" alt=""></div>
+        <div class="feature-icon"><img src="./assets/keys/segment-color.svg" alt="" aria-hidden="true"></div>
         <h3>Segment Color</h3>
-        <p>For RGB IC strips: press for rainbow / solid / gradient presets across a range. Or rotate the dial to tune one segment at a time.</p>
+        <p>For RGB IC strips: press for rainbow / solid / gradient presets across a range. Or rotate to tune one segment at a time.</p>
       </div>
       <div class="feature">
-        <div class="feature-icon"><img src="./assets/keys/saturation-dial.svg" alt=""></div>
+        <div class="feature-icon"><img src="./assets/keys/saturation-dial.svg" alt="" aria-hidden="true"></div>
         <h3>Saturation</h3>
-        <p>Press for a fixed %. Rotate to dial through grey-to-vivid on the LCD. Same hybrid pattern as the rest.</p>
+        <p>Press for a fixed %. Rotate to dial from grey to vivid on the LCD. Same hybrid pattern as the rest.</p>
+      </div>
+    </div>
+
+    <h3 class="features-subhead">Plus the tools you reach for</h3>
+    <div class="features features-compact">
+      <div class="feature">
+        <div class="feature-icon"><img src="./assets/keys/snapshot.svg" alt="" aria-hidden="true"></div>
+        <h3>Scene · Snapshot · Music Mode</h3>
+        <p>Apply Govee dynamic scenes, recall saved presets, or trigger audio-reactive lighting with adjustable sensitivity.</p>
       </div>
       <div class="feature">
-        <div class="feature-icon"><img src="./assets/keys/music-mode.svg" alt=""></div>
-        <h3>Music Mode + Snapshots</h3>
-        <p>Audio-reactive lighting, saved Govee presets, feature toggles (Nightlight, Gradient, DreamView), Schedule, Sequence, Custom Effect.</p>
+        <div class="feature-icon"><img src="./assets/keys/toggle.svg" alt="" aria-hidden="true"></div>
+        <h3>Feature Toggle</h3>
+        <p>Nightlight, Gradient, DreamView, Scene Stage — auto-filtered by what each device actually supports.</p>
       </div>
       <div class="feature">
-        <div class="feature-icon"><img src="./assets/keys/light.svg" alt=""></div>
-        <h3>Honest group state</h3>
-        <p>Group apply succeeds for some and fails for others? You see "⚠ N/M failed" for 30s. No more silent green checkmarks.</p>
+        <div class="feature-icon"><img src="./assets/keys/schedule.svg" alt="" aria-hidden="true"></div>
+        <h3>Schedule · Sequence · Custom Effect</h3>
+        <p>Daily / weekly / delayed automation. Chain commands with delays. Animated RGB effects on IC strips.</p>
+      </div>
+    </div>
+
+    <!-- Trust strip: built to tell the truth -->
+    <div class="trust-band">
+      <div class="trust-band-head">
+        <span class="eyebrow">Built to tell the truth</span>
+        <h3>Group state that finally matches reality</h3>
+      </div>
+      <div class="trust-band-grid">
+        <div class="tb-item">
+          <div class="tb-glyph all-on">●</div>
+          <div class="tb-t">All on · 2/2</div>
+          <div class="tb-s">Solid glyph + N/M count when every member is on.</div>
+        </div>
+        <div class="tb-item">
+          <div class="tb-glyph mixed">◐</div>
+          <div class="tb-t">Mixed · 1/2</div>
+          <div class="tb-s">Half glyph + count. No more silent lies about uniform state.</div>
+        </div>
+        <div class="tb-item">
+          <div class="tb-glyph">○</div>
+          <div class="tb-t">All off · 0/2</div>
+          <div class="tb-s">Empty glyph + desaturated multi-state icon variant.</div>
+        </div>
+        <div class="tb-item">
+          <div class="tb-glyph warn">⚠</div>
+          <div class="tb-t">2/3 failed</div>
+          <div class="tb-s">Persists 30s when partial group apply fails — never silent.</div>
+        </div>
       </div>
     </div>
   </div>
@@ -533,12 +806,47 @@
       </div>
       <div class="step">
         <h3>Get your Govee API key</h3>
-        <p>Open the Govee app, tap your profile, and request a free developer API key. It arrives by email.</p>
+        <p>Open the Govee app, tap your profile, request a free developer API key. Usually arrives in under a minute by email — no approval needed.</p>
       </div>
       <div class="step">
         <h3>Drag and configure</h3>
         <p>Drop an action on a key or a Stream Deck+ dial — same action, same settings. Press for a fixed value, rotate to adjust.</p>
       </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Common questions</span>
+      <h2>Before you install</h2>
+    </div>
+    <div class="faq-grid">
+      <details class="faq-item" open>
+        <summary>Do I need a Stream Deck+?</summary>
+        <p>No. The five hybrid actions work on any Stream Deck — keys behave as fixed-value presses. A Stream Deck+ unlocks the rotate-to-adjust experience on the dial half. Same action either way.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Where does my Govee API key live?</summary>
+        <p>In Stream Deck's encrypted local settings store on your machine. Never sent anywhere except the Govee Cloud API itself. No analytics endpoint. No telemetry. The full source is on GitHub if you want to verify.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Will my v2.6 setup break when I install v2.7?</summary>
+        <p>No. The five legacy <code>*-Dial</code> UUIDs stay registered as <em>(legacy)</em> entries with their original behaviour. Existing key bindings keep working. Re-binding to the unified hybrid actions is optional.</p>
+      </details>
+      <details class="faq-item">
+        <summary>What happens when Govee changes the API?</summary>
+        <p>Plugin uses a versioned API client (<code>@felixgeelhaar/govee-api-client</code>) with circuit-breaker, retry, and rate-limit guards. When Govee changes, the client gets patched and the plugin picks it up on the next release. Open issues track API drift.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Does it work with Govee app groups?</summary>
+        <p>Govee Cloud groups (<code>SameModelGroup</code>, <code>BaseGroup</code>) appear in the device dropdown as a disabled hint — Govee's API doesn't accept commands on them. Use the plugin's own group manager to compose multiple lights into a group you can drive together.</p>
+      </details>
+      <details class="faq-item">
+        <summary>What if a group apply only half-works?</summary>
+        <p>The key shows <code>⚠ N/M failed</code> for 30 seconds — never a silent green checkmark. State sync also reverts the optimistic update if every member failed.</p>
+      </details>
     </div>
   </div>
 </section>
