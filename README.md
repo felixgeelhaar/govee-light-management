@@ -8,7 +8,9 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-blue?style=flat-square&logo=typescript)
 ![Node.js](https://img.shields.io/badge/Node.js-20+-green?style=flat-square&logo=node.js)
 
-**Enterprise-grade Stream Deck plugin for managing Govee smart lights with advanced group functionality**
+**Control your room's Govee lighting without ever leaving what you're working on.**
+
+One press for a saved look. One rotation for the perfect brightness. Status visible at a glance. The phone stays in your pocket.
 
 [Features](#features) • [Installation](#installation) • [Usage](#usage) • [Contributing](#contributing) • [License](#license)
 
