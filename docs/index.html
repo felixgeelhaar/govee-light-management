@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Govee Light Management — Stream Deck Plugin</title>
-<meta name="description" content="Control your Govee smart lights directly from your Stream Deck. Tactile dials, custom layouts, and per-segment control for RGB IC strips.">
-<meta property="og:title" content="Govee Light Management for Stream Deck">
-<meta property="og:description" content="Tactile smart light control on your Stream Deck. Keypad actions, Stream Deck+ dials, and per-segment RGB control.">
+<meta name="description" content="Control your room's Govee lighting from your Stream Deck. One press for a saved look. One rotation for the perfect setting. Hybrid actions work on keys and Stream Deck+ dials.">
+<meta property="og:title" content="Govee Light Management for Stream Deck — v2.7">
+<meta property="og:description" content="One press for a saved look. One rotation for the perfect setting. Hybrid keypad + dial actions, Recall composite, and group state that finally tells the truth.">
 <meta property="og:type" content="website">
 <style>
   :root {
@@ -409,11 +409,11 @@
 
 <header class="hero">
   <div class="container">
-    <span class="badge"><span class="dot"></span> Now on Elgato Marketplace</span>
-    <h1>Tactile smart light control,<br><span class="grad">right on your Stream Deck</span></h1>
+    <span class="badge"><span class="dot"></span> v2.7 — now on Elgato Marketplace</span>
+    <h1>One press for a saved look.<br><span class="grad">One rotation for the perfect setting.</span></h1>
     <p class="tagline">
-      Toggle lights, scrub colors, dial in the perfect warmth, and paint every segment of your RGB IC strip —
-      all without touching your phone.
+      Recall any scene, dial in any colour, or rotate the brightness — directly from your Stream Deck.
+      Hybrid actions work on both keys and Stream Deck+ dials. The phone stays in your pocket.
     </p>
     <div class="cta">
       <a class="btn btn-primary" href="https://marketplace.elgato.com/">
@@ -465,55 +465,55 @@
 <section id="features">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">What's inside</span>
-      <h2>Everything you need<br>for tactile light control</h2>
-      <p class="section-sub">Nine purpose-built actions for keypads and dials. No phone, no lag, no fuss.</p>
+      <span class="eyebrow">What's inside · v2.7</span>
+      <h2>Five hybrid actions,<br>plus the tools you reach for</h2>
+      <p class="section-sub">Each hybrid action works on both Stream Deck keys and Stream Deck+ dials. Drop once, use anywhere.</p>
     </div>
     <div class="features">
       <div class="feature">
+        <div class="feature-icon"><img src="./assets/keys/scene.svg" alt=""></div>
+        <h3>Recall <span style="color:var(--accent-3);font-size:0.78rem;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;">New</span></h3>
+        <p>One key, any saved look. Picks from every Govee dynamic scene, your DIY moods, and snapshots — in a single dropdown.</p>
+      </div>
+      <div class="feature">
         <div class="feature-icon"><img src="./assets/keys/light.svg" alt=""></div>
         <h3>On / Off</h3>
-        <p>Toggle individual lights or whole groups. The action remembers its state across sessions.</p>
+        <p>Toggle a light or a whole group. Three-state title (●/◐/○) with N/M count for groups — never lies about mixed state.</p>
       </div>
       <div class="feature">
         <div class="feature-icon"><img src="./assets/keys/brightness.svg" alt=""></div>
         <h3>Brightness</h3>
-        <p>Tap a preset or dial it in continuously. Stream Deck+ dials feel like a real hardware knob.</p>
+        <p>Press for a fixed %. Drop the same action on a Stream Deck+ dial: rotate to adjust, press to toggle power.</p>
       </div>
       <div class="feature">
         <div class="feature-icon"><img src="./assets/keys/color.svg" alt=""></div>
         <h3>Color</h3>
-        <p>Scrub the full hue wheel with live feedback on the touchscreen. Snap to any color in under a second.</p>
+        <p>Press for a fixed RGB pick. Or rotate the dial through the full hue wheel with live colour feedback on the LCD.</p>
       </div>
       <div class="feature">
         <div class="feature-icon"><img src="./assets/keys/colortemp.svg" alt=""></div>
         <h3>Color Temperature</h3>
-        <p>Shift between 2000K warm candlelight and 9000K crisp daylight with a gradient dial.</p>
+        <p>Press for a fixed Kelvin. Rotate the dial between 2000K warm candlelight and 9000K crisp daylight on a gradient bar.</p>
       </div>
       <div class="feature">
         <div class="feature-icon"><img src="./assets/keys/segment-color.svg" alt=""></div>
-        <h3>Segment Control</h3>
-        <p>For RGB IC strips: apply rainbow, solid, or gradient presets across every segment — or tune them individually.</p>
+        <h3>Segment Color</h3>
+        <p>For RGB IC strips: press for rainbow / solid / gradient presets across a range. Or rotate the dial to tune one segment at a time.</p>
       </div>
       <div class="feature">
-        <div class="feature-icon"><img src="./assets/keys/colorhue-dial.svg" alt=""></div>
-        <h3>Stream Deck+ Dials</h3>
-        <p>Custom touchscreen layouts with branded gradient bars and bold values. Five purpose-built encoder actions.</p>
+        <div class="feature-icon"><img src="./assets/keys/saturation-dial.svg" alt=""></div>
+        <h3>Saturation</h3>
+        <p>Press for a fixed %. Rotate to dial through grey-to-vivid on the LCD. Same hybrid pattern as the rest.</p>
       </div>
       <div class="feature">
-        <div class="feature-icon"><img src="./assets/keys/brightness-dial.svg" alt=""></div>
-        <h3>Fast & Resilient</h3>
-        <p>Built on an enterprise-grade API client with rate limiting, retry, and circuit-breaker protection.</p>
+        <div class="feature-icon"><img src="./assets/keys/music-mode.svg" alt=""></div>
+        <h3>Music Mode + Snapshots</h3>
+        <p>Audio-reactive lighting, saved Govee presets, feature toggles (Nightlight, Gradient, DreamView), Schedule, Sequence, Custom Effect.</p>
       </div>
       <div class="feature">
-        <div class="feature-icon"><img src="./assets/keys/colortemp-dial.svg" alt=""></div>
-        <h3>Private by Design</h3>
-        <p>Your API key stays on your machine in Stream Deck's encrypted storage. No analytics, no tracking, ever.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon"><img src="./assets/keys/segment-color-dial.svg" alt=""></div>
-        <h3>Groups</h3>
-        <p>Control multiple lights as one with saved groups. Build whole-room scenes with a single press.</p>
+        <div class="feature-icon"><img src="./assets/keys/light.svg" alt=""></div>
+        <h3>Honest group state</h3>
+        <p>Group apply succeeds for some and fails for others? You see "⚠ N/M failed" for 30s. No more silent green checkmarks.</p>
       </div>
     </div>
   </div>
@@ -537,7 +537,7 @@
       </div>
       <div class="step">
         <h3>Drag and configure</h3>
-        <p>Drag any action onto a button, paste the key once, and pick a light. You're done.</p>
+        <p>Drop an action on a key or a Stream Deck+ dial — same action, same settings. Press for a fixed value, rotate to adjust.</p>
       </div>
     </div>
   </div>
