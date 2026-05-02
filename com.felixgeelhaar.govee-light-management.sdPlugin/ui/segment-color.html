@@ -4,9 +4,49 @@
     <meta charset="utf-8" />
     <title>Govee Light Management | Segment Color</title>
     <link rel="stylesheet" href="./css/main.css" />
+    <script>
+      (function () {
+        const original = window.connectElgatoStreamDeckSocket;
+        window.connectElgatoStreamDeckSocket = function (
+          port,
+          uuid,
+          event,
+          info,
+          actionInfo,
+        ) {
+          try {
+            const ai =
+              typeof actionInfo === "string" ? JSON.parse(actionInfo) : actionInfo;
+            const controller =
+              ai?.payload?.controller ||
+              ai?.controller ||
+              ai?.action?.controller ||
+              "Keypad";
+            const set = function () {
+              document.body.dataset.controller = String(controller).toLowerCase();
+            };
+            if (document.body) set();
+            else document.addEventListener("DOMContentLoaded", set);
+          } catch {
+            // Default to keypad rendering on any parse error.
+          }
+          return original
+            ? original.call(this, port, uuid, event, info, actionInfo)
+            : undefined;
+        };
+      })();
+    </script>
     <script src="./js/sdpi-components.js"></script>
     <script src="./js/setup.js"></script>
     <script src="./js/range-value.js"></script>
+    <style>
+      body[data-controller="encoder"] [data-controller-only="keypad"] {
+        display: none;
+      }
+      body[data-controller="keypad"] [data-controller-only="encoder"] {
+        display: none;
+      }
+    </style>
   </head>
   <body>
     <div id="settings" class="hidden">
@@ -20,6 +60,7 @@
         ></sdpi-select>
       </sdpi-item>
 
+      <div data-controller-only="keypad">
       <sdpi-item label="Preset">
         <sdpi-select id="presetSelect" setting="preset" default="rainbow">
           <option value="rainbow">Rainbow</option>
@@ -107,6 +148,57 @@
           <span slot="max">359°</span>
         </sdpi-range>
       </sdpi-item>
+      </div>
+
+      <div data-controller-only="encoder">
+        <sdpi-item label="Segment">
+          <sdpi-range
+            setting="segmentIndex"
+            default="1"
+            min="1"
+            max="15"
+            step="1"
+            showlabels
+            data-suffix=""
+            data-number-input
+          >
+            <span slot="min">1</span>
+            <span slot="max">15</span>
+          </sdpi-range>
+        </sdpi-item>
+
+        <sdpi-item label="Saturation">
+          <sdpi-range
+            setting="saturation"
+            default="100"
+            min="0"
+            max="100"
+            step="1"
+            showlabels
+            data-suffix="%"
+            data-number-input
+          >
+            <span slot="min">Grey</span>
+            <span slot="max">Vivid</span>
+          </sdpi-range>
+        </sdpi-item>
+
+        <sdpi-item label="Step Size">
+          <sdpi-range
+            setting="stepSize"
+            default="15"
+            min="1"
+            max="90"
+            step="1"
+            showlabels
+            data-suffix="°"
+            data-number-input
+          >
+            <span slot="min">Fine</span>
+            <span slot="max">Coarse</span>
+          </sdpi-range>
+        </sdpi-item>
+      </div>
     </div>
 
     <div id="setup" class="hidden">

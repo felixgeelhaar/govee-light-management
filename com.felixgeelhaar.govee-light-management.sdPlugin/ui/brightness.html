@@ -4,9 +4,53 @@
     <meta charset="utf-8" />
     <title>Govee Light Management | Brightness</title>
     <link rel="stylesheet" href="./css/main.css" />
+    <script>
+      // Single PI for keypad + encoder. body[data-controller] is set
+      // from actionInfo so CSS can hide the irrelevant half. Stream
+      // Deck does not reliably honour Encoder.PropertyInspectorPath
+      // on all versions, so we always serve this PI and branch in JS.
+      (function () {
+        const original = window.connectElgatoStreamDeckSocket;
+        window.connectElgatoStreamDeckSocket = function (
+          port,
+          uuid,
+          event,
+          info,
+          actionInfo,
+        ) {
+          try {
+            const ai =
+              typeof actionInfo === "string" ? JSON.parse(actionInfo) : actionInfo;
+            const controller =
+              ai?.payload?.controller ||
+              ai?.controller ||
+              ai?.action?.controller ||
+              "Keypad";
+            const set = function () {
+              document.body.dataset.controller = String(controller).toLowerCase();
+            };
+            if (document.body) set();
+            else document.addEventListener("DOMContentLoaded", set);
+          } catch {
+            // Default to keypad rendering on any parse error.
+          }
+          return original
+            ? original.call(this, port, uuid, event, info, actionInfo)
+            : undefined;
+        };
+      })();
+    </script>
     <script src="./js/sdpi-components.js"></script>
     <script src="./js/setup.js"></script>
     <script src="./js/range-value.js"></script>
+    <style>
+      body[data-controller="encoder"] [data-controller-only="keypad"] {
+        display: none;
+      }
+      body[data-controller="keypad"] [data-controller-only="encoder"] {
+        display: none;
+      }
+    </style>
   </head>
   <body>
     <div id="settings" class="hidden">
@@ -20,21 +64,41 @@
         ></sdpi-select>
       </sdpi-item>
 
-      <sdpi-item label="Brightness">
-        <sdpi-range
-          setting="brightnessValue"
-          default="50"
-          min="0"
-          max="100"
-          step="1"
-          showlabels
-          data-suffix="%"
-          data-number-input
-        >
-          <span slot="min">Off</span>
-          <span slot="max">Max</span>
-        </sdpi-range>
-      </sdpi-item>
+      <div data-controller-only="keypad">
+        <sdpi-item label="Brightness">
+          <sdpi-range
+            setting="brightnessValue"
+            default="50"
+            min="0"
+            max="100"
+            step="1"
+            showlabels
+            data-suffix="%"
+            data-number-input
+          >
+            <span slot="min">Off</span>
+            <span slot="max">Max</span>
+          </sdpi-range>
+        </sdpi-item>
+      </div>
+
+      <div data-controller-only="encoder">
+        <sdpi-item label="Step Size">
+          <sdpi-range
+            setting="stepSize"
+            default="5"
+            min="1"
+            max="25"
+            step="1"
+            showlabels
+            data-suffix="%"
+            data-number-input
+          >
+            <span slot="min">Fine</span>
+            <span slot="max">Coarse</span>
+          </sdpi-range>
+        </sdpi-item>
+      </div>
 
       <div id="groupManager"></div>
     </div>

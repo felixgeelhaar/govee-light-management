@@ -117,7 +117,18 @@
 
 			function update(val) {
 				if (val != null && val !== "") {
-					item.setAttribute("label", baseLabel + " \u00B7 " + val + suffix);
+					// When a number-input is attached, the live value is
+					// already visible in the spinbox to the right of the
+					// slider \u2014 duplicating it in the label as
+					// "Saturation \u00B7 100%" is noise. Keep the label clean
+					// in that case; otherwise show the suffix-style
+					// readout for sliders without a number input.
+					if (!hasNumberInput) {
+						item.setAttribute(
+							"label",
+							baseLabel + " \u00B7 " + val + suffix,
+						);
+					}
 					if (numberBridge) numberBridge.syncFromSlider(val);
 				}
 			}

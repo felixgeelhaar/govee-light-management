@@ -4,9 +4,58 @@
     <meta charset="utf-8" />
     <title>Govee Light Management | Color</title>
     <link rel="stylesheet" href="./css/main.css" />
+    <script>
+      // Capture the controller type from Stream Deck's PI bootstrap so
+      // we can show only the relevant half of the PI for this binding.
+      // SD calls connectElgatoStreamDeckSocket(port, uuid, event, info,
+      // inActionInfo). actionInfo.action.controller tells us if the
+      // action sits on a Keypad or an Encoder. Stream Deck does not
+      // reliably honour Encoder.PropertyInspectorPath on all versions,
+      // so we always serve this single PI and branch in JS.
+      (function () {
+        const original = window.connectElgatoStreamDeckSocket;
+        window.connectElgatoStreamDeckSocket = function (
+          port,
+          uuid,
+          event,
+          info,
+          actionInfo,
+        ) {
+          try {
+            const ai = typeof actionInfo === "string" ? JSON.parse(actionInfo) : actionInfo;
+            // Stream Deck actionInfo schema: controller lives at
+            // `payload.controller` ("Keypad" | "Encoder"). Fall through
+            // alternative shapes for older SDK versions.
+            const controller =
+              ai?.payload?.controller ||
+              ai?.controller ||
+              ai?.action?.controller ||
+              "Keypad";
+            const set = function () {
+              document.body.dataset.controller = String(controller).toLowerCase();
+            };
+            if (document.body) set();
+            else document.addEventListener("DOMContentLoaded", set);
+          } catch {
+            // Default to keypad rendering on any parse error.
+          }
+          return original
+            ? original.call(this, port, uuid, event, info, actionInfo)
+            : undefined;
+        };
+      })();
+    </script>
     <script src="./js/sdpi-components.js"></script>
     <script src="./js/setup.js"></script>
     <style>
+      /* Per-controller visibility — body[data-controller] is set by
+         the bootstrap script above. */
+      body[data-controller="encoder"] [data-controller-only="keypad"] {
+        display: none;
+      }
+      body[data-controller="keypad"] [data-controller-only="encoder"] {
+        display: none;
+      }
       .palette-section {
         margin-top: 8px;
       }
@@ -66,24 +115,60 @@
         ></sdpi-select>
       </sdpi-item>
 
-      <sdpi-item label="Color">
-        <sdpi-color setting="colorValue"></sdpi-color>
-      </sdpi-item>
+      <div data-controller-only="keypad">
+        <sdpi-item label="Color">
+          <sdpi-color setting="colorValue"></sdpi-color>
+        </sdpi-item>
 
-      <sdpi-item label="Presets">
-        <div id="palettesContainer" class="palette-section">
-          <div class="palette-empty">Loading palettes...</div>
-        </div>
-      </sdpi-item>
-
-      <sdpi-item label="Recent">
-        <div id="recentContainer" class="palette-section">
-          <div class="palette-empty">
-            No recent colors yet
-            <span id="clearRecent" class="clear-recent hidden">Clear</span>
+        <sdpi-item label="Presets">
+          <div id="palettesContainer" class="palette-section">
+            <div class="palette-empty">Loading palettes...</div>
           </div>
-        </div>
-      </sdpi-item>
+        </sdpi-item>
+
+        <sdpi-item label="Recent">
+          <div id="recentContainer" class="palette-section">
+            <div class="palette-empty">
+              No recent colors yet
+              <span id="clearRecent" class="clear-recent hidden">Clear</span>
+            </div>
+          </div>
+        </sdpi-item>
+      </div>
+
+      <div data-controller-only="encoder">
+        <sdpi-item label="Saturation">
+          <sdpi-range
+            setting="saturation"
+            default="100"
+            min="0"
+            max="100"
+            step="1"
+            showlabels
+            data-suffix="%"
+            data-number-input
+          >
+            <span slot="min">Grey</span>
+            <span slot="max">Vivid</span>
+          </sdpi-range>
+        </sdpi-item>
+
+        <sdpi-item label="Step Size">
+          <sdpi-range
+            setting="stepSize"
+            default="15"
+            min="1"
+            max="90"
+            step="1"
+            showlabels
+            data-suffix="°"
+            data-number-input
+          >
+            <span slot="min">Fine</span>
+            <span slot="max">Coarse</span>
+          </sdpi-range>
+        </sdpi-item>
+      </div>
 
       <div id="groupManager"></div>
     </div>

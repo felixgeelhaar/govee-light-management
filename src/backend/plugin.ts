@@ -17,6 +17,7 @@ import { ToggleAction } from "./actions/ToggleAction";
 import { ScheduleAction } from "./actions/ScheduleAction";
 import { SequenceAction } from "./actions/SequenceAction";
 import { CustomEffectAction } from "./actions/CustomEffectAction";
+import { RecallAction } from "./actions/RecallAction";
 import { schedulerService } from "./services/SchedulerService";
 
 streamDeck.logger.setLevel("info");
@@ -27,6 +28,7 @@ streamDeck.actions.registerAction(new BrightnessAction());
 streamDeck.actions.registerAction(new ColorAction());
 streamDeck.actions.registerAction(new ColorTemperatureAction());
 streamDeck.actions.registerAction(new SegmentColorAction());
+streamDeck.actions.registerAction(new RecallAction());
 streamDeck.actions.registerAction(new SceneAction());
 streamDeck.actions.registerAction(new SnapshotAction());
 streamDeck.actions.registerAction(new MusicModeAction());

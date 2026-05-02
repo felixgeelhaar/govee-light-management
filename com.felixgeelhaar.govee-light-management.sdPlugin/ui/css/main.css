@@ -339,21 +339,31 @@
 	cursor: pointer;
 }
 
-/* Slider paired with a direct-entry number input (#200). */
+/* Slider paired with a direct-entry number input (#200). Use grid
+   with explicit columns so the slider has a hard right boundary it
+   can't overflow past. `overflow: hidden` on sdpi-range clips its
+   internal flex children (min/track/max labels) at the column edge
+   if they would otherwise spill into the spinbox column. */
 .range-with-number {
-	display: flex;
+	display: grid;
+	grid-template-columns: 1fr 50px;
+	column-gap: 18px;
 	align-items: center;
-	gap: 8px;
 	width: 100%;
 }
 
 .range-with-number sdpi-range {
-	flex: 1 1 auto;
+	display: block;
 	min-width: 0;
+	overflow: hidden;
 }
 
 .range-with-number .range-number-input {
-	flex: 0 0 auto;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.range-with-number .range-number-input {
 	width: 56px;
 	height: 24px;
 	padding: 2px 6px;

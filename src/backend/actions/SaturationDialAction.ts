@@ -2,14 +2,23 @@ import {
   action,
   type DialAction,
   type DialRotateEvent,
+  type KeyDownEvent,
+  streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonObject } from "@elgato/utils";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { hsvToRgb, rgbToHue, rgbToSaturation } from "./shared/color-utils";
 import { clamp } from "./shared/validation";
 import { ColorRgb } from "../domain/value-objects/ColorRgb";
+import { telemetryService } from "../services/TelemetryService";
 
-type SaturationDialSettings = BaseDialSettings;
+type SaturationDialSettings = BaseDialSettings & {
+  /**
+   * Keypad-only fixed saturation target (0-100). Combined with the
+   * last-known hue (or 0 if unknown) into a setColor command on press.
+   */
+  saturationValue?: number;
+};
 
 /** Default bar colors from layouts/saturation.json (gbar grey→vivid) */
 const DEFAULT_BAR_FILL = "#FFFFFF"; // white indicator
@@ -50,6 +59,60 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
     this.hueMap.delete(ctx);
     this.displayModeMap.delete(ctx);
   }
+
+  // ── Keypad ─────────────────────────────────────────────────────
+
+  override async onKeyDown(
+    ev: KeyDownEvent<SaturationDialSettings>,
+  ): Promise<void> {
+    const { settings } = ev.payload;
+    const ctx = ev.action.id;
+
+    const apiKey = await this.services.getApiKey(settings);
+    if (!apiKey || !settings.selectedDeviceId) {
+      await ev.action.showAlert();
+      return;
+    }
+
+    await this.services.ensureServices(apiKey);
+    const target = await this.services.resolveTarget(settings);
+    if (!target) {
+      await ev.action.showAlert();
+      return;
+    }
+
+    const started = Date.now();
+    try {
+      const saturation = clamp(settings.saturationValue ?? 100, 0, 100);
+      const hue = this.hueMap.get(ctx) ?? 0;
+      const color = hsvToRgb(hue, saturation, 100);
+      const stopSpinner = this.services.showSpinner(ev.action);
+      try {
+        await this.services.ensurePreparedForTarget(ctx, target);
+        await this.services.controlTarget(
+          target,
+          "color",
+          new ColorRgb(color.r, color.g, color.b),
+        );
+      } finally {
+        stopSpinner();
+      }
+      this.saturationMap.set(ctx, saturation);
+      this.powerMap.set(ctx, true);
+      await ev.action.showOk();
+
+      telemetryService.recordCommand({
+        command: `${target.type}.color`,
+        durationMs: Date.now() - started,
+        success: true,
+      });
+    } catch (error) {
+      streamDeck.logger.error("Failed to set saturation:", error);
+      await ev.action.showAlert();
+    }
+  }
+
+  // ── Encoder rotate ────────────────────────────────────────────
 
   override async onDialRotate(
     ev: DialRotateEvent<SaturationDialSettings>,
@@ -182,7 +245,8 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
   }
 
   protected async updateDisplay(
-    action: DialAction<SaturationDialSettings & JsonObject>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    action: DialAction<SaturationDialSettings & JsonObject> | any,
     _settings: SaturationDialSettings,
   ): Promise<void> {
     const ctx = action.id || "default";
@@ -191,13 +255,29 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
     const displayMode = this.displayModeMap.get(ctx) ?? "single";
     const indicator =
       displayMode === "mixed" ? "🔀 " : displayMode === "group" ? "👥 " : "";
-    const title = !isOn ? "Off" : `${indicator}${saturation}%`;
+    const value = !isOn ? "Off" : `${indicator}${saturation}%`;
 
-    await action.setFeedback({
-      label: "Saturation",
-      value: title,
-      bar: { value: isOn ? saturation : 0 },
-    });
+    if (typeof action.setFeedback === "function") {
+      try {
+        await action.setFeedback({
+          label: "Saturation",
+          value,
+          bar: { value: isOn ? saturation : 0 },
+        });
+      } catch {
+        // No-op if action disappeared mid-render.
+      }
+    } else if (typeof action.setTitle === "function") {
+      try {
+        if (typeof action.setState === "function") {
+          await action.setState(isOn ? 0 : 1);
+        }
+        const glyph = displayMode === "mixed" ? "◐" : isOn ? "●" : "○";
+        await action.setTitle(`${value}\n${glyph}`);
+      } catch {
+        // No-op if action disappeared mid-render.
+      }
+    }
   }
 
   private getAverageHue(values: number[]): number {

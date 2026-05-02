@@ -1,0 +1,174 @@
+<!doctype html>
+<html>
+  <head lang="en-gb">
+    <meta charset="utf-8" />
+    <title>Govee Light Management | Recall</title>
+    <link rel="stylesheet" href="./css/main.css" />
+    <script src="./js/sdpi-components.js"></script>
+    <script src="./js/setup.js"></script>
+  </head>
+  <body>
+    <div id="settings" class="hidden">
+      <sdpi-item label="Device">
+        <sdpi-select
+          id="deviceSelect"
+          setting="selectedDeviceId"
+          placeholder=""
+          datasource="getDevices"
+          show-refresh
+          label-setting="selectedLightName"
+        ></sdpi-select>
+      </sdpi-item>
+
+      <sdpi-item label="Look">
+        <sdpi-select
+          id="recallSelect"
+          setting="selectedRecall"
+          datasource="getRecallOptions"
+          show-refresh
+          placeholder="Select a device first"
+        ></sdpi-select>
+      </sdpi-item>
+    </div>
+
+    <div id="setup" class="hidden">
+      <sdpi-item label="API Key">
+        <sdpi-password
+          id="apiKey"
+          global
+          setting="unverifiedApiKey"
+          placeholder="API key from Govee"
+        ></sdpi-password>
+      </sdpi-item>
+      <sdpi-item>
+        <sdpi-button id="connect">Connect</sdpi-button>
+        <div id="errorMessage" class="hidden">
+          Failed to connect, please try again.
+        </div>
+      </sdpi-item>
+      <sdpi-item label="Guide" class="guide">
+        <ol>
+          <li>Open the Govee app</li>
+          <li>Go to settings</li>
+          <li>Select "Apply for API Key"</li>
+        </ol>
+      </sdpi-item>
+    </div>
+
+    <script>
+      function setupDependentRefresh() {
+        if (window.__goveeRecallDependentRefreshSetup) {
+          return;
+        }
+        window.__goveeRecallDependentRefreshSetup = true;
+
+        const deviceSelect = document.getElementById("deviceSelect");
+        const recallSelect = document.getElementById("recallSelect");
+        const client = window.SDPIComponents?.streamDeckClient;
+        let currentSettings = {};
+        let refreshTimer = null;
+        let lastDeviceId = "";
+
+        function getSelectedDeviceId() {
+          return (
+            deviceSelect?.shadowRoot?.querySelector("select")?.value ||
+            deviceSelect?.value ||
+            currentSettings.selectedDeviceId ||
+            ""
+          );
+        }
+
+        function getSelectedDeviceLabel() {
+          const nativeSelect = deviceSelect?.shadowRoot?.querySelector("select");
+          return nativeSelect?.selectedOptions?.[0]?.innerText?.trim() || "";
+        }
+
+        function clearRecallSelection() {
+          recallSelect.value = "";
+          const nativeSelect = recallSelect?.shadowRoot?.querySelector("select");
+          if (nativeSelect) {
+            nativeSelect.value = "";
+          }
+        }
+
+        function queueRefresh(delay = 120) {
+          if (refreshTimer) {
+            clearTimeout(refreshTimer);
+          }
+
+          refreshTimer = setTimeout(() => {
+            refreshTimer = null;
+            if (recallSelect?.refresh) {
+              recallSelect.refresh();
+            }
+          }, delay);
+        }
+
+        async function syncForCurrentDevice() {
+          const selectedDeviceId = getSelectedDeviceId();
+          if (!selectedDeviceId) {
+            lastDeviceId = "";
+            clearRecallSelection();
+            return;
+          }
+
+          if (selectedDeviceId !== lastDeviceId && client?.setSettings) {
+            lastDeviceId = selectedDeviceId;
+            currentSettings = {
+              ...currentSettings,
+              selectedDeviceId,
+              selectedLightName: getSelectedDeviceLabel(),
+              selectedRecall: "",
+            };
+            clearRecallSelection();
+            await client.setSettings(currentSettings);
+          } else {
+            lastDeviceId = selectedDeviceId;
+          }
+
+          queueRefresh();
+        }
+
+        window.GoveePI.attachFieldStatus(recallSelect, "getRecallOptions", {
+          emptyMsg:
+            "This device has no scenes or snapshots. Create them in the Govee mobile app first.",
+          errorMsg:
+            "Couldn't load scenes and snapshots. Check your connection and try again.",
+        });
+
+        if (client?.didReceiveSettings?.subscribe) {
+          client.didReceiveSettings.subscribe((msg) => {
+            currentSettings = msg?.payload?.settings || {};
+            const selectedDeviceId =
+              typeof currentSettings.selectedDeviceId === "string"
+                ? currentSettings.selectedDeviceId
+                : "";
+
+            if (!selectedDeviceId) {
+              lastDeviceId = "";
+              clearRecallSelection();
+              return;
+            }
+
+            if (selectedDeviceId !== lastDeviceId) {
+              lastDeviceId = selectedDeviceId;
+              clearRecallSelection();
+              queueRefresh();
+            }
+          });
+        }
+
+        ["valuechange", "change", "input"].forEach((eventName) => {
+          deviceSelect.addEventListener(eventName, () => {
+            void syncForCurrentDevice();
+          });
+        });
+
+        void syncForCurrentDevice();
+      }
+
+      document.addEventListener("DOMContentLoaded", setupDependentRefresh);
+      if (document.readyState !== "loading") setupDependentRefresh();
+    </script>
+  </body>
+</html>

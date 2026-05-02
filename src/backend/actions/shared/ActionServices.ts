@@ -1276,6 +1276,7 @@ export class ActionServices {
     }
     await this.cancelActiveEffectForLight(light);
     await this.lightRepository.setSegmentColors(light, segments);
+    this.rememberLightState(light);
   }
 
   async getDynamicScenes(light: Light): Promise<DynamicSceneOption[]> {
@@ -1309,6 +1310,10 @@ export class ActionServices {
     }
     await this.cancelActiveEffectForLight(light);
     await this.lightRepository.setLightScene(light, scene);
+    // Persist post-apply state so other actions pointed at this light
+    // (notably the OnOff three-state title for groups) see the
+    // power=on transition without a separate live-state round-trip.
+    this.rememberLightState(light);
   }
 
   async applyDiyScene(light: Light, scene: DiySceneOption): Promise<void> {
@@ -1317,6 +1322,7 @@ export class ActionServices {
     }
     await this.cancelActiveEffectForLight(light);
     await this.lightRepository.setDiyScene(light, scene);
+    this.rememberLightState(light);
   }
 
   async getSnapshots(light: Light): Promise<SnapshotOption[]> {
@@ -1336,6 +1342,7 @@ export class ActionServices {
     }
     await this.cancelActiveEffectForLight(light);
     await this.lightRepository.applySnapshot(light, snapshot);
+    this.rememberLightState(light);
   }
 
   async toggleFeatureRaw(
@@ -1348,6 +1355,7 @@ export class ActionServices {
     }
     await this.cancelActiveEffectForLight(light);
     await this.lightRepository.toggleRaw(light, instance, enabled);
+    this.rememberLightState(light);
   }
 
   async getToggleFeatureState(
@@ -1542,6 +1550,7 @@ export class ActionServices {
     }
     await this.cancelActiveEffectForLight(light);
     await this.lightRepository.setMusicModeRaw(light, musicMode);
+    this.rememberLightState(light);
   }
 
   async getMusicModes(

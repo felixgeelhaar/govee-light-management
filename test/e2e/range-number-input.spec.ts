@@ -79,8 +79,8 @@ test.describe("range-number-input sync behavior (brightness)", () => {
     await waitForRangeReady(page, "brightnessValue");
     await revealSettingsPanel(page);
 
-    await page.locator(".range-with-number .range-number-input").fill("73");
-    await page.locator(".range-with-number .range-number-input").press("Enter");
+    await page.locator('.range-number-input[aria-label="brightnessValue value"]').fill("73");
+    await page.locator('.range-number-input[aria-label="brightnessValue value"]').press("Enter");
 
     const sliderValue = await page.evaluate(() => {
       const range = document.querySelector<HTMLElement>('sdpi-range[setting="brightnessValue"]');
@@ -96,7 +96,7 @@ test.describe("range-number-input sync behavior (brightness)", () => {
     await waitForRangeReady(page, "brightnessValue");
     await revealSettingsPanel(page);
 
-    const numberInput = page.locator(".range-with-number .range-number-input");
+    const numberInput = page.locator('.range-number-input[aria-label="brightnessValue value"]');
     await numberInput.fill("999");
     await numberInput.press("Enter");
 
@@ -117,7 +117,7 @@ test.describe("range-number-input sync behavior (brightness)", () => {
     await waitForRangeReady(page, "brightnessValue");
     await revealSettingsPanel(page);
 
-    const numberInput = page.locator(".range-with-number .range-number-input");
+    const numberInput = page.locator('.range-number-input[aria-label="brightnessValue value"]');
     await numberInput.fill("-50");
     await numberInput.press("Enter");
 
