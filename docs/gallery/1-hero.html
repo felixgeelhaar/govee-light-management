@@ -3,49 +3,288 @@
 <style>
   .wrap {
     width: 1920px; height: 1080px;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 140px;
+    display: grid;
+    grid-template-columns: 820px 1fr;
+    align-items: center;
+    column-gap: 80px;
+    padding: 0 120px;
   }
-  .left { max-width: 760px; }
-  .left .eyebrow { margin-bottom: 30px; }
+  .left { max-width: 780px; }
+  .left .eyebrow { margin-bottom: 28px; }
   .left h1 {
-    font-size: 92px;
+    font-size: 96px;
     font-weight: 800;
     letter-spacing: -0.025em;
-    line-height: 1.02;
+    line-height: 1.0;
+    margin-bottom: 40px;
+  }
+  .left h1 .line2 { display: block; }
+  .left p {
+    font-size: 28px;
+    color: var(--muted);
+    line-height: 1.45;
+    max-width: 720px;
     margin-bottom: 36px;
   }
-  .left p {
-    font-size: 26px;
-    color: var(--muted);
-    line-height: 1.5;
-    max-width: 680px;
+  .pill-row {
+    display: flex; gap: 14px; flex-wrap: wrap;
   }
-  .right {
-    width: 820px;
+  .pill {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 12px 20px;
+    background: rgba(168,85,247,0.10);
+    border: 1px solid rgba(168,85,247,0.32);
+    border-radius: 999px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .pill-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--a1);
+    box-shadow: 0 0 10px rgba(168,85,247,0.8);
+  }
+
+  /* ---------- Stream Deck mockup ---------- */
+  .device-stage {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; gap: 48px;
+    filter: drop-shadow(0 60px 120px rgba(168,85,247,0.30));
+  }
+  .deck {
+    background: linear-gradient(180deg, #1d1f2c 0%, #0d0f18 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 36px;
+    padding: 36px 36px 32px;
+    box-shadow:
+      0 30px 80px rgba(0,0,0,0.65),
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      inset 0 -2px 0 rgba(0,0,0,0.6);
+    position: relative;
+  }
+  .deck::after {
+    content: "STREAM DECK +";
+    position: absolute;
+    bottom: 10px; right: 28px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.18);
+    letter-spacing: 0.22em;
+    font-weight: 600;
+  }
+  .key-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 40px;
-    filter: drop-shadow(0 30px 80px rgba(168,85,247,0.25));
+    grid-template-columns: repeat(4, 132px);
+    grid-template-rows: repeat(2, 132px);
+    gap: 18px;
+    margin-bottom: 24px;
   }
-  .right img {
+  .k {
+    width: 132px; height: 132px;
+    border-radius: 18px;
+    background: #060810;
+    border: 1px solid rgba(255,255,255,0.04);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #fff;
+    position: relative;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+  .k img { width: 70px; height: 70px; }
+  .k .lbl {
+    position: absolute; bottom: 8px; left: 0; right: 0;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #d8dbe6;
+    letter-spacing: 0.04em;
+  }
+  .k.live {
+    background: radial-gradient(circle at 50% 35%, rgba(168,85,247,0.45), rgba(168,85,247,0.12) 60%, transparent 75%), #060810;
+    border: 1px solid rgba(168,85,247,0.45);
+    box-shadow:
+      0 0 32px rgba(168,85,247,0.45),
+      inset 0 -3px 0 rgba(0,0,0,0.6);
+  }
+  .k.cool {
+    background: radial-gradient(circle at 50% 35%, rgba(34,211,238,0.40), rgba(34,211,238,0.12) 60%, transparent 75%), #060810;
+    border: 1px solid rgba(34,211,238,0.42);
+    box-shadow:
+      0 0 30px rgba(34,211,238,0.40),
+      inset 0 -3px 0 rgba(0,0,0,0.6);
+  }
+  .k .badge {
+    position: absolute; top: 8px; right: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 0 8px rgba(0,0,0,0.8);
+  }
+
+  /* Touch strip */
+  .strip {
+    background: #02040a;
+    border-radius: 14px;
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    border: 1px solid rgba(255,255,255,0.04);
+    margin-bottom: 22px;
+  }
+  .strip-cell {
+    background: #07091a;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .strip-cell .l {
+    font-size: 9px;
+    color: #6b7280;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .strip-cell .v {
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    margin: 6px 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .strip-cell .bar {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.08);
+    position: relative; overflow: hidden;
+  }
+  .strip-cell .bar::before {
+    content: ""; position: absolute; inset: 0;
+    width: var(--v, 60%);
+    background: var(--g, var(--grad));
+    border-radius: 3px;
+  }
+  .bar-rainbow::before {
     width: 100%;
-    aspect-ratio: 1;
-    filter: drop-shadow(0 10px 30px rgba(0,0,0,0.4));
+    background: linear-gradient(90deg, #ff3030, #ffcc30, #30d060, #30a0ff, #6030ff, #d63bff);
+  }
+  .bar-warmcool::before {
+    width: 100%;
+    background: linear-gradient(90deg, #FFB347, #FFE4A3, #A8D8EA, #4A7FA8);
+  }
+  .bar-rainbow .ind, .bar-warmcool .ind {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 9px; height: 9px; border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 10px rgba(255,255,255,0.8);
+  }
+  .dials {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+  .dial-cap {
+    width: 100%; aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #2a2d3c, #0c0e18 70%);
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow:
+      inset 0 -4px 8px rgba(0,0,0,0.7),
+      inset 0 2px 4px rgba(255,255,255,0.05);
+    position: relative;
+  }
+  .dial-cap::after {
+    content: "";
+    position: absolute; top: 18%; left: 50%;
+    transform: translateX(-50%);
+    width: 4px; height: 12px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.4);
   }
 </style></head>
 <body>
 <div class="wrap">
   <div class="left">
-    <span class="eyebrow">Stream Deck Plugin</span>
-    <h1>Tactile <span class="grad-text">smart light</span> control</h1>
-    <p>Toggle lights, scrub colors, dial in warmth, and paint every segment of your RGB IC strip — all from your Stream Deck, without touching your phone.</p>
+    <span class="eyebrow">Stream Deck Plugin · v2.7</span>
+    <h1>One press.<br><span class="line2 grad-text">One rotation.</span><br>The light is right.</h1>
+    <p>Recall any saved scene, dial in any colour, or rotate the brightness — straight from your Stream Deck. The phone stays in your pocket.</p>
+    <div class="pill-row">
+      <span class="pill"><span class="pill-dot"></span>Hybrid keypad + dial</span>
+      <span class="pill"><span class="pill-dot"></span>Group state, honest</span>
+      <span class="pill"><span class="pill-dot"></span>Recall any look</span>
+    </div>
   </div>
-  <div class="right">
-    <img src="./assets/light.svg" alt="">
-    <img src="./assets/brightness.svg" alt="">
-    <img src="./assets/color.svg" alt="">
-    <img src="./assets/colortemp.svg" alt="">
+  <div class="device-stage">
+    <div class="deck">
+      <!-- 4x2 key grid -->
+      <div class="key-grid">
+        <div class="k live">
+          <img src="./assets/light.svg" alt="">
+          <span class="badge">●</span>
+          <span class="lbl">Desk · 2/2</span>
+        </div>
+        <div class="k live">
+          <img src="./assets/brightness.svg" alt="">
+          <span class="badge">●</span>
+          <span class="lbl">75%</span>
+        </div>
+        <div class="k cool">
+          <img src="./assets/colortemp.svg" alt="">
+          <span class="badge">●</span>
+          <span class="lbl">4500K</span>
+        </div>
+        <div class="k">
+          <img src="./assets/scene.svg" alt="">
+          <span class="lbl">Sunset</span>
+        </div>
+        <div class="k live">
+          <img src="./assets/color.svg" alt="">
+          <span class="badge">●</span>
+          <span class="lbl">Magenta</span>
+        </div>
+        <div class="k">
+          <img src="./assets/snapshot.svg" alt="">
+          <span class="lbl">Movie</span>
+        </div>
+        <div class="k">
+          <img src="./assets/music-mode.svg" alt="">
+          <span class="lbl">Rhythm</span>
+        </div>
+        <div class="k">
+          <img src="./assets/segment-color.svg" alt="">
+          <span class="lbl">Segments</span>
+        </div>
+      </div>
+      <!-- Touch strip -->
+      <div class="strip">
+        <div class="strip-cell">
+          <div class="l">Brightness</div>
+          <div class="v">75%</div>
+          <div class="bar" style="--v:75%; --g: var(--grad)"></div>
+        </div>
+        <div class="strip-cell">
+          <div class="l">Color</div>
+          <div class="v">210°</div>
+          <div class="bar bar-rainbow"><span class="ind" style="left:58%"></span></div>
+        </div>
+        <div class="strip-cell">
+          <div class="l">Temperature</div>
+          <div class="v">4500K</div>
+          <div class="bar bar-warmcool"><span class="ind" style="left:36%"></span></div>
+        </div>
+        <div class="strip-cell">
+          <div class="l">Saturation</div>
+          <div class="v">72%</div>
+          <div class="bar" style="--v:72%; --g: linear-gradient(90deg,#6B7280,#EF4444)"></div>
+        </div>
+      </div>
+      <!-- Dial caps -->
+      <div class="dials">
+        <div class="dial-cap"></div>
+        <div class="dial-cap" style="transform: rotate(40deg)"></div>
+        <div class="dial-cap" style="transform: rotate(-25deg)"></div>
+        <div class="dial-cap" style="transform: rotate(70deg)"></div>
+      </div>
+    </div>
   </div>
 </div>
 <div class="brand-footer">

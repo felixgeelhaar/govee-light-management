@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Gallery 5 — New in v2.1</title><link rel="stylesheet" href="./shared.css">
+<html><head><meta charset="UTF-8"><title>Gallery 5 — Recall</title><link rel="stylesheet" href="./shared.css">
 <style>
   .wrap {
     width: 1920px; height: 1080px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 0 120px;
+    display: grid;
+    grid-template-columns: 760px 1fr;
+    align-items: center;
+    column-gap: 100px;
+    padding: 0 140px;
   }
-  .head { text-align: center; margin-bottom: 80px; }
-  .badge {
+  .left .badge {
     display: inline-block;
     font-size: 15px;
     font-weight: 700;
@@ -19,87 +21,144 @@
     border-radius: 100px;
     margin-bottom: 28px;
   }
-  h1 {
-    font-size: 78px;
+  .left h1 {
+    font-size: 86px;
     font-weight: 800;
-    letter-spacing: -0.02em;
-    line-height: 1.05;
-    margin-bottom: 24px;
+    letter-spacing: -0.025em;
+    line-height: 1.02;
+    margin-bottom: 32px;
   }
-  .sub {
+  .left p.lead {
     font-size: 24px;
     color: var(--muted);
-    max-width: 860px;
-    margin: 0 auto;
+    line-height: 1.5;
+    margin-bottom: 32px;
+    max-width: 660px;
   }
-  .features {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 44px;
-    width: 100%;
-    max-width: 1500px;
+  .bullets { list-style: none; padding: 0; margin: 0; }
+  .bullets li {
+    display: flex; align-items: flex-start; gap: 16px;
+    font-size: 19px;
+    color: var(--text);
+    margin-bottom: 18px;
+    line-height: 1.5;
   }
-  .feature {
-    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 48px 40px;
-    display: flex; flex-direction: column; align-items: center;
-    text-align: center;
-    box-shadow: 0 30px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset;
-  }
-  .feature img {
-    width: 140px; height: 140px;
-    margin-bottom: 28px;
-    filter: drop-shadow(0 16px 48px rgba(168,85,247,0.4));
-  }
-  .feature h3 {
-    font-size: 30px;
+  .bullets li::before {
+    content: "✓";
+    flex: 0 0 28px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--grad);
+    color: #fff;
     font-weight: 800;
-    margin-bottom: 14px;
-    letter-spacing: -0.01em;
+    font-size: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 18px rgba(168,85,247,0.4);
   }
-  .feature p {
-    font-size: 18px;
-    color: var(--muted);
-    line-height: 1.55;
-    max-width: 300px;
+
+  /* Picker mockup */
+  .picker {
+    background: linear-gradient(180deg, #15182b, #0a0c1a);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    padding: 36px 32px;
+    box-shadow:
+      0 40px 100px rgba(168,85,247,0.25),
+      0 30px 80px rgba(0,0,0,0.6),
+      inset 0 1px 0 rgba(255,255,255,0.04);
+    width: 100%; max-width: 620px;
   }
-  .feature .tag {
-    display: inline-block;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+  .picker .head {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .picker .head img {
+    width: 56px; height: 56px;
+    filter: drop-shadow(0 8px 22px rgba(168,85,247,0.45));
+  }
+  .picker .head .t { font-size: 22px; font-weight: 800; }
+  .picker .head .s {
+    font-size: 13px;
+    color: var(--dim);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .group {
+    margin-bottom: 18px;
+  }
+  .group .gl {
+    font-size: 12px;
     color: var(--a3);
-    margin-bottom: 20px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .opt {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+    font-size: 17px;
+    color: var(--text);
+  }
+  .opt.sel {
+    background: rgba(168,85,247,0.12);
+    border-color: rgba(168,85,247,0.5);
+    box-shadow: 0 0 0 1px rgba(168,85,247,0.4), 0 0 24px rgba(168,85,247,0.18);
+  }
+  .opt .em { font-size: 20px; }
+  .opt .nm { flex: 1; font-weight: 600; }
+  .opt .meta { font-size: 12px; color: var(--dim); letter-spacing: 0.06em; text-transform: uppercase; }
+  .check {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--grad);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800;
   }
 </style></head>
 <body>
 <div class="wrap">
-  <div class="head">
-    <div class="badge">New in v2.1</div>
-    <h1>Three powerful <span class="grad-text">new actions</span></h1>
-    <p class="sub">Dynamic scenes, music-reactive lighting, and feature toggles — all queried live from your devices.</p>
+  <div class="left">
+    <div class="badge">New in v2.7 · Headline</div>
+    <h1>One key.<br><span class="grad-text">Any saved look.</span></h1>
+    <p class="lead">Recall picks from every Govee dynamic scene, your custom DIY scenes, and saved snapshots — in a single dropdown. Press once. Done.</p>
+    <ul class="bullets">
+      <li>Pulls scenes + DIY moods + snapshots live from each device</li>
+      <li>Replaces juggling separate Scene and Snapshot keys</li>
+      <li>Works on individual lights and groups, with honest failure feedback</li>
+    </ul>
   </div>
-  <div class="features">
-    <div class="feature">
-      <div class="tag">Keypad action</div>
-      <img src="./assets/scene.svg" alt="">
-      <h3>Scenes</h3>
-      <p>Apply dynamic scenes like Sunrise, Aurora, or Rainbow — fetched directly from each device's capabilities.</p>
-    </div>
-    <div class="feature">
-      <div class="tag">Keypad action</div>
-      <img src="./assets/music-mode.svg" alt="">
-      <h3>Music Mode</h3>
-      <p>Activate audio-reactive lighting with Rhythm, Energic, Spectrum, or Rolling — sensitivity adjustable per button.</p>
-    </div>
-    <div class="feature">
-      <div class="tag">Keypad action</div>
-      <img src="./assets/toggle.svg" alt="">
-      <h3>Feature Toggle</h3>
-      <p>One-tap control for Nightlight, Gradient, DreamView, and Scene Stage — auto-filtered by device capability.</p>
+  <div>
+    <div class="picker">
+      <div class="head">
+        <img src="./assets/scene.svg" alt="">
+        <div>
+          <div class="t">Recall</div>
+          <div class="s">Office Strip · Pick a look</div>
+        </div>
+      </div>
+      <div class="group">
+        <div class="gl">Govee scenes</div>
+        <div class="opt"><span class="em">🌅</span><span class="nm">Sunrise</span><span class="meta">Dynamic</span></div>
+        <div class="opt sel"><span class="em">🌇</span><span class="nm">Sunset</span><span class="meta">Dynamic</span><span class="check">✓</span></div>
+        <div class="opt"><span class="em">🌌</span><span class="nm">Aurora</span><span class="meta">Dynamic</span></div>
+      </div>
+      <div class="group">
+        <div class="gl">Your DIY moods</div>
+        <div class="opt"><span class="em">🎬</span><span class="nm">Movie night</span><span class="meta">DIY</span></div>
+        <div class="opt"><span class="em">📚</span><span class="nm">Reading</span><span class="meta">DIY</span></div>
+      </div>
+      <div class="group">
+        <div class="gl">Snapshots</div>
+        <div class="opt"><span class="em">💜</span><span class="nm">Late-night code</span><span class="meta">Snapshot</span></div>
+      </div>
     </div>
   </div>
 </div>

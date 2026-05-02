@@ -2,6 +2,16 @@
 
 **Release date:** 2026-05-02
 
+## For Elgato Marketplace reviewers
+
+Three things to check fast:
+
+1. **No breaking bindings.** Five legacy `*-Dial` UUIDs (`brightness-dial`, `colorhue-dial`, `colortemp-dial`, `segment-color-dial`, `saturation-dial`) stay registered with their original behaviour. Anyone who installed v2.6.x keeps working without touching their keys.
+2. **No new permissions.** Same Govee cloud API surface as v2.6.x. No new outbound endpoints, no new local capabilities, no new telemetry sinks.
+3. **Quality gates green.** 593 unit tests + 143 e2e tests + ESLint + `tsc --noEmit` pass on the tagged commit. Tag-triggered GitHub Actions handles publishing.
+
+The headline behaviour change is additive: 5 keypad+encoder hybrid actions plus a new `Recall` composite. Everything that worked at v2.6.x still works.
+
 v2.7.0 is the "one action per job, group state that finally tells the
 truth" release. The 17-action surface collapses into 5 hybrid
 keypad+encoder actions plus a brand-new **Recall** composite that
