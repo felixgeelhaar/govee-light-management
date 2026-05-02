@@ -30,17 +30,37 @@
 - **Delete** groups with confirmation prompts
 - **Visual indicators** for group states (●/○/◐)
 
-### 🎛️ **Stream Deck+ Encoder Support**
+### 🎛️ **Hybrid Keypad + Stream Deck+ Encoder Actions**
 
-- **Brightness Dial** - Adjust light brightness (1-100%) with tactile dial control
-- **Color Temperature Dial** - Control warm/cool white (2000K-9000K) with gradient feedback
-- **Color Hue Dial** - Full-spectrum color control (0-360°) with rainbow gradient
-- **Saturation Dial** - Control color intensity from pure white to full saturation (0-100%)
-- **Segment Color Dial** - Per-segment color control on RGB IC light strips
-- **Visual Feedback** - Real-time bar indicators with custom gradients
-- **Configurable Steps** - Customize sensitivity for each dial action
-- **Power Toggle** - Press any dial to toggle light power on/off
-- **Group Support** - All dials work with light groups for room-wide control
+As of v2.7.0 the **Brightness, Color, Color Temperature, Segment Color**,
+and **Saturation** actions ship as a single hybrid action each — drag the
+same action onto a Stream Deck key for a fixed-value press, or onto a
+Stream Deck+ dial to rotate-adjust + press-to-toggle. One UUID, one
+configuration, status indicator stays consistent across both controllers.
+
+- **Brightness** — set fixed % on press, rotate ±step on dial
+- **Color** — set fixed colour on press, rotate hue on dial (with configurable saturation)
+- **Color Temperature** — set fixed Kelvin on press, rotate warm/cool on dial
+- **Segment Color** — apply rainbow / gradient / solid preset across a segment range on press, rotate single-segment hue on dial
+- **Saturation** — set fixed saturation on press, rotate ±step on dial
+- **Visual Feedback** — real-time bar indicators on the dial LCD, multi-state icons + ●/◐/○ status badge on keypad titles
+- **Configurable Steps** — customise sensitivity for each dial action
+- **Power Toggle** — press any dial to toggle light power on/off
+- **Group Support** — all hybrid actions work with light groups; partial failures show a persistent `⚠ N/M` banner
+
+> **Legacy actions** — the standalone _Brightness Dial_, _Color Hue Dial_,
+> _Color Temperature Dial_, and _Segment Color Dial_ entries are still
+> registered (now labelled _(legacy)_) so existing user bindings keep
+> working without touching them. New keys should use the unified actions
+> above. The legacy entries will be removed in a future major release.
+
+### ✨ **Recall — one button per look (new in v2.7.0)**
+
+The **Recall** action picks from every Govee dynamic scene, DIY scene,
+and snapshot the device exposes — in a single dropdown. Drag onto a key,
+pick "Sunset" / your custom DIY mood / a saved snapshot → press to
+apply. Replaces juggling separate Scene + Snapshot atomic actions for
+the same job.
 
 ### 🎨 **Professional UI**
 
@@ -60,13 +80,16 @@
 
 Check out the **[Stream Deck+ Dials Guide](docs/DIALS_GUIDE.md)** for comprehensive documentation with real-world scenarios, configuration tips, and troubleshooting.
 
-**Quick overview:**
+**Quick overview** (drag the unified actions onto a SD+ dial):
 
-- **Brightness Dial** - Dim/brighten your lights with tactile control
-- **Color Temperature Dial** - Switch from warm to cool white
-- **Color Hue Dial** - Paint your room with any color (360°)
-- **Saturation Dial** - Control color intensity (white ↔ vibrant)
-- **Segment Color Dial** - Per-segment RGB strip control
+- **Brightness** — dim/brighten with tactile control
+- **Color Temperature** — switch from warm to cool white
+- **Color** — paint your room with any color (360°)
+- **Saturation** — control color intensity (white ↔ vibrant)
+- **Segment Color** — per-segment RGB strip control
+
+> The standalone `*-Dial (legacy)` entries are kept around for existing
+> bindings only. All new dial setups should use the hybrid actions above.
 
 📸 **Screenshots and demo videos** available in the [Gallery](docs/gallery/)
 
