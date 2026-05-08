@@ -585,7 +585,13 @@ export class ActionServices {
     streamDeck.logger.info(`handleGetDevices called (context: ${actionId})`);
 
     try {
-      const apiKey = await globalSettingsService.getApiKey();
+      let apiKey = await globalSettingsService.getApiKey();
+      if (!apiKey) {
+        // Cache may be stale if the frontend stored the API key directly via
+        // SDPIComponents.streamDeckClient.setGlobalSettings().
+        globalSettingsService.clearCache();
+        apiKey = await globalSettingsService.getApiKey();
+      }
       if (!apiKey) {
         streamDeck.logger.warn(
           "handleGetDevices: no API key in global settings",

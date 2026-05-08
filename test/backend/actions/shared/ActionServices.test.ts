@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { streamDeck } from "@elgato/streamdeck";
 import {
   ActionServices,
   registerEffectCanceller,
@@ -7,6 +8,7 @@ import { Light } from "../../../../src/backend/domain/entities/Light";
 import { LightGroup } from "../../../../src/backend/domain/entities/LightGroup";
 import type { LightState } from "../../../../src/backend/domain/value-objects/LightState";
 import type { DeviceTarget } from "../../../../src/backend/actions/shared/ActionServices";
+import { globalSettingsService } from "../../../../src/backend/services/GlobalSettingsService";
 
 const makeLight = (opts: {
   deviceId?: string;
@@ -746,5 +748,70 @@ describe("ActionServices.showPartialFailureBanner", () => {
 
     // No revert call after the timer would have fired.
     expect(action.setTitle.mock.calls.length).toBe(callsBefore);
+  });
+});
+
+/**
+ * v2.7.1: API key cache-retry. The frontend stores the API key directly
+ * via SDPIComponents.streamDeckClient.setGlobalSettings() (bypassing the
+ * backend cache), so the first getApiKey() call after connecting may hit
+ * a stale 30-second cache. We must invalidate and retry once before
+ * concluding the key is missing.
+ */
+describe("ActionServices.handleGetDevices — API key cache retry", () => {
+  let services: ActionServices;
+
+  beforeEach(() => {
+    services = new ActionServices();
+    // sendToPI matches context to deliver the payload to sendToPropertyInspector
+    (streamDeck.ui as Record<string, unknown>).action = { id: "ctx" };
+  });
+
+  afterEach(() => {
+    delete (streamDeck.ui as Record<string, unknown>).action;
+  });
+
+  it("reads the API key from cache without clearing when available on first read", async () => {
+    vi.spyOn(globalSettingsService, "getApiKey").mockResolvedValue("sk-first-hit");
+    const clearSpy = vi.spyOn(globalSettingsService, "clearCache");
+    const ensureSpy = vi.spyOn(ActionServices.prototype, "ensureServices").mockResolvedValue(undefined);
+
+    await services.handleGetDevices("ctx");
+
+    expect(clearSpy).not.toHaveBeenCalled();
+    expect(ensureSpy).toHaveBeenCalledTimes(1);
+    expect(ensureSpy).toHaveBeenCalledWith("sk-first-hit");
+  });
+
+  it("clears the stale cache and retries when the first read returns undefined", async () => {
+    let callCount = 0;
+    vi.spyOn(globalSettingsService, "getApiKey").mockImplementation(() => {
+      callCount++;
+      return Promise.resolve(callCount === 1 ? undefined : "sk-retry");
+    });
+    const clearSpy = vi.spyOn(globalSettingsService, "clearCache");
+    const ensureSpy = vi.spyOn(ActionServices.prototype, "ensureServices").mockResolvedValue(undefined);
+
+    await services.handleGetDevices("ctx");
+
+    expect(clearSpy).toHaveBeenCalledTimes(1);
+    expect(ensureSpy).toHaveBeenCalledTimes(1);
+    expect(ensureSpy).toHaveBeenCalledWith("sk-retry");
+  });
+
+  it("sends Missing API key error when both reads return undefined", async () => {
+    vi.spyOn(globalSettingsService, "getApiKey").mockResolvedValue(undefined);
+    const clearSpy = vi.spyOn(globalSettingsService, "clearCache");
+    const s2piSpy = vi.spyOn(streamDeck.ui, "sendToPropertyInspector");
+
+    await services.handleGetDevices("ctx");
+
+    expect(clearSpy).toHaveBeenCalledTimes(1);
+    expect(s2piSpy).toHaveBeenCalledWith({
+      event: "getDevices",
+      status: "error",
+      items: [],
+      message: "Missing API key — reconnect in the API Key panel.",
+    });
   });
 });
