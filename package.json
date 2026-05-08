@@ -63,7 +63,7 @@
   "dependencies": {
     "@elgato/streamdeck": "^2.1.0",
     "@felixgeelhaar/govee-api-client": "^3.3.5",
-    "zod": "4.3.6"
+    "zod": "4.4.3"
   },
   "overrides": {
     "glob": "^10.5.0",
