@@ -26,6 +26,7 @@ import {
   normalizeKelvin,
 } from "./shared/kelvin-utils";
 import { clamp } from "./shared/validation";
+import { powerGlyph, valuePrefix } from "./shared/power-state";
 import { telemetryService } from "../services/TelemetryService";
 
 type ColorTemperatureSettings = BaseDialSettings & {
@@ -192,6 +193,7 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
       const target = await this.services.resolveTarget(settings);
       if (target?.type === "light" && target.light) {
         this.displayModeMap.set(ctx, "single");
+        this.groupSummaryMap.delete(ctx);
         if (target.light.colorTemperature) {
           this.tempMap.set(
             ctx,
@@ -222,7 +224,7 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
         const lights = target.group.getControllableLights();
         this.hasOfflineMember.set(ctx, lights.length < allMembers.length);
         const kelvinValues: number[] = [];
-        let anyOn = false;
+        let onCount = 0;
         let anyOff = false;
 
         for (const light of lights) {
@@ -231,16 +233,23 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
           } catch {
             // Best effort per light.
           }
-          if (light.isOn) anyOn = true;
-          else anyOff = true;
-          if (light.isOn && light.colorTemperature) {
-            kelvinValues.push(
-              normalizeKelvin(light.colorTemperature.kelvin, range),
-            );
+          if (light.isOn) {
+            onCount++;
+            if (light.colorTemperature) {
+              kelvinValues.push(
+                normalizeKelvin(light.colorTemperature.kelvin, range),
+              );
+            }
+          } else {
+            anyOff = true;
           }
         }
 
-        this.powerMap.set(ctx, anyOn);
+        this.powerMap.set(ctx, onCount > 0);
+        this.groupSummaryMap.set(ctx, {
+          onCount,
+          totalCount: lights.length,
+        });
         if (kelvinValues.length > 0) {
           const average = Math.round(
             kelvinValues.reduce((sum, kelvin) => sum + kelvin, 0) /
@@ -252,7 +261,7 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
         const uniqueValues = new Set(
           kelvinValues.map((value) => Math.round(value)),
         );
-        const mixed = (anyOn && anyOff) || uniqueValues.size > 1;
+        const mixed = (onCount > 0 && anyOff) || uniqueValues.size > 1;
         this.displayModeMap.set(ctx, mixed ? "mixed" : "group");
       }
     } catch {
@@ -276,9 +285,7 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
     const isOn = this.powerMap.get(ctx) ?? true;
     const barValue = kelvinToBarValue(kelvin, range.min, range.max);
     const displayMode = this.displayModeMap.get(ctx) ?? "single";
-    const indicator =
-      displayMode === "mixed" ? "🔀 " : displayMode === "group" ? "👥 " : "";
-    const value = !isOn ? "Off" : `${indicator}${kelvin}K`;
+    const value = !isOn ? "Off" : `${valuePrefix(displayMode)}${kelvin}K`;
 
     if (typeof action.setFeedback === "function") {
       try {
@@ -295,7 +302,7 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
         if (typeof action.setState === "function") {
           await action.setState(isOn ? 0 : 1);
         }
-        const glyph = displayMode === "mixed" ? "◐" : isOn ? "●" : "○";
+        const glyph = powerGlyph(this.groupSummaryMap.get(ctx), isOn);
         await action.setTitle(`${value}\n${glyph}`);
       } catch {
         // No-op if action disappeared mid-render.

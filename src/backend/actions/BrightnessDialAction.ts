@@ -7,6 +7,7 @@ import type { JsonObject } from "@elgato/utils";
 import { Brightness } from "../domain/value-objects/Brightness";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { clamp } from "./shared/validation";
+import { valuePrefix } from "./shared/power-state";
 
 type BrightnessDialSettings = BaseDialSettings;
 
@@ -160,9 +161,7 @@ export class BrightnessDialAction extends BaseDialAction<BrightnessDialSettings>
     const brightness = this.brightnessMap.get(ctx) ?? 50;
     const isOn = this.powerMap.get(ctx) ?? true;
     const displayMode = this.displayModeMap.get(ctx) ?? "single";
-    const indicator =
-      displayMode === "mixed" ? "🔀 " : displayMode === "group" ? "👥 " : "";
-    const title = !isOn ? "Off" : `${indicator}${brightness}%`;
+    const title = !isOn ? "Off" : `${valuePrefix(displayMode)}${brightness}%`;
 
     await action.setFeedback({
       label: "Brightness",

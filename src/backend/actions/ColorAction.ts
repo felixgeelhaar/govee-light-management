@@ -22,6 +22,7 @@ import { ColorRgb } from "../domain/value-objects/ColorRgb";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { hsvToRgb, rgbToHue } from "./shared/color-utils";
 import { clamp } from "./shared/validation";
+import { powerGlyph, valuePrefix } from "./shared/power-state";
 import { telemetryService } from "../services/TelemetryService";
 import { ColorPaletteService } from "../domain/services/ColorPaletteService";
 import { ColorPreset } from "../domain/value-objects/ColorPalette";
@@ -188,6 +189,7 @@ export class ColorAction extends BaseDialAction<ColorSettings> {
       const target = await this.services.resolveTarget(settings);
       if (target?.type === "light" && target.light) {
         this.displayModeMap.set(ctx, "single");
+        this.groupSummaryMap.delete(ctx);
         if (target.light.color) {
           this.hueMap.set(ctx, rgbToHue(target.light.color));
         }
@@ -207,7 +209,7 @@ export class ColorAction extends BaseDialAction<ColorSettings> {
         const lights = target.group.getControllableLights();
         this.hasOfflineMember.set(ctx, lights.length < allMembers.length);
         const hueValues: number[] = [];
-        let anyOn = false;
+        let onCount = 0;
         let anyOff = false;
 
         for (const light of lights) {
@@ -216,14 +218,21 @@ export class ColorAction extends BaseDialAction<ColorSettings> {
           } catch {
             // Best effort per light.
           }
-          if (light.isOn) anyOn = true;
-          else anyOff = true;
-          if (light.isOn && light.color) {
-            hueValues.push(rgbToHue(light.color));
+          if (light.isOn) {
+            onCount++;
+            if (light.color) {
+              hueValues.push(rgbToHue(light.color));
+            }
+          } else {
+            anyOff = true;
           }
         }
 
-        this.powerMap.set(ctx, anyOn);
+        this.powerMap.set(ctx, onCount > 0);
+        this.groupSummaryMap.set(ctx, {
+          onCount,
+          totalCount: lights.length,
+        });
         if (hueValues.length > 0) {
           this.hueMap.set(ctx, this.getAverageHue(hueValues));
         }
@@ -231,7 +240,7 @@ export class ColorAction extends BaseDialAction<ColorSettings> {
         const uniqueValues = new Set(
           hueValues.map((value) => Math.round(value)),
         );
-        const mixed = (anyOn && anyOff) || uniqueValues.size > 1;
+        const mixed = (onCount > 0 && anyOff) || uniqueValues.size > 1;
         this.displayModeMap.set(ctx, mixed ? "mixed" : "group");
       }
     } catch {
@@ -250,9 +259,7 @@ export class ColorAction extends BaseDialAction<ColorSettings> {
     const hue = this.hueMap.get(ctx) ?? 0;
     const isOn = this.powerMap.get(ctx) ?? true;
     const displayMode = this.displayModeMap.get(ctx) ?? "single";
-    const indicator =
-      displayMode === "mixed" ? "🔀 " : displayMode === "group" ? "👥 " : "";
-    const value = !isOn ? "Off" : `${indicator}${hue} °`;
+    const value = !isOn ? "Off" : `${valuePrefix(displayMode)}${hue} °`;
 
     if (typeof action.setFeedback === "function") {
       try {
@@ -269,7 +276,7 @@ export class ColorAction extends BaseDialAction<ColorSettings> {
         if (typeof action.setState === "function") {
           await action.setState(isOn ? 0 : 1);
         }
-        const glyph = displayMode === "mixed" ? "◐" : isOn ? "●" : "○";
+        const glyph = powerGlyph(this.groupSummaryMap.get(ctx), isOn);
         await action.setTitle(`${value}\n${glyph}`);
       } catch {
         // No-op if action disappeared mid-render.

@@ -7,6 +7,7 @@ import type { JsonObject } from "@elgato/utils";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { hsvToRgb, rgbToHue } from "./shared/color-utils";
 import { clamp } from "./shared/validation";
+import { valuePrefix } from "./shared/power-state";
 import { ColorRgb } from "../domain/value-objects/ColorRgb";
 
 type ColorHueDialSettings = BaseDialSettings & {
@@ -150,9 +151,7 @@ export class ColorHueDialAction extends BaseDialAction<ColorHueDialSettings> {
     const hue = this.hueMap.get(ctx) ?? 0;
     const isOn = this.powerMap.get(ctx) ?? true;
     const displayMode = this.displayModeMap.get(ctx) ?? "single";
-    const indicator =
-      displayMode === "mixed" ? "🔀 " : displayMode === "group" ? "👥 " : "";
-    const title = !isOn ? "Off" : `${indicator}${hue} °`;
+    const title = !isOn ? "Off" : `${valuePrefix(displayMode)}${hue} °`;
 
     await action.setFeedback({
       label: "Color",

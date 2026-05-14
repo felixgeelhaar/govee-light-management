@@ -50,10 +50,13 @@ export class CustomEffectAction extends SingletonAction<CustomEffectSettings> {
     // accepts a single light target — group selections aren't supported
     // because each member can have a different segment count / layout
     // and the playback loop would race per-member API rate limits.
+    // Newer PI installs filter groups out at the datasource layer, but
+    // pre-existing settings may still reference a group:* id.
     if (settings.selectedDeviceId.startsWith("group:")) {
       streamDeck.logger.warn(
         "Custom effects do not support light groups; pick an individual RGB IC light",
       );
+      await ev.action.setTitle("⚠\nPick light");
       await ev.action.showAlert();
       return;
     }
@@ -97,7 +100,9 @@ export class CustomEffectAction extends SingletonAction<CustomEffectSettings> {
 
     switch (ev.payload.event) {
       case "getDevices":
-        await this.services.handleGetDevices(ev.action.id);
+        await this.services.handleGetDevices(ev.action.id, {
+          includeGroups: false,
+        });
         break;
       case "getEffects":
         await this.handleGetEffects(ev.action.id);

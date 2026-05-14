@@ -24,6 +24,7 @@ import type { Light } from "../domain/entities/Light";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { hsvToRgb } from "./shared/color-utils";
 import { clamp } from "./shared/validation";
+import { powerGlyph } from "./shared/power-state";
 
 type SegmentColorSettings = BaseDialSettings & {
   // Keypad-mode settings
@@ -175,18 +176,31 @@ export class SegmentColorAction extends BaseDialAction<SegmentColorSettings> {
       let probeLight: Light | undefined;
       if (target?.type === "light" && target.light) {
         probeLight = target.light;
+        this.groupSummaryMap.delete(ctx);
+        if (probeLight) {
+          const isOn = await this.services.getLivePowerState(probeLight);
+          if (isOn !== undefined) {
+            this.powerMap.set(ctx, isOn);
+          }
+        }
       } else if (target?.type === "group" && target.group) {
         const allMembers = target.group.lights;
         const members = target.group.getControllableLights();
         this.hasOfflineMember.set(ctx, members.length < allMembers.length);
-        probeLight =
-          members.find((l) => l.supportsSegmentedColor()) ?? members[0];
-      }
-      if (probeLight) {
-        const isOn = await this.services.getLivePowerState(probeLight);
-        if (isOn !== undefined) {
-          this.powerMap.set(ctx, isOn);
+        let onCount = 0;
+        for (const light of members) {
+          try {
+            const live = await this.services.getLivePowerState(light);
+            if (live === true) onCount++;
+          } catch {
+            // Best effort per member.
+          }
         }
+        this.powerMap.set(ctx, onCount > 0);
+        this.groupSummaryMap.set(ctx, {
+          onCount,
+          totalCount: members.length,
+        });
       }
     } catch {
       // Best effort - keep defaults
@@ -221,7 +235,7 @@ export class SegmentColorAction extends BaseDialAction<SegmentColorSettings> {
         if (typeof action.setState === "function") {
           await action.setState(isOn ? 0 : 1);
         }
-        const glyph = isOn ? "●" : "○";
+        const glyph = powerGlyph(this.groupSummaryMap.get(ctx), isOn);
         await action.setTitle(`${this.getKeypadTitle(settings)}\n${glyph}`);
       } catch {
         // No-op if action disappeared mid-render.

@@ -24,6 +24,7 @@ import type { JsonObject, JsonValue } from "@elgato/utils";
 import { Brightness } from "../domain/value-objects/Brightness";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { clamp } from "./shared/validation";
+import { powerGlyph, valuePrefix } from "./shared/power-state";
 import { telemetryService } from "../services/TelemetryService";
 
 type BrightnessSettings = BaseDialSettings & {
@@ -156,6 +157,7 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
       const target = await this.services.resolveTarget(settings);
       if (target?.type === "light" && target.light) {
         this.displayModeMap.set(ctx, "single");
+        this.groupSummaryMap.delete(ctx);
         if (target.light.brightness) {
           this.brightnessMap.set(ctx, target.light.brightness.level);
         }
@@ -180,7 +182,7 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
         const lights = target.group.getControllableLights();
         this.hasOfflineMember.set(ctx, lights.length < allMembers.length);
         const brightnessValues: number[] = [];
-        let anyOn = false;
+        let onCount = 0;
         let anyOff = false;
 
         for (const light of lights) {
@@ -189,14 +191,21 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
           } catch {
             // Best effort per light.
           }
-          if (light.isOn) anyOn = true;
-          else anyOff = true;
-          if (light.isOn && light.brightness) {
-            brightnessValues.push(light.brightness.level);
+          if (light.isOn) {
+            onCount++;
+            if (light.brightness) {
+              brightnessValues.push(light.brightness.level);
+            }
+          } else {
+            anyOff = true;
           }
         }
 
-        this.powerMap.set(ctx, anyOn);
+        this.powerMap.set(ctx, onCount > 0);
+        this.groupSummaryMap.set(ctx, {
+          onCount,
+          totalCount: lights.length,
+        });
         if (brightnessValues.length > 0) {
           const average = Math.round(
             brightnessValues.reduce((sum, level) => sum + level, 0) /
@@ -208,7 +217,7 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
         const uniqueValues = new Set(
           brightnessValues.map((value) => Math.round(value)),
         );
-        const mixed = (anyOn && anyOff) || uniqueValues.size > 1;
+        const mixed = (onCount > 0 && anyOff) || uniqueValues.size > 1;
         this.displayModeMap.set(ctx, mixed ? "mixed" : "group");
       }
     } catch {
@@ -227,9 +236,7 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
     const brightness = this.brightnessMap.get(ctx) ?? 50;
     const isOn = this.powerMap.get(ctx) ?? true;
     const displayMode = this.displayModeMap.get(ctx) ?? "single";
-    const indicator =
-      displayMode === "mixed" ? "🔀 " : displayMode === "group" ? "👥 " : "";
-    const value = !isOn ? "Off" : `${indicator}${brightness}%`;
+    const value = !isOn ? "Off" : `${valuePrefix(displayMode)}${brightness}%`;
 
     // Encoder gets the LCD layout (label + value + bar). Keypad just
     // gets a setTitle since it has no LCD strip. setFeedback is only
@@ -253,7 +260,7 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
         if (typeof action.setState === "function") {
           await action.setState(isOn ? 0 : 1);
         }
-        const glyph = displayMode === "mixed" ? "◐" : isOn ? "●" : "○";
+        const glyph = powerGlyph(this.groupSummaryMap.get(ctx), isOn);
         await action.setTitle(`${value}\n${glyph}`);
       } catch {
         // No-op if action disappeared mid-render.

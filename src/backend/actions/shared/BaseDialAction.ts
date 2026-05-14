@@ -15,6 +15,7 @@ import {
 } from "@elgato/streamdeck";
 import type { JsonObject, JsonValue } from "@elgato/utils";
 import { ActionServices, type BaseSettings } from "./ActionServices";
+import type { GroupPowerSummary } from "./power-state";
 
 export type BaseDialSettings = BaseSettings & {
   stepSize?: number;
@@ -49,6 +50,14 @@ export abstract class BaseDialAction<
    * the cache TTL on top of the 3 s tick.
    */
   protected hasOfflineMember = new Map<string, boolean>();
+  /**
+   * Per-context power-state summary for group targets. Populated by
+   * subclass `syncLiveState` whenever the resolved target is a group;
+   * cleared (deleted) when the target is a single light or the action
+   * disappears. Used by `updateDisplay` to drive the shared ●/◐/○ glyph
+   * via `powerGlyph()` in `power-state.ts`.
+   */
+  protected groupSummaryMap = new Map<string, GroupPowerSummary>();
   private visibleActions = new Map<
     string,
     DialAction<TSettings & JsonObject>
@@ -92,6 +101,7 @@ export abstract class BaseDialAction<
     const ctx = ev.action.id;
     this.powerMap.delete(ctx);
     this.hasOfflineMember.delete(ctx);
+    this.groupSummaryMap.delete(ctx);
     this.lastCacheBustAt.delete(ctx);
     this.togglePowerEpoch.delete(ctx);
     this.cleanupValueMaps(ctx);
@@ -180,6 +190,19 @@ export abstract class BaseDialAction<
 
     // Optimistic update
     this.powerMap.set(ctx, !originalIsOn);
+    if (target.type === "group" && target.group) {
+      // Optimistic group summary so the keypad glyph snaps to ●/○
+      // before the next live-sync round-trip. controlGroup commands
+      // every controllable member, so we treat the whole controllable
+      // set as moved to the new state.
+      const total = target.group.getControllableLights().length;
+      this.groupSummaryMap.set(ctx, {
+        onCount: !originalIsOn ? total : 0,
+        totalCount: total,
+      });
+    } else {
+      this.groupSummaryMap.delete(ctx);
+    }
     this.suppressLiveSync(ctx);
 
     try {
@@ -192,6 +215,13 @@ export abstract class BaseDialAction<
       streamDeck.logger.error("Failed to toggle power:", error);
       // Revert to original state, not a double-flip
       this.powerMap.set(ctx, originalIsOn);
+      if (target.type === "group" && target.group) {
+        const total = target.group.getControllableLights().length;
+        this.groupSummaryMap.set(ctx, {
+          onCount: originalIsOn ? total : 0,
+          totalCount: total,
+        });
+      }
       await action.showAlert();
     }
   }

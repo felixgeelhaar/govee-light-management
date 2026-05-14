@@ -4,6 +4,39 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
+## [2.7.1] - 2026-05-14
+
+### Fixed
+
+- **Custom Effect silently rejected group selections.** The Custom Effect Property Inspector exposed groups through the shared `getDevices` datasource, but `EffectService` only renders per-segment frames to a single RGB IC light. Picking a group flashed a runtime alert with no on-screen explanation. The PI now omits the Groups section for Custom Effect, and the runtime guard additionally sets a `⚠ Pick light` title (with alert) for any existing settings that still reference a `group:*` id.
+- **Stale API-key cache hid every device on first connect.** Frontend stores the key directly via `setGlobalSettings()`, so the backend's 30-second cache could miss a freshly-connected key. `handleGetDevices` now invalidates and retries once before reporting a missing key.
+
+### Changed
+
+- **Unified power-state glyph across every state-reflective action.** `●` all on, `◐` partial, `○` all off — same shape language for OnOff, Brightness, Color, Color Temperature, Saturation, Segment Color. Previously each action derived the glyph from a mix of power and value-mixing signals, so a group with everyone on at different brightness levels could render `◐` (looked like partial power). Now the glyph is bound strictly to controllable-member power counts.
+- **Value-mixed indicator now matches the glyph vocabulary.** Legacy `🔀` (values differ) and `👥` (uniform group) emoji prefixes replaced with `≠ ` and `≡ `, so the LCD value line and the keypad status glyph share a single monochrome geometric language.
+
+### Internal
+
+- New `src/backend/actions/shared/power-state.ts` centralizes `powerGlyph()`, `valuePrefix()`, and the `GroupPowerSummary` type. Every action's `syncLiveState` now writes the same shape, and `BaseDialAction.togglePower` updates the optimistic summary on every group toggle.
+- `ActionServices.handleGetDevices` accepts `{ includeGroups: boolean }`. Actions that cannot target a group (currently Custom Effect) opt out of the Groups section at the datasource layer rather than alerting at runtime.
+
+### Dependencies
+
+- chore(deps): bump zod from 4.3.6 to 4.4.3.
+- chore(deps-dev): bump @typescript-eslint/eslint-plugin and @typescript-eslint/parser from 8.59.0 to 8.59.1.
+- chore(deps-dev): bump eslint from 10.2.1 to 10.3.0.
+- chore(deps-dev): bump jsdom from 29.1.0 to 29.1.1.
+- ci(deps): bump github/codeql-action from 4.35.2 to 4.35.3.
+- ci(dependabot): grant explicit write permissions for auto-merge.
+
+### Tests
+
+- 608 unit tests passing (was 578 in 2.6.1), zero TypeScript errors, zero lint errors.
+- New tests: `powerGlyph` + `valuePrefix` cover all three power states and three value-display modes; `handleGetDevices` invariants cover the `includeGroups` filter (default-on + opt-out).
+
+---
+
 ## [2.6.1] - 2026-04-29
 
 ### Fixed

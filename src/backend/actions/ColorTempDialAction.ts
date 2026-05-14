@@ -7,6 +7,7 @@ import type { JsonObject } from "@elgato/utils";
 import { ColorTemperature } from "../domain/value-objects/ColorTemperature";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { clamp } from "./shared/validation";
+import { valuePrefix } from "./shared/power-state";
 import {
   type KelvinRange,
   kelvinToBarValue,
@@ -196,9 +197,7 @@ export class ColorTempDialAction extends BaseDialAction<ColorTempDialSettings> {
     const isOn = this.powerMap.get(ctx) ?? true;
     const barValue = kelvinToBarValue(kelvin, range.min, range.max);
     const displayMode = this.displayModeMap.get(ctx) ?? "single";
-    const indicator =
-      displayMode === "mixed" ? "🔀 " : displayMode === "group" ? "👥 " : "";
-    const title = !isOn ? "Off" : `${indicator}${kelvin}K`;
+    const title = !isOn ? "Off" : `${valuePrefix(displayMode)}${kelvin}K`;
 
     await action.setFeedback({
       label: "Temperature",

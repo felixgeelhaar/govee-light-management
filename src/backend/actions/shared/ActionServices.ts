@@ -580,8 +580,17 @@ export class ActionServices {
   /**
    * Handle getDevices SDPI datasource - returns both lights and groups.
    * Uses a timeout to prevent hanging forever if the API is unreachable.
+   *
+   * Pass `{ includeGroups: false }` from actions that can't address a group
+   * target (e.g. Custom Effect, where per-segment playback only makes sense
+   * for a single RGB IC light). The default keeps groups visible so the
+   * shared datasource remains backward-compatible for every other action.
    */
-  async handleGetDevices(actionId: string): Promise<void> {
+  async handleGetDevices(
+    actionId: string,
+    options?: { includeGroups?: boolean },
+  ): Promise<void> {
+    const includeGroups = options?.includeGroups !== false;
     streamDeck.logger.info(`handleGetDevices called (context: ${actionId})`);
 
     try {
@@ -650,7 +659,7 @@ export class ActionServices {
       }
 
       // Add groups
-      if (this.groupService) {
+      if (includeGroups && this.groupService) {
         const groups = await this.groupService.getAllGroups();
         const groupItems: PIDatasourceItem[] = groups.map((g) => ({
           label: `${g.name} (${g.size} lights)`,

@@ -815,3 +815,80 @@ describe("ActionServices.handleGetDevices — API key cache retry", () => {
     });
   });
 });
+
+/**
+ * Custom Effect, Snapshot recall on a single light, and any other action
+ * that can't address a group MUST be able to opt out of the Groups section
+ * so the user never sees a picker entry that will error at runtime.
+ */
+describe("ActionServices.handleGetDevices — includeGroups filter", () => {
+  let services: ActionServices;
+  let restoreShared: () => void;
+
+  beforeEach(() => {
+    services = new ActionServices();
+    (streamDeck.ui as Record<string, unknown>).action = { id: "ctx" };
+    vi.spyOn(globalSettingsService, "getApiKey").mockResolvedValue("sk-test");
+    vi.spyOn(ActionServices.prototype, "ensureServices").mockResolvedValue(
+      undefined,
+    );
+
+    const shared = (
+      ActionServices as unknown as {
+        _shared: {
+          deviceService?: unknown;
+          groupService?: unknown;
+        };
+      }
+    )._shared;
+    const originalDevice = shared.deviceService;
+    const originalGroup = shared.groupService;
+    shared.deviceService = {
+      discover: vi.fn().mockResolvedValue([]),
+      getCachedUnsupportedDevices: vi.fn().mockReturnValue([]),
+    };
+    shared.groupService = {
+      getAllGroups: vi.fn().mockResolvedValue([
+        { id: "g1", name: "Office", size: 2 },
+      ]),
+    };
+    restoreShared = () => {
+      shared.deviceService = originalDevice;
+      shared.groupService = originalGroup;
+    };
+  });
+
+  afterEach(() => {
+    delete (streamDeck.ui as Record<string, unknown>).action;
+    restoreShared();
+    vi.restoreAllMocks();
+  });
+
+  it("includes groups by default", async () => {
+    const s2piSpy = vi.spyOn(streamDeck.ui, "sendToPropertyInspector");
+    await services.handleGetDevices("ctx");
+
+    const payload = s2piSpy.mock.calls[0][0] as {
+      items: Array<{ label: string }>;
+    };
+    expect(payload.items.some((i) => i.label === "Groups")).toBe(true);
+  });
+
+  it("omits the Groups section when includeGroups is false", async () => {
+    const shared = (
+      ActionServices as unknown as {
+        _shared: { groupService?: { getAllGroups: ReturnType<typeof vi.fn> } };
+      }
+    )._shared;
+    const getAllGroupsSpy = shared.groupService!.getAllGroups;
+    const s2piSpy = vi.spyOn(streamDeck.ui, "sendToPropertyInspector");
+
+    await services.handleGetDevices("ctx", { includeGroups: false });
+
+    expect(getAllGroupsSpy).not.toHaveBeenCalled();
+    const payload = s2piSpy.mock.calls[0][0] as {
+      items: Array<{ label: string }>;
+    };
+    expect(payload.items.some((i) => i.label === "Groups")).toBe(false);
+  });
+});

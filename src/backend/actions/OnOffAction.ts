@@ -10,16 +10,12 @@ import {
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
 import { ActionServices, type BaseSettings } from "./shared/ActionServices";
+import { powerGlyph, type GroupPowerSummary } from "./shared/power-state";
 import { telemetryService } from "../services/TelemetryService";
 
 type OnOffSettings = BaseSettings & {
   operation?: "toggle" | "on" | "off";
 };
-
-interface GroupPowerSummary {
-  onCount: number;
-  totalCount: number;
-}
 
 @action({ UUID: "com.felixgeelhaar.govee-light-management.lights" })
 export class OnOffAction extends SingletonAction<OnOffSettings> {
@@ -316,16 +312,12 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
     if (op !== "toggle") return "";
 
     const summary = this.groupSummary.get(contextId);
+    const isOn = this.powerState.get(contextId) ?? false;
+    const glyph = powerGlyph(summary, isOn);
     if (summary && summary.totalCount > 0) {
-      // Three-state group title: ● all on, ◐ mixed, ○ all off + count.
-      let glyph = "○";
-      if (summary.onCount === summary.totalCount) glyph = "●";
-      else if (summary.onCount > 0) glyph = "◐";
       return `${glyph}\n${summary.onCount}/${summary.totalCount}`;
     }
-
-    const isOn = this.powerState.get(contextId) ?? false;
-    return isOn ? "●" : "○";
+    return glyph;
   }
 
   private async syncDisplayedPowerState(

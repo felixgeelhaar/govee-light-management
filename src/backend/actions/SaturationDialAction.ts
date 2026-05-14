@@ -9,6 +9,7 @@ import type { JsonObject } from "@elgato/utils";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { hsvToRgb, rgbToHue, rgbToSaturation } from "./shared/color-utils";
 import { clamp } from "./shared/validation";
+import { powerGlyph, valuePrefix } from "./shared/power-state";
 import { ColorRgb } from "../domain/value-objects/ColorRgb";
 import { telemetryService } from "../services/TelemetryService";
 
@@ -174,6 +175,7 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
       const target = await this.services.resolveTarget(settings);
       if (target?.type === "light" && target.light) {
         this.displayModeMap.set(ctx, "single");
+        this.groupSummaryMap.delete(ctx);
         if (target.light.color) {
           this.hueMap.set(ctx, rgbToHue(target.light.color));
           this.saturationMap.set(ctx, rgbToSaturation(target.light.color));
@@ -204,7 +206,7 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
         this.hasOfflineMember.set(ctx, lights.length < allMembers.length);
         const saturationValues: number[] = [];
         const hueValues: number[] = [];
-        let anyOn = false;
+        let onCount = 0;
         let anyOff = false;
 
         for (const light of lights) {
@@ -213,15 +215,22 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
           } catch {
             // Best effort per light.
           }
-          if (light.isOn) anyOn = true;
-          else anyOff = true;
-          if (light.isOn && light.color) {
-            hueValues.push(rgbToHue(light.color));
-            saturationValues.push(rgbToSaturation(light.color));
+          if (light.isOn) {
+            onCount++;
+            if (light.color) {
+              hueValues.push(rgbToHue(light.color));
+              saturationValues.push(rgbToSaturation(light.color));
+            }
+          } else {
+            anyOff = true;
           }
         }
 
-        this.powerMap.set(ctx, anyOn);
+        this.powerMap.set(ctx, onCount > 0);
+        this.groupSummaryMap.set(ctx, {
+          onCount,
+          totalCount: lights.length,
+        });
         if (hueValues.length > 0) {
           this.hueMap.set(ctx, this.getAverageHue(hueValues));
         }
@@ -236,7 +245,7 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
         const uniqueValues = new Set(
           saturationValues.map((value) => Math.round(value)),
         );
-        const mixed = (anyOn && anyOff) || uniqueValues.size > 1;
+        const mixed = (onCount > 0 && anyOff) || uniqueValues.size > 1;
         this.displayModeMap.set(ctx, mixed ? "mixed" : "group");
       }
     } catch {
@@ -253,9 +262,7 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
     const saturation = this.saturationMap.get(ctx) ?? 100;
     const isOn = this.powerMap.get(ctx) ?? true;
     const displayMode = this.displayModeMap.get(ctx) ?? "single";
-    const indicator =
-      displayMode === "mixed" ? "🔀 " : displayMode === "group" ? "👥 " : "";
-    const value = !isOn ? "Off" : `${indicator}${saturation}%`;
+    const value = !isOn ? "Off" : `${valuePrefix(displayMode)}${saturation}%`;
 
     if (typeof action.setFeedback === "function") {
       try {
@@ -272,7 +279,7 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
         if (typeof action.setState === "function") {
           await action.setState(isOn ? 0 : 1);
         }
-        const glyph = displayMode === "mixed" ? "◐" : isOn ? "●" : "○";
+        const glyph = powerGlyph(this.groupSummaryMap.get(ctx), isOn);
         await action.setTitle(`${value}\n${glyph}`);
       } catch {
         // No-op if action disappeared mid-render.
