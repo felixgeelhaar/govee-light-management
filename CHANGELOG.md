@@ -4,6 +4,14 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
+## [2.7.4] - 2026-05-14
+
+### Security
+
+- **fast-uri bumped to ≥3.1.2** to close two high-severity advisories pulled in transitively through `@elgato/cli` → `ajv@8.18.0` → `fast-uri@3.1.0` ([GHSA path traversal](https://github.com/advisories) via percent-encoded dot segments, [GHSA host confusion](https://github.com/advisories) via percent-encoded authority delimiters). Both upstream packages are already at their latest versions, so an `overrides` entry in `package.json` pins the patched fast-uri across every transitive path. `npm audit` reports zero vulnerabilities post-fix.
+
+---
+
 ## [2.7.3] - 2026-05-14
 
 ### Fixed
