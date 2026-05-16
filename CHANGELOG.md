@@ -4,6 +4,27 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
+## [2.7.5] - 2026-05-16
+
+### Fixed
+
+- **Feature Toggle no longer reports success when Govee silently no-ops the write** ([#237](https://github.com/felixgeelhaar/govee-light-management/issues/237)). Govee's cloud API returns `200 OK` for `dreamViewToggle` writes on devices that advertise the capability but cannot apply it — most commonly an RGB IC strip (e.g. H6056) without a paired DreamView Sync Box / TV Backlight Kit configured in the Govee app. The plugin previously trusted the 200 and showed a green check while the light strip did nothing. The Toggle action now re-reads the toggle's live state after every write; if the device keeps reporting the opposite of what was requested across three short retries, the optimistic title is reverted, an alert is shown, and a `toggle.verify.mismatch` warning is logged with a hint about the likely cause.
+
+### Changed
+
+- **DreamView feature label clarified** from "DreamView (requires equipment)" to "DreamView (needs paired Sync Box)" so users understand the prerequisite is a specific companion device configured in the Govee app, not just any peripheral.
+
+### Internal
+
+- All `throw new Error(...)` rethrows in `GoveeLightRepository` now attach the original error via `{ cause }`. Preserves the stack chain across the API client boundary, making device-control failures inspectable in logs instead of opaque "Failed to set X: ..." strings.
+
+### Tests
+
+- 4 new unit tests pin `ActionServices.verifyToggleStateApplied`: matched (live state agrees), mismatched (live state stays opposite — the #237 case), unknown (Govee never reports a value), and lag-tolerant (one mismatched read followed by matched reads still returns matched, so normal cloud propagation delay doesn't false-alert).
+- 612 unit tests passing, zero TypeScript errors, zero lint errors.
+
+---
+
 ## [2.7.4] - 2026-05-14
 
 ### Security

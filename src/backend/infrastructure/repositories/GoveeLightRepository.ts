@@ -62,6 +62,7 @@ export class GoveeLightRepository implements ILightRepository {
       streamDeck.logger.error("Failed to fetch lights from Govee API:", error);
       throw new Error(
         `Failed to fetch lights: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -88,6 +89,7 @@ export class GoveeLightRepository implements ILightRepository {
       streamDeck.logger.error(`Failed to find light ${deviceId}:`, error);
       throw new Error(
         `Failed to find light: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -110,6 +112,7 @@ export class GoveeLightRepository implements ILightRepository {
       streamDeck.logger.error(`Failed to find lights by name ${name}:`, error);
       throw new Error(
         `Failed to find lights by name: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -139,6 +142,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to control light power: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -171,6 +175,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to set brightness: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -197,6 +202,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to set color: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -226,6 +232,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to set color temperature: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -258,6 +265,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to turn on with brightness: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -299,6 +307,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to turn on with color: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -340,6 +349,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to turn on with color temperature: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -403,6 +413,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to get light state: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -426,6 +437,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to apply scene: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -452,6 +464,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to set light scene: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -478,6 +491,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to set DIY scene: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -504,6 +518,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to get dynamic scenes: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -530,6 +545,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to get DIY scenes: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -556,6 +572,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to get snapshots: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -582,6 +599,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to apply snapshot: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -648,6 +666,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to set music mode: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -672,6 +691,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to toggle nightlight: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -692,6 +712,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to toggle gradient: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -721,6 +742,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to set music mode: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -787,6 +809,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to toggle ${instance}: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -820,6 +843,7 @@ export class GoveeLightRepository implements ILightRepository {
       );
       throw new Error(
         `Failed to get toggle state ${instance}: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -843,7 +867,7 @@ export class GoveeLightRepository implements ILightRepository {
       const TOGGLE_LABELS: Record<string, string> = {
         nightlightToggle: "Nightlight",
         gradientToggle: "Gradient",
-        dreamViewToggle: "DreamView (requires equipment)",
+        dreamViewToggle: "DreamView (needs paired Sync Box)",
         sceneStageToggle: "Scene Stage",
       };
 

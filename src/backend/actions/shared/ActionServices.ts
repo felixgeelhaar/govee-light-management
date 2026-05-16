@@ -1383,6 +1383,74 @@ export class ActionServices {
     return this.lightRepository.getToggleState(light, instance);
   }
 
+  /**
+   * Re-read a toggle instance after a write to verify Govee actually applied
+   * the change. Some toggles (notably `dreamViewToggle`) are advertised on
+   * standalone strips but silently no-op when no DreamView Sync Box / camera
+   * is paired — the API returns 200 yet nothing happens on the device.
+   *
+   * Returns:
+   *   - `"matched"`     — live state equals `expected`, write took effect.
+   *   - `"mismatched"`  — live state stayed at the opposite of `expected`
+   *                       across all retries; device ignored the write.
+   *   - `"unknown"`     — Govee never reported a readable value (undefined
+   *                       across all attempts), so we can't decide.
+   *
+   * Lag tolerance: Govee state propagation can take 1-2s, so the helper
+   * polls a few times before giving up. Keep `attempts * delayMs` short
+   * enough that the user doesn't feel a press hang.
+   */
+  async verifyToggleStateApplied(
+    light: Light,
+    instance: string,
+    expected: boolean,
+    attempts = 3,
+    delayMs = 300,
+  ): Promise<"matched" | "mismatched" | "unknown"> {
+    let sawAnyReading = false;
+    let lastReading: boolean | undefined;
+
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      let liveState: boolean | undefined;
+      try {
+        liveState = await this.getToggleFeatureState(light, instance);
+      } catch (error) {
+        streamDeck.logger.warn("toggle.verify.read-failed", {
+          deviceId: light.deviceId,
+          instance,
+          attempt: attempt + 1,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+
+      if (liveState !== undefined) {
+        sawAnyReading = true;
+        lastReading = liveState;
+        if (liveState === expected) {
+          return "matched";
+        }
+      }
+
+      if (attempt < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+
+    if (!sawAnyReading) return "unknown";
+    streamDeck.logger.warn("toggle.verify.mismatch", {
+      deviceId: light.deviceId,
+      model: light.model,
+      instance,
+      expected,
+      observed: lastReading,
+      hint:
+        instance === "dreamViewToggle"
+          ? "DreamView requires a paired Sync Box / TV Backlight kit configured in the Govee app. Cloud writes succeed but no-op when no companion is configured."
+          : "Govee accepted the write but the device did not reflect the new state. Check the Govee app for prerequisites (mode, source, paired equipment).",
+    });
+    return "mismatched";
+  }
+
   async syncLightState(light: Light): Promise<boolean> {
     const lightRepository = this.lightRepository;
     if (!lightRepository) {

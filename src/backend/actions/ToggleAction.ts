@@ -157,6 +157,7 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
       let anySucceeded = false;
       let failedCount = 0;
       let totalCount = 0;
+      let singleLightUnapplied = false;
       try {
         if (target.type === "light" && target.light) {
           await this.services.toggleFeatureRaw(
@@ -165,6 +166,18 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
             enabled,
           );
           anySucceeded = true;
+          // Govee occasionally accepts a 200 OK but no-ops the write
+          // (notably `dreamViewToggle` on strips without a paired Sync
+          // Box). Verify the change actually landed so the user gets
+          // an alert instead of a misleading optimistic green check.
+          const verification = await this.services.verifyToggleStateApplied(
+            target.light,
+            parsed.instance,
+            enabled,
+          );
+          if (verification === "mismatched") {
+            singleLightUnapplied = true;
+          }
         } else if (target.type === "group" && target.group) {
           const members = target.group.getControllableLights();
           totalCount = members.length;
@@ -190,6 +203,15 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
       }
       if (!anySucceeded) {
         // Revert optimistic state since nothing actually changed
+        this.featureState.set(ctx, originalState);
+        await ev.action.setTitle(this.getTitle(settings, ctx));
+        await ev.action.showAlert();
+        return;
+      }
+      if (singleLightUnapplied) {
+        // Govee accepted the write but the device did not reflect it.
+        // Revert title and warn so the user knows the press was a no-op
+        // (see verifyToggleStateApplied for the DreamView-companion case).
         this.featureState.set(ctx, originalState);
         await ev.action.setTitle(this.getTitle(settings, ctx));
         await ev.action.showAlert();

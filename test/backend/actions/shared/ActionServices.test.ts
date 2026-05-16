@@ -892,3 +892,114 @@ describe("ActionServices.handleGetDevices — includeGroups filter", () => {
     expect(payload.items.some((i) => i.label === "Groups")).toBe(false);
   });
 });
+
+/**
+ * Issue #237: Govee silently no-ops some toggle writes (notably
+ * `dreamViewToggle` on strips without a paired Sync Box). The API returns
+ * 200, so a naive flow flips the optimistic title and shows a green check.
+ * The user sees the button update but the physical light does nothing.
+ *
+ * verifyToggleStateApplied re-reads the toggle and reports whether the
+ * write actually took effect. ToggleAction uses the report to revert the
+ * optimistic state and showAlert instead of showOk.
+ */
+describe("ActionServices.verifyToggleStateApplied", () => {
+  type ToggleRepoMock = {
+    getToggleState: ReturnType<typeof vi.fn>;
+  };
+  const installToggleRepo = (repo: ToggleRepoMock) => {
+    const shared = (
+      ActionServices as unknown as { _shared: { lightRepository?: unknown } }
+    )._shared;
+    const original = shared.lightRepository;
+    shared.lightRepository = repo;
+    return () => {
+      shared.lightRepository = original;
+    };
+  };
+
+  it("returns 'matched' when the live state agrees with expected", async () => {
+    const repo: ToggleRepoMock = {
+      getToggleState: vi.fn().mockResolvedValue(true),
+    };
+    const restore = installToggleRepo(repo);
+    try {
+      const services = new ActionServices();
+      const result = await services.verifyToggleStateApplied(
+        makeLight(),
+        "dreamViewToggle",
+        true,
+        1,
+        0,
+      );
+      expect(result).toBe("matched");
+    } finally {
+      restore();
+    }
+  });
+
+  it("returns 'mismatched' when the device keeps reporting the opposite of expected", async () => {
+    const repo: ToggleRepoMock = {
+      getToggleState: vi.fn().mockResolvedValue(false),
+    };
+    const restore = installToggleRepo(repo);
+    try {
+      const services = new ActionServices();
+      const result = await services.verifyToggleStateApplied(
+        makeLight(),
+        "dreamViewToggle",
+        true,
+        3,
+        0,
+      );
+      expect(result).toBe("mismatched");
+      // Three attempts because every reading disagrees.
+      expect(repo.getToggleState).toHaveBeenCalledTimes(3);
+    } finally {
+      restore();
+    }
+  });
+
+  it("returns 'unknown' when Govee never reports a readable value", async () => {
+    const repo: ToggleRepoMock = {
+      getToggleState: vi.fn().mockResolvedValue(undefined),
+    };
+    const restore = installToggleRepo(repo);
+    try {
+      const services = new ActionServices();
+      const result = await services.verifyToggleStateApplied(
+        makeLight(),
+        "dreamViewToggle",
+        true,
+        2,
+        0,
+      );
+      expect(result).toBe("unknown");
+    } finally {
+      restore();
+    }
+  });
+
+  it("tolerates Govee state-propagation lag: mismatch then match returns 'matched'", async () => {
+    const repo: ToggleRepoMock = {
+      getToggleState: vi
+        .fn()
+        .mockResolvedValueOnce(false)
+        .mockResolvedValue(true),
+    };
+    const restore = installToggleRepo(repo);
+    try {
+      const services = new ActionServices();
+      const result = await services.verifyToggleStateApplied(
+        makeLight(),
+        "gradientToggle",
+        true,
+        3,
+        0,
+      );
+      expect(result).toBe("matched");
+    } finally {
+      restore();
+    }
+  });
+});
