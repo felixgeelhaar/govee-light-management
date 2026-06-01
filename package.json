@@ -52,7 +52,7 @@
     "husky": "9.1.7",
     "jsdom": "^29.1.1",
     "lint-staged": "^17.0.5",
-    "playwright": "^1.59.1",
+    "playwright": "^1.60.0",
     "prettier": "^3.8.2",
     "rollup": "^4.60.3",
     "tslib": "2.8.1",
