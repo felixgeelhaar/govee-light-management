@@ -47,7 +47,9 @@ interface CapabilityLike {
 const PREFERRED_FIELD_NAMES = new Set(["musicmode", "modeid", "mode"]);
 
 function extractNumericModeValue(value: unknown): number | null {
-  if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+  // Mode ids are non-negative integers. Some devices (e.g. Curtain Lights
+  // Pro H70B6) are 0-indexed — "Floating Mist" is mode 0 — so 0 is valid.
+  if (typeof value === "number" && Number.isInteger(value) && value >= 0) {
     return value;
   }
 
@@ -58,7 +60,7 @@ function extractNumericModeValue(value: unknown): number | null {
       if (
         typeof candidate === "number" &&
         Number.isInteger(candidate) &&
-        candidate > 0
+        candidate >= 0
       ) {
         return candidate;
       }
@@ -107,6 +109,7 @@ export function parseMusicModeOptions(
 
     if (Array.isArray(params.fields)) {
       // Shape 2a: fields whose fieldName matches a known mode-option field.
+      let matchedPreferredField = false;
       for (const field of params.fields) {
         const fieldName =
           typeof field?.fieldName === "string"
@@ -114,14 +117,19 @@ export function parseMusicModeOptions(
             : "";
         if (PREFERRED_FIELD_NAMES.has(fieldName)) {
           collect(field.options, dedupe);
+          matchedPreferredField = true;
         }
       }
 
-      // Shape 2b: unknown field names but still enumerable options.
-      // Fall through so we don't miss modes on devices that rename
-      // the field. Dedup guards against double-counting.
-      for (const field of params.fields) {
-        collect(field?.options, dedupe);
+      // Shape 2b: only when NO preferred field was found, fall back to any
+      // enumerable field for devices that rename the mode field. We must
+      // NOT do this when a proper `musicMode` field exists — sibling STRUCT
+      // fields like `autoColor` (on=1/off=0) would otherwise collide on
+      // value with real modes and overwrite them (e.g. Spectrum=1). See #250.
+      if (!matchedPreferredField) {
+        for (const field of params.fields) {
+          collect(field?.options, dedupe);
+        }
       }
     }
   }
