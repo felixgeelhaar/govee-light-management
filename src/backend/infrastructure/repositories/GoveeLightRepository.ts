@@ -26,7 +26,8 @@ import { MusicModeConfig } from "../../domain/value-objects/MusicModeConfig";
 import {
   isIgnorableLiveStateError,
   isValidationError,
-  VALID_TOGGLE_INSTANCES,
+  isValidToggleInstance,
+  toggleInstanceFallbackLabel,
 } from "../../actions/shared/validation";
 import { safeGetColorTemperature } from "../utils/deviceStateUtils";
 import { parseMusicModeOptions } from "../mappers/music-mode-options";
@@ -782,7 +783,7 @@ export class GoveeLightRepository implements ILightRepository {
     instance: string,
     enabled: boolean,
   ): Promise<void> {
-    if (!VALID_TOGGLE_INSTANCES.has(instance)) {
+    if (!isValidToggleInstance(instance)) {
       throw new Error(`Rejected unknown toggle instance: ${instance}`);
     }
     try {
@@ -874,7 +875,9 @@ export class GoveeLightRepository implements ILightRepository {
       return device.capabilities
         .filter((cap) => cap.type.includes("toggle"))
         .map((cap) => ({
-          name: TOGGLE_LABELS[cap.instance] ?? cap.instance,
+          name:
+            TOGGLE_LABELS[cap.instance] ??
+            toggleInstanceFallbackLabel(cap.instance),
           instance: cap.instance,
         }));
     } catch (error) {

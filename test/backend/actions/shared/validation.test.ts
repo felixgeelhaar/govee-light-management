@@ -4,6 +4,7 @@ import {
   isIgnorableLiveStateError,
   isValidApiKeyFormat,
   isValidationError,
+  isValidToggleInstance,
   parseFeatureSetting,
   VALID_TOGGLE_INSTANCES,
 } from "../../../../src/backend/actions/shared/validation";
@@ -81,6 +82,30 @@ describe("validation helpers", () => {
 
     it("rejects unknown instances to stop arbitrary command forwarding", () => {
       expect(VALID_TOGGLE_INSTANCES.has("arbitraryCommand")).toBe(false);
+    });
+  });
+
+  describe("isValidToggleInstance", () => {
+    it("accepts the named lighting toggle instances", () => {
+      expect(isValidToggleInstance("nightlightToggle")).toBe(true);
+      expect(isValidToggleInstance("gradientToggle")).toBe(true);
+      expect(isValidToggleInstance("dreamViewToggle")).toBe(true);
+      expect(isValidToggleInstance("sceneStageToggle")).toBe(true);
+    });
+
+    it("accepts indexed per-socket toggle instances (multi-outlet devices)", () => {
+      // HS5089 Smart Outlet Extender exposes socketToggle1, socketToggle2, …
+      expect(isValidToggleInstance("socketToggle1")).toBe(true);
+      expect(isValidToggleInstance("socketToggle2")).toBe(true);
+      expect(isValidToggleInstance("socketToggle12")).toBe(true);
+    });
+
+    it("rejects arbitrary, non-toggle instances", () => {
+      expect(isValidToggleInstance("arbitraryCommand")).toBe(false);
+      expect(isValidToggleInstance("turn")).toBe(false);
+      expect(isValidToggleInstance("brightness")).toBe(false);
+      // A bare "Toggle" with no prefix is not a real Govee instance.
+      expect(isValidToggleInstance("Toggle1")).toBe(false);
     });
   });
 
