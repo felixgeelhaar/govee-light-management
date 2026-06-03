@@ -116,7 +116,7 @@ describe("parseMusicModeOptions", () => {
     expect(result.map((r) => r.value).sort()).toEqual([3, 4]);
   });
 
-  it("skips malformed entries (missing name, non-integer, zero, negative)", () => {
+  it("skips malformed entries (missing name, non-integer, negative)", () => {
     const result = parseMusicModeOptions([
       {
         type: "devices.capabilities.music_setting",
@@ -125,8 +125,8 @@ describe("parseMusicModeOptions", () => {
           options: [
             { name: "", value: 3 }, // empty name
             { name: "Valid", value: 4 },
-            { name: "Zero", value: 0 }, // not positive
-            { name: "Negative", value: -1 },
+            { name: "Zero", value: 0 }, // 0 is a legitimate 0-indexed mode id
+            { name: "Negative", value: -1 }, // negative is invalid
             { name: "Float", value: 3.5 }, // not integer
             { name: "String", value: "5" }, // wrong type
             { name: "Null", value: null },
@@ -135,7 +135,75 @@ describe("parseMusicModeOptions", () => {
         },
       },
     ]);
-    expect(result).toEqual([{ name: "Valid", value: 4 }]);
+    // value 0 is valid (Govee uses 0-indexed mode ids on some devices).
+    expect(result).toEqual([
+      { name: "Valid", value: 4 },
+      { name: "Zero", value: 0 },
+    ]);
+  });
+
+  it("returns all H70B6 music modes including value-0, no field pollution (#250)", () => {
+    // Real Curtain Lights Pro (H70B6) payload: STRUCT whose musicMode field
+    // is 0-indexed (Floating Mist=0, Spectrum=1) plus unrelated fields
+    // (autoColor on=1/off=0, sensitivity, rgb). Previously Floating Mist was
+    // dropped (value 0 rejected) and Spectrum was overwritten by autoColor
+    // "on" (value 1) via the field fallback.
+    const result = parseMusicModeOptions([
+      {
+        type: "devices.capabilities.music_setting",
+        instance: "musicMode",
+        parameters: {
+          dataType: "STRUCT",
+          fields: [
+            {
+              fieldName: "musicMode",
+              dataType: "ENUM",
+              options: [
+                { name: "Floating Mist", value: 0 },
+                { name: "Spectrum", value: 1 },
+                { name: "Separation", value: 2 },
+                { name: "Meteor shower", value: 3 },
+                { name: "Hopping", value: 4 },
+                { name: "Shrink", value: 5 },
+                { name: "Sound Wave", value: 6 },
+                { name: "Falling Sand", value: 7 },
+                { name: "Color Flip", value: 8 },
+                { name: "Christmas Night", value: 9 },
+              ],
+            },
+            {
+              fieldName: "sensitivity",
+              dataType: "INTEGER",
+              range: { min: 0, max: 100, precision: 1 },
+            },
+            {
+              fieldName: "autoColor",
+              dataType: "ENUM",
+              options: [
+                { name: "on", value: 1 },
+                { name: "off", value: 0 },
+              ],
+            },
+            {
+              fieldName: "rgb",
+              dataType: "INTEGER",
+              range: { min: 0, max: 16777215, precision: 1 },
+            },
+          ],
+        },
+      },
+    ]);
+
+    const names = result.map((m) => m.name);
+    expect(result).toHaveLength(10);
+    expect(names).toContain("Floating Mist");
+    expect(names).toContain("Spectrum");
+    // autoColor values must not leak in as "modes".
+    expect(names).not.toContain("on");
+    expect(names).not.toContain("off");
+    // Real values preserved (not overwritten by autoColor).
+    expect(result.find((m) => m.name === "Floating Mist")?.value).toBe(0);
+    expect(result.find((m) => m.name === "Spectrum")?.value).toBe(1);
   });
 
   it("falls back to any enumerable field when no known fieldName matches", () => {
