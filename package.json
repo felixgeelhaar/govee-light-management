@@ -1,6 +1,6 @@
 {
   "name": "govee-light-management",
-  "version": "2.7.8",
+  "version": "2.7.9",
   "description": "Enterprise-grade Stream Deck plugin for managing Govee lights with advanced group functionality",
   "main": "com.felixgeelhaar.govee-light-management.sdPlugin/bin/plugin.js",
   "scripts": {
@@ -62,7 +62,7 @@
   },
   "dependencies": {
     "@elgato/streamdeck": "^2.1.0",
-    "@felixgeelhaar/govee-api-client": "^3.3.8",
+    "@felixgeelhaar/govee-api-client": "^3.3.9",
     "zod": "4.4.3"
   },
   "overrides": {
