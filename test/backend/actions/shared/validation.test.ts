@@ -6,6 +6,7 @@ import {
   isValidationError,
   isValidToggleInstance,
   parseFeatureSetting,
+  toggleInstanceFallbackLabel,
   VALID_TOGGLE_INSTANCES,
 } from "../../../../src/backend/actions/shared/validation";
 
@@ -100,12 +101,43 @@ describe("validation helpers", () => {
       expect(isValidToggleInstance("socketToggle12")).toBe(true);
     });
 
+    it("accepts named lighting toggles advertised by the device (issue #270)", () => {
+      // H60B0 Uplighter Floor Lamp exposes rippleLightToggle, sideLightToggle,
+      // bottomLightToggle. These have no trailing index and aren't in the
+      // curated set, but the device advertises them so they must forward.
+      expect(isValidToggleInstance("rippleLightToggle")).toBe(true);
+      expect(isValidToggleInstance("sideLightToggle")).toBe(true);
+      expect(isValidToggleInstance("bottomLightToggle")).toBe(true);
+    });
+
     it("rejects arbitrary, non-toggle instances", () => {
       expect(isValidToggleInstance("arbitraryCommand")).toBe(false);
       expect(isValidToggleInstance("turn")).toBe(false);
       expect(isValidToggleInstance("brightness")).toBe(false);
       // A bare "Toggle" with no prefix is not a real Govee instance.
       expect(isValidToggleInstance("Toggle1")).toBe(false);
+      expect(isValidToggleInstance("Toggle")).toBe(false);
+    });
+  });
+
+  describe("toggleInstanceFallbackLabel", () => {
+    it("splits camelCase lighting toggles into readable labels (issue #270)", () => {
+      expect(toggleInstanceFallbackLabel("rippleLightToggle")).toBe(
+        "Ripple Light",
+      );
+      expect(toggleInstanceFallbackLabel("sideLightToggle")).toBe("Side Light");
+      expect(toggleInstanceFallbackLabel("bottomLightToggle")).toBe(
+        "Bottom Light",
+      );
+    });
+
+    it("labels indexed per-socket toggles", () => {
+      expect(toggleInstanceFallbackLabel("socketToggle1")).toBe("Socket 1");
+      expect(toggleInstanceFallbackLabel("socketToggle12")).toBe("Socket 12");
+    });
+
+    it("returns non-toggle instances unchanged", () => {
+      expect(toggleInstanceFallbackLabel("brightness")).toBe("brightness");
     });
   });
 

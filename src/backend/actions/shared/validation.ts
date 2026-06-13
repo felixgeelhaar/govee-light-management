@@ -57,38 +57,50 @@ export const VALID_TOGGLE_INSTANCES = new Set([
 ]);
 
 /**
- * Indexed per-socket / per-zone toggle instances exposed by multi-outlet and
- * multi-zone devices, e.g. `socketToggle1` / `socketToggle2` on the HS5089
- * Smart Outlet Extender. These are not known ahead of time (the count varies
- * by device), so they are matched by shape rather than enumerated: a non-empty
- * alphabetic prefix, the literal `Toggle`, and a trailing index. They all map
- * to `devices.capabilities.toggle` with the instance name as discriminator.
+ * Shape of a Govee toggle-capability instance. Govee names every toggle in
+ * camelCase ending in `Toggle`, optionally with a trailing index for
+ * per-socket / per-zone devices, e.g. `nightlightToggle`, `socketToggle1`
+ * (HS5089 Smart Outlet Extender), `rippleLightToggle` / `sideLightToggle` /
+ * `bottomLightToggle` (H60B0 Uplighter Floor Lamp).
+ *
+ * Instances are sourced from each device's own advertised `toggle`
+ * capabilities, so the count and names are not known ahead of time. Matching
+ * by shape — rather than a fixed enumeration — lets every toggle a device
+ * reports work, including ones Govee adds later, while still rejecting
+ * arbitrary command names. Requiring a leading lowercase letter rejects a
+ * bare `Toggle1` (no real instance prefix).
  */
-const INDEXED_TOGGLE_INSTANCE = /^[a-zA-Z]+Toggle\d+$/;
+const TOGGLE_INSTANCE_SHAPE = /^[a-z][a-zA-Z]*Toggle\d*$/;
 
 /**
  * Whether a toggle instance name is safe to forward to the Govee API. Accepts
- * the known named instances and any indexed per-socket/zone toggle; everything
- * else is rejected to stop arbitrary command forwarding.
+ * any device-advertised toggle instance matching the Govee `*Toggle` shape;
+ * everything else is rejected to stop arbitrary command forwarding.
  */
 export function isValidToggleInstance(instance: string): boolean {
   return (
-    VALID_TOGGLE_INSTANCES.has(instance) ||
-    INDEXED_TOGGLE_INSTANCE.test(instance)
+    VALID_TOGGLE_INSTANCES.has(instance) || TOGGLE_INSTANCE_SHAPE.test(instance)
   );
 }
 
 /**
- * Human-friendly label for an indexed toggle instance with no curated name,
- * e.g. `socketToggle1` → `Socket 1`. Returns the raw instance unchanged when
- * it is not an indexed toggle, so callers can fall back to it directly.
+ * Human-friendly label for a toggle instance with no curated name, derived
+ * generically from the instance shape so any device-advertised toggle reads
+ * well in the picker:
+ *   `socketToggle1`     → `Socket 1`
+ *   `rippleLightToggle` → `Ripple Light`
+ *   `bottomLightToggle` → `Bottom Light`
+ * Returns the raw instance unchanged when it is not a `*Toggle` instance, so
+ * callers can fall back to it directly.
  */
 export function toggleInstanceFallbackLabel(instance: string): string {
-  const match = /^([a-zA-Z]+)Toggle(\d+)$/.exec(instance);
+  const match = /^([a-z][a-zA-Z]*)Toggle(\d*)$/.exec(instance);
   if (!match) return instance;
   const [, prefix, index] = match;
-  const label = prefix.charAt(0).toUpperCase() + prefix.slice(1);
-  return `${label} ${index}`;
+  const words = prefix
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/^./, (c) => c.toUpperCase());
+  return index ? `${words} ${index}` : words;
 }
 
 /**
