@@ -38,6 +38,20 @@ export class GoveeLightRepository implements ILightRepository {
   private client: GoveeClient;
   private readonly apiKey: string;
 
+  /**
+   * Short-lived cache of the controllable-device list. The device capability
+   * list is the authoritative contract for which toggles a device supports
+   * (see `getDeviceToggleInstances` / `toggleRaw`), but fetching it is a full
+   * API round-trip. Cache it briefly so validating a toggle press doesn't add
+   * latency or burn rate-limit budget on every key press. A device's set of
+   * capabilities does not change within a session, so a short TTL is safe.
+   */
+  private controllableDevicesCache?: {
+    devices: GoveeDevice[];
+    expires: number;
+  };
+  private static readonly DEVICE_CACHE_TTL_MS = 60_000;
+
   constructor(apiKey: string, enableRetries = true) {
     this.apiKey = apiKey;
     this.client = new GoveeClient({
@@ -783,9 +797,7 @@ export class GoveeLightRepository implements ILightRepository {
     instance: string,
     enabled: boolean,
   ): Promise<void> {
-    if (!isValidToggleInstance(instance)) {
-      throw new Error(`Rejected unknown toggle instance: ${instance}`);
-    }
+    await this.assertToggleSupported(light, instance);
     try {
       const command = {
         name: instance,
@@ -859,10 +871,7 @@ export class GoveeLightRepository implements ILightRepository {
       const [deviceId, model] = cleanId.split("|");
       if (!deviceId || !model) return [];
 
-      const devices = await this.client.getControllableDevices();
-      const device = devices.find(
-        (d) => d.deviceId === deviceId && d.model === model,
-      );
+      const device = await this.findControllableDevice(deviceId, model);
       if (!device) return [];
 
       const TOGGLE_LABELS: Record<string, string> = {
@@ -883,6 +892,100 @@ export class GoveeLightRepository implements ILightRepository {
     } catch (error) {
       streamDeck.logger.error("Failed to get toggle features:", error);
       return [];
+    }
+  }
+
+  /**
+   * Controllable-device list with a short TTL cache. The same list backs the
+   * Property Inspector's toggle picker (`getToggleFeatures`) and the send-side
+   * validation (`assertToggleSupported`), so caching keeps the two halves
+   * agreeing on one source of truth without an API call per toggle press.
+   */
+  private async getControllableDevicesCached(): Promise<GoveeDevice[]> {
+    const now = Date.now();
+    const cached = this.controllableDevicesCache;
+    if (cached && cached.expires > now) {
+      return cached.devices;
+    }
+    const devices = await this.client.getControllableDevices();
+    if (Array.isArray(devices)) {
+      this.controllableDevicesCache = {
+        devices,
+        expires: now + GoveeLightRepository.DEVICE_CACHE_TTL_MS,
+      };
+      return devices;
+    }
+    // Defensive: never cache a non-array; let callers treat as "unavailable".
+    return [];
+  }
+
+  private async findControllableDevice(
+    deviceId: string,
+    model: string,
+  ): Promise<GoveeDevice | undefined> {
+    const devices = await this.getControllableDevicesCached();
+    return devices.find((d) => d.deviceId === deviceId && d.model === model);
+  }
+
+  /**
+   * Set of toggle instances the device actually advertises in its capability
+   * list — the authoritative list of what the user can toggle. Returns
+   * `undefined` when the device can't be located (offline, not yet discovered,
+   * or the list couldn't be fetched), signalling the caller to fall back to a
+   * conservative shape check rather than block a possibly-valid command.
+   */
+  private async getDeviceToggleInstances(
+    light: Light,
+  ): Promise<Set<string> | undefined> {
+    const device = await this.findControllableDevice(
+      light.deviceId,
+      light.model,
+    );
+    if (!device) return undefined;
+    return new Set(
+      device.capabilities
+        .filter((cap) => cap.type.includes("toggle"))
+        .map((cap) => cap.instance),
+    );
+  }
+
+  /**
+   * Guard a toggle write against what the device advertises. Validating against
+   * the device's own capability list (the same source the picker reads) makes
+   * the picker↔send contract structural: anything offered is forwardable, and
+   * anything the device doesn't support is rejected — by model, not a hardcoded
+   * name list, so new Govee toggles work the moment a device reports them
+   * (issue #270: H60B0 ripple/side/bottom light toggles).
+   *
+   * Falls back to the `*Toggle` shape check only when the capability list is
+   * unavailable, so a transient discovery failure degrades to a conservative
+   * guard instead of breaking a valid toggle.
+   */
+  private async assertToggleSupported(
+    light: Light,
+    instance: string,
+  ): Promise<void> {
+    let advertised: Set<string> | undefined;
+    try {
+      advertised = await this.getDeviceToggleInstances(light);
+    } catch (error) {
+      streamDeck.logger.warn(
+        `Could not load capabilities to validate toggle ${instance} for ${light.name}; falling back to shape check:`,
+        error,
+      );
+    }
+
+    if (advertised) {
+      if (!advertised.has(instance)) {
+        throw new Error(
+          `Device ${light.model} does not advertise toggle instance: ${instance}`,
+        );
+      }
+      return;
+    }
+
+    if (!isValidToggleInstance(instance)) {
+      throw new Error(`Rejected unknown toggle instance: ${instance}`);
     }
   }
 
