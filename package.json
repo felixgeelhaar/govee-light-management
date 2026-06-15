@@ -43,7 +43,7 @@
     "@types/node": "^25.9.2",
     "@typescript-eslint/eslint-plugin": "^8.60.1",
     "@typescript-eslint/parser": "^8.60.1",
-    "@vitest/coverage-v8": "^4.1.8",
+    "@vitest/coverage-v8": "^4.1.9",
     "@vitest/ui": "^4.1.6",
     "chokidar": "5.0.0",
     "eslint": "10.5.0",
