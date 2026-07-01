@@ -209,12 +209,13 @@ export class CloudTransport implements ITransport {
     // whose payload fails the client's Zod schema throws for the whole batch,
     // and its `canControl()` filter can silently drop every entry. Either can
     // zero the list even when the account has usable lights (issue #304).
+    let primaryResult: DeviceDiscoveryResult | null = null;
     try {
       const client = await this.ensureClient();
       const allEntries = await client.getControllableDevices();
-      const result = this.buildDiscoveryResult(allEntries);
-      if (result.lights.length > 0) {
-        return result;
+      primaryResult = this.buildDiscoveryResult(allEntries);
+      if (primaryResult.lights.length > 0) {
+        return primaryResult;
       }
       streamDeck.logger?.info(
         "cloud.discover.primary-empty; attempting lenient raw fallback",
@@ -230,7 +231,15 @@ export class CloudTransport implements ITransport {
     // mirrors the Connect button's lenient raw HTTP check, guaranteeing that
     // if Connect can see devices, discovery can too.
     const fallback = await this.discoverViaRawFetch();
-    return fallback ?? { lights: [] };
+    if (fallback && fallback.lights.length > 0) {
+      return fallback;
+    }
+
+    // Fallback added no usable lights (it failed, or the account genuinely
+    // has only uncontrollable cloud-group entries). Prefer the primary result
+    // so its `unsupportedDevices` still reach the PI as disabled group
+    // options, instead of dropping them and showing nothing.
+    return primaryResult ?? fallback ?? { lights: [] };
   }
 
   /**

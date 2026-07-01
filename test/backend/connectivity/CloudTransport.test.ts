@@ -321,4 +321,37 @@ describe("CloudTransport.discoverDevices lenient raw fallback (issue #304)", () 
     expect(lights[0]?.deviceId).toBe("typed-1");
     expect(fetchSpy).not.toHaveBeenCalled();
   });
+
+  it("keeps the primary unsupported cloud-group entries when the fallback fails", async () => {
+    // Strict path found only an uncontrollable cloud group (0 lights, but a
+    // populated unsupportedDevices list). The raw fallback then fails — the
+    // primary result must survive so the PI still shows the disabled group,
+    // rather than being dropped for an empty list. (Copilot review, PR #305)
+    mockDevicesFetch([], false, 500);
+    const transport = new CloudTransport({
+      factory: {
+        create: () =>
+          ({
+            getControllableDevices: vi.fn().mockResolvedValue([
+              {
+                deviceId: "group-1",
+                model: "BaseGroup",
+                deviceName: "All Lights",
+                controllable: true,
+                retrievable: true,
+                supportedCmds: [],
+                capabilities: [],
+              },
+            ]),
+          }) as never,
+      },
+    });
+
+    const { lights, unsupportedDevices } = await transport.discoverDevices();
+
+    expect(lights).toEqual([]);
+    expect(unsupportedDevices).toEqual([
+      { deviceId: "group-1", model: "BaseGroup", name: "All Lights" },
+    ]);
+  });
 });
