@@ -26,26 +26,30 @@ Object.defineProperty(window, 'connectElgatoStreamDeckSocket', {
 });
 
 // Mock Stream Deck SDK for testing
-vi.mock('@elgato/streamdeck', () => ({
-  streamDeck: {
-    logger: {
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-      debug: vi.fn(),
-      setLevel: vi.fn()
-    },
-    settings: {
-      getGlobalSettings: vi.fn().mockResolvedValue({}),
-      setGlobalSettings: vi.fn().mockResolvedValue(undefined)
-    },
-    ui: {
-      sendToPropertyInspector: vi.fn().mockResolvedValue(undefined)
-    },
-    actions: {
-      registerAction: vi.fn()
-    }
+const mockStreamDeck = vi.hoisted(() => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    setLevel: vi.fn()
   },
+  settings: {
+    getGlobalSettings: vi.fn().mockResolvedValue({}),
+    setGlobalSettings: vi.fn().mockResolvedValue(undefined)
+  },
+  ui: {
+    sendToPropertyInspector: vi.fn().mockResolvedValue(undefined)
+  },
+  actions: {
+    registerAction: vi.fn()
+  }
+}));
+
+vi.mock('@elgato/streamdeck', () => ({
+  // Some modules import the named `streamDeck`, others the default export.
+  default: mockStreamDeck,
+  streamDeck: mockStreamDeck,
   SingletonAction: class SingletonAction {
     constructor() {}
   },
