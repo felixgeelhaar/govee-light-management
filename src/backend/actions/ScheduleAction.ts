@@ -26,12 +26,7 @@ type ScheduleSettings = BaseSettings & {
   delaySeconds?: number;
   days?: DayOfWeek[];
   command?:
-    | "on"
-    | "off"
-    | "toggle"
-    | "brightness"
-    | "color"
-    | "colorTemperature";
+    "on" | "off" | "toggle" | "brightness" | "color" | "colorTemperature";
   commandValue?: number | string;
   enabled?: boolean;
 };
