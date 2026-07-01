@@ -24,6 +24,10 @@ interface ClientFactory {
   create(apiKey: string): GoveeClient;
 }
 
+/** Govee Cloud endpoint listing every device on the account. */
+const GOVEE_DEVICES_ENDPOINT =
+  "https://openapi.api.govee.com/router/api/v1/user/devices";
+
 /**
  * A single capability descriptor as advertised by the Govee `/user/devices`
  * endpoint. Kept structurally compatible with the client's `GoveeCapability`
@@ -316,15 +320,12 @@ export class CloudTransport implements ITransport {
     }
 
     try {
-      const res = await fetch(
-        "https://openapi.api.govee.com/router/api/v1/user/devices",
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "Govee-API-Key": apiKey,
-          },
+      const res = await fetch(GOVEE_DEVICES_ENDPOINT, {
+        headers: {
+          "Content-Type": "application/json",
+          "Govee-API-Key": apiKey,
         },
-      );
+      });
       if (!res.ok) {
         streamDeck.logger?.warn(
           `cloud.discover.raw-fallback: HTTP ${res.status}`,
@@ -471,17 +472,7 @@ export class CloudTransport implements ITransport {
   }
 
   private extractColorTemperatureRange(
-    capabilities: ReadonlyArray<{
-      type: string;
-      instance: string;
-      parameters?: {
-        range?: { min: number; max: number; precision?: number };
-        fields?: Array<{
-          fieldName: string;
-          range?: { min: number; max: number; precision?: number };
-        }>;
-      };
-    }>,
+    capabilities: ReadonlyArray<DeviceCapability>,
   ): { min: number; max: number; precision?: number } | undefined {
     for (const capability of capabilities) {
       if (
