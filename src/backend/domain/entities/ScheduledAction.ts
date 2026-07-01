@@ -3,12 +3,7 @@ import { Schedule, ScheduleJSON } from "../value-objects/Schedule";
 export type ScheduledActionTarget = "light" | "group";
 
 export type ScheduledCommand =
-  | "on"
-  | "off"
-  | "toggle"
-  | "brightness"
-  | "color"
-  | "colorTemperature";
+  "on" | "off" | "toggle" | "brightness" | "color" | "colorTemperature";
 
 export interface ScheduledActionJSON {
   id: string;
