@@ -26,24 +26,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Quick validation on Linux with multiple Node versions
+  # Quick validation on the single Node version Stream Deck runs plugins on.
+  # Elgato's CLI validator currently pins the runtime to Node 20 (manifest
+  # Nodejs.Version); Node 24 is documented but not yet accepted by the packer.
+  # We track the validator-supported version and test only that — other
+  # versions add no signal for a plugin that always runs on Elgato's runtime.
   test:
-    name: Test (Node ${{ matrix.node-version }})
+    name: Test (Node 20)
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: [20, 22]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js 20
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: "20"
           cache: "npm" # ✅ Cache npm dependencies
 
       - name: Install dependencies
