@@ -5,7 +5,7 @@ updated: 2026-07-02
 ## [OPEN]
 
 - #304 "No devices found" — root cause CONFIRMED via reporter log: a device's capability metadata failed the client's strict whole-batch parse. Symptom fixed in plugin v2.7.11 (raw-fetch fallback); root fixed in client 3.3.10 (per-device + per-capability validation) and shipped in plugin v2.7.12. Awaiting reporter (pauljarrell) confirmation.
-- Add `format:check` to `govee-api-client` PR CI (ci.yml). It only runs in release.yml today, so unformatted code merges then breaks the release (hit on v3.3.10, fixed reactively via PR #44).
+- ~~Add `format:check` to govee-api-client PR CI~~ DONE (corrected): ci.yml already runs `format:check`; the real gap was that husky hooks were dormant (no `prepare` script → `core.hooksPath` unset), so commits skipped formatting. Fixed by adding `"prepare": "husky"` (PR #45). Formatting now enforced at commit time.
 
 ## [BLOCKED]
 
