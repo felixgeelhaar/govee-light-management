@@ -12,7 +12,7 @@ Fixed #304 ("Connect succeeds but no devices found"). Symptom fix: lenient raw-f
 
 ## Next Session Should
 
-Watch #304 for reporter (pauljarrell) confirmation on v2.7.11/2.7.12. Add `format:check` to the govee-api-client PR CI (ci.yml) so unformatted code can't break a release again (it broke the v3.3.10 release; fixed reactively via PR #44).
+Watch #304 for reporter (pauljarrell) confirmation on v2.7.11/2.7.12. (Formatting enforcement in govee-api-client is resolved — see decisions: the real gap was dormant husky hooks, fixed by adding a `prepare` script in PR #45, not a CI change.)
 
 ## Blocked / Waiting
 
