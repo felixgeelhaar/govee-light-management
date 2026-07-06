@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { CircuitBreaker, CircuitState, CircuitBreakerOpenError, CircuitBreakerFactory } from '../../../src/backend/infrastructure/resilience/CircuitBreaker';
 
 // Mock streamDeck logger
@@ -17,12 +17,17 @@ describe('CircuitBreaker Integration Tests', () => {
   let circuitBreaker: CircuitBreaker;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     circuitBreaker = new CircuitBreaker('test-circuit', {
       failureThreshold: 3,
       recoveryTimeout: 1000, // 1 second for testing
       successThreshold: 2,
       timeout: 500, // 0.5 seconds
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('Normal Operation (CLOSED state)', () => {
@@ -98,7 +103,7 @@ describe('CircuitBreaker Integration Tests', () => {
       expect(circuitBreaker.getStats().state).toBe(CircuitState.OPEN);
 
       // Wait for recovery timeout
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      await vi.advanceTimersByTimeAsync(1100);
 
       // Next operation should transition to HALF_OPEN
       const testOperation = vi.fn().mockResolvedValue('test recovery');
@@ -113,7 +118,7 @@ describe('CircuitBreaker Integration Tests', () => {
       await forceCircuitOpen(circuitBreaker);
 
       // Wait for recovery timeout
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      await vi.advanceTimersByTimeAsync(1100);
 
       // Execute successful operations to meet success threshold
       const successOperation = vi.fn().mockResolvedValue('success');
@@ -130,7 +135,7 @@ describe('CircuitBreaker Integration Tests', () => {
       await forceCircuitOpen(circuitBreaker);
 
       // Wait for recovery timeout
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      await vi.advanceTimersByTimeAsync(1100);
 
       // Try a failing operation
       const failingOperation = vi.fn().mockRejectedValue(new Error('Still failing'));
@@ -146,7 +151,13 @@ describe('CircuitBreaker Integration Tests', () => {
         () => new Promise(resolve => setTimeout(() => resolve('too slow'), 1000))
       );
 
-      await expect(circuitBreaker.execute(longRunningOperation)).rejects.toThrow('Operation timeout');
+      // Start the call without awaiting so its promise stays pending, then
+      // advance fake time to the breaker's 500ms timeout (before the
+      // operation's own 1000ms resolve) so the timeout wins the race.
+      const promise = circuitBreaker.execute(longRunningOperation);
+      const assertion = expect(promise).rejects.toThrow('Operation timeout');
+      await vi.advanceTimersByTimeAsync(500);
+      await assertion;
       expect(circuitBreaker.getStats().failureCount).toBe(1);
     });
   });
@@ -245,7 +256,7 @@ describe('CircuitBreaker Integration Tests', () => {
       await forceCircuitOpen(circuitBreaker);
 
       // Wait for recovery
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      await vi.advanceTimersByTimeAsync(1100);
 
       // Immediate success should work
       const successOperation = vi.fn().mockResolvedValue('immediate success');
