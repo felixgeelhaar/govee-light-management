@@ -4,6 +4,16 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
+## [2.7.13] - 2026-07-06
+
+### Fixed
+
+- **Devices could be discovered but not controlled — "X is offline and cannot be controlled"** ([#311](https://github.com/felixgeelhaar/govee-light-management/issues/311)). Reported for H619A Outdoor String Lights: the plugin listed the devices but every control attempt (On/Off, brightness, …) failed with a green warning and no command sent. The control gate (`Light.canBeControlled()`) was derived from the Govee cloud API's `online` flag, which is unreliable and frequently reports reachable devices as offline (the same class of cloud-API flakiness behind the #304 discovery bug). The control path now **attempts the command regardless of the online flag** and surfaces a real transport error only if it genuinely fails; `isOnline` is retained only as a display hint. The fix is applied consistently across every command type — power, brightness, color, color temperature, scenes, music mode, snapshots, recall, feature toggles, segment color, and sequence steps — and to group control (all members are commanded, not just those flagged online). Post-command state is also cached for every commanded member so other actions reflect it immediately.
+
+### Internal
+
+- Converted the CircuitBreaker resilience test suite to fake timers, removing a low-probability CI-load flake vector from the required test checks (no runtime behavior change).
+
 ## [2.7.5] - 2026-05-16
 
 ### Fixed
