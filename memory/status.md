@@ -1,18 +1,18 @@
 ---
-updated: 2026-07-02
+updated: 2026-07-06
 ---
 
 ## Current State
 
-Enterprise Stream Deck plugin for Govee lights, on the Elgato Marketplace (approved v2.0.1, April 2026). Latest release **v2.7.12** (bundles `@felixgeelhaar/govee-api-client` **3.3.10**). DDD + strict TDD, 632 plugin unit tests + E2E; client repo 718 tests. `main` branch protection is strict (up-to-date required) + requires conversation resolution — expect BEHIND re-runs and Copilot-thread gates when merging.
+Enterprise Stream Deck plugin for Govee lights, on the Elgato Marketplace (approved v2.0.1, April 2026). Latest release **v2.7.13** (2026-07-06; bundles `@felixgeelhaar/govee-api-client` **3.3.10**). DDD + strict TDD, 634 plugin unit tests + E2E; client repo 718 tests. `main` branch protection is strict (up-to-date required) + requires conversation resolution — expect BEHIND re-runs and Copilot-thread gates when merging. Releases: tag `v*` → release.yml (streamdeck validate + pack + GitHub release with the `.streamDeckPlugin` asset).
 
 ## Last Session Summary
 
-Fixed #304 ("Connect succeeds but no devices found"). Symptom fix: lenient raw-fetch fallback in CloudTransport (v2.7.11). Confirmed root cause from reporter log (one device's capability metadata failed the client's strict whole-batch parse). Root fix in govee-api-client: per-device + per-capability validation + structured learning logs → released client 3.3.10 (PRs #41/#42/#43) → bumped + released plugin **v2.7.12** (#308). Also merged 4 dependabot PRs and consolidated CI to a single Node 20 job (#306).
+Fixed **#311** ("X is offline and cannot be controlled" — H619A discovered but not controllable). Root cause: control was gated on `Light.canBeControlled()` = `_state.isOnline`, set from the Govee cloud API's unreliable `online` field in `GoveeLightRepository.getLightState()` — same class of cloud-API flakiness as #304. Fix: attempt control regardless of the flag, surface a real transport error only on genuine failure. **Full sweep** found the trap was pervasive — 16 control-dispatch loops + 8 representative-picks bypassed the core path (all group commands via `getControllableLights()`). Fixed all + the post-command cache-remember loop (#312). Also investigated CI flakiness on request → the only real vector was `CircuitBreaker.test.ts` real-timer waits (100ms margin, 0/35 local flakes) → converted to fake timers (#313). Released **v2.7.13** (#314).
 
 ## Next Session Should
 
-Watch #304 for reporter (pauljarrell) confirmation on v2.7.11/2.7.12. (Formatting enforcement in govee-api-client is resolved — see decisions: the real gap was dormant husky hooks, fixed by adding a `prepare` script in PR #45, not a CI change.)
+Watch **#311** for reporter confirmation on v2.7.13 (Elgato store rollout lag expected). Also still watch #304 (pauljarrell) on v2.7.11/2.7.12.
 
 ## Blocked / Waiting
 
