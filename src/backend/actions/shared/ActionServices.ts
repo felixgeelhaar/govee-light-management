@@ -1248,7 +1248,10 @@ export class ActionServices {
           // brightness / colour value via the shared snapshot cache.
           // Without this, toggling a group from one action leaves the
           // dial state stale until the live-sync timer next refreshes.
-          for (const light of target.group.getControllableLights()) {
+          // #311: remember all members — controlGroup commanded all of them,
+          // so a member wrongly flagged offline must still have its new state
+          // cached (the online flag is unreliable).
+          for (const light of target.group.lights) {
             this.rememberLightState(light);
           }
         }
