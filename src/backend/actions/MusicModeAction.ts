@@ -81,7 +81,9 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
           await this.services.applyMusicModeRaw(target.light, musicMode);
           anySucceeded = true;
         } else if (target.type === "group" && target.group) {
-          const members = target.group.getControllableLights();
+          // Attempt every member regardless of the unreliable online flag
+          // (#311); per-member failures are tolerated below.
+          const members = target.group.lights;
           totalCount = members.length;
           for (const light of members) {
             try {
@@ -195,13 +197,14 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
 
       await this.services.ensureServices(apiKey);
 
-      // For groups, query music modes from the first controllable member.
+      // For groups, query music modes from the first member (not filtered by
+      // the unreliable online flag, #311).
       const target = await this.services.resolveTarget({
         selectedDeviceId: deviceId,
       });
       let queryDeviceId = deviceId;
       if (target?.type === "group" && target.group) {
-        const first = target.group.getControllableLights()[0];
+        const first = target.group.lights[0];
         if (first) {
           queryDeviceId = `light:${first.deviceId}|${first.model}`;
         }

@@ -304,7 +304,9 @@ describe("ActionServices.ensurePreparedForTarget", () => {
     }
   });
 
-  it("prepares each controllable light in a group target", async () => {
+  it("prepares every group member, including one flagged offline (#311)", async () => {
+    // The Govee `online` flag is unreliable, so preparation must iterate all
+    // members via group.lights rather than filtering on the flag.
     const repo = mockRepo();
     const restore = installMockRepo(repo);
     try {
@@ -318,11 +320,11 @@ describe("ActionServices.ensurePreparedForTarget", () => {
         deviceId: "grp-b",
         gradient: true,
       });
+      // Flag lightB offline: the old getControllableLights() path would drop
+      // it; the lenient path still prepares it.
+      lightB.updateState({ isOnline: false });
 
-      // Minimal LightGroup stub — only getControllableLights is called.
-      const group = {
-        getControllableLights: () => [lightA, lightB],
-      } as unknown as import("../../../../src/backend/domain/entities/LightGroup").LightGroup;
+      const group = LightGroup.create("grp-1", "Living Room", [lightA, lightB]);
 
       await services.ensurePreparedForTarget("ctx-1", {
         type: "group",
@@ -388,6 +390,26 @@ describe("ActionServices.cancelActiveEffectForTarget", () => {
     const services = new ActionServices();
     const l1 = makeLight({ deviceId: "a", model: "H6001" });
     const l2 = makeLight({ deviceId: "b", model: "H6002" });
+    const group = LightGroup.create("grp-1", "Living Room", [l1, l2]);
+
+    await services.cancelActiveEffectForTarget({ type: "group", group });
+
+    expect(canceller.mock.calls.map((c) => c[0])).toEqual([
+      "group:grp-1",
+      "light:a|H6001",
+      "light:b|H6002",
+    ]);
+  });
+
+  it("cancels a group member even when it is flagged offline (#311)", async () => {
+    // The Govee `online` flag is unreliable, so effect cancellation must reach
+    // every member — a member flagged offline is still cancelled.
+    const canceller = vi.fn().mockResolvedValue(true);
+    registerEffectCanceller(canceller);
+    const services = new ActionServices();
+    const l1 = makeLight({ deviceId: "a", model: "H6001" });
+    const l2 = makeLight({ deviceId: "b", model: "H6002" });
+    l2.updateState({ isOnline: false });
     const group = LightGroup.create("grp-1", "Living Room", [l1, l2]);
 
     await services.cancelActiveEffectForTarget({ type: "group", group });

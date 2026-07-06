@@ -16,12 +16,12 @@ export class LightControlService {
     action: "on" | "off" | "brightness" | "color" | "colorTemperature",
     value?: Brightness | ColorRgb | ColorTemperature,
   ): Promise<void> {
-    if (!light.canBeControlled()) {
-      throw new Error(
-        `Light ${light.name} is offline and cannot be controlled`,
-      );
-    }
-
+    // Attempt control regardless of the device's reported online status. The
+    // Govee cloud API's `online` flag is unreliable and frequently reports
+    // reachable devices (e.g. H619A string lights) as offline (#311), so
+    // pre-blocking here refuses a working device. Instead we send the command
+    // and let the transport/repository surface a real error if it genuinely
+    // fails. `isOnline` is retained only as a display hint.
     switch (action) {
       case "on":
         await this.lightRepository.setPower(light, true);
@@ -72,12 +72,15 @@ export class LightControlService {
     action: "on" | "off" | "brightness" | "color" | "colorTemperature",
     value?: Brightness | ColorRgb | ColorTemperature,
   ): Promise<void> {
-    if (!group.canBeControlled()) {
-      throw new Error(`Group ${group.name} has no controllable lights`);
+    const lights = group.lights;
+    if (lights.length === 0) {
+      throw new Error(`Group ${group.name} has no lights`);
     }
 
-    const controllableLights = group.getControllableLights();
-    const promises = controllableLights.map((light) =>
+    // Attempt every member regardless of its reported online flag (see
+    // controlLight): offline-flagged members are no longer pre-filtered out,
+    // because that flag is unreliable (#311).
+    const promises = lights.map((light) =>
       this.controlLight(light, action, value),
     );
 
@@ -96,12 +99,9 @@ export class LightControlService {
       colorTemperature?: ColorTemperature;
     },
   ): Promise<void> {
-    if (!light.canBeControlled()) {
-      throw new Error(
-        `Light ${light.name} is offline and cannot be controlled`,
-      );
-    }
-
+    // Attempt regardless of the reported online status (see controlLight): the
+    // Govee `online` flag is unreliable and must not pre-block a working
+    // device (#311).
     const { brightness, color, colorTemperature } = settings;
 
     if (color && colorTemperature) {
@@ -150,12 +150,14 @@ export class LightControlService {
       colorTemperature?: ColorTemperature;
     },
   ): Promise<void> {
-    if (!group.canBeControlled()) {
-      throw new Error(`Group ${group.name} has no controllable lights`);
+    const lights = group.lights;
+    if (lights.length === 0) {
+      throw new Error(`Group ${group.name} has no lights`);
     }
 
-    const controllableLights = group.getControllableLights();
-    const promises = controllableLights.map((light) =>
+    // Attempt every member regardless of the reported online flag (see
+    // controlLight); the flag is unreliable (#311).
+    const promises = lights.map((light) =>
       this.turnOnLightWithSettings(light, settings),
     );
 

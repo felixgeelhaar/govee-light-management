@@ -88,7 +88,8 @@ export class SegmentColorAction extends BaseDialAction<SegmentColorSettings> {
       if (target.type === "light" && target.light) {
         await this.services.setSegmentColors(target.light, segments);
       } else if (target.type === "group" && target.group) {
-        const members = target.group.getControllableLights();
+        // #311: iterate all members; the online flag is unreliable
+        const members = target.group.lights;
         let anySucceeded = false;
         let failedCount = 0;
         for (const light of members) {
@@ -328,9 +329,10 @@ export class SegmentColorAction extends BaseDialAction<SegmentColorSettings> {
       return;
     }
     if (target.type === "group" && target.group) {
-      const capable = target.group
-        .getControllableLights()
-        .filter((l) => l.supportsSegmentedColor());
+      // #311: iterate all members; the online flag is unreliable
+      const capable = target.group.lights.filter((l) =>
+        l.supportsSegmentedColor(),
+      );
       if (capable.length === 0) {
         throw new Error("Group has no segmented-color-capable lights");
       }

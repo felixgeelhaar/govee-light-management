@@ -90,7 +90,8 @@ export class SceneAction extends SingletonAction<SceneSettings> {
             await this.services.applyDiyScene(target.light, scene);
             anySucceeded = true;
           } else if (target.type === "group" && target.group) {
-            const members = target.group.getControllableLights();
+            // #311: iterate all members; the online flag is unreliable
+            const members = target.group.lights;
             totalCount = members.length;
             for (const light of members) {
               try {
@@ -115,7 +116,8 @@ export class SceneAction extends SingletonAction<SceneSettings> {
             await this.services.applyDynamicScene(target.light, scene);
             anySucceeded = true;
           } else if (target.type === "group" && target.group) {
-            const members = target.group.getControllableLights();
+            // #311: iterate all members; the online flag is unreliable
+            const members = target.group.lights;
             totalCount = members.length;
             for (const light of members) {
               try {
@@ -237,7 +239,8 @@ export class SceneAction extends SingletonAction<SceneSettings> {
       if (target?.type === "light" && target.light) {
         queryLight = target.light;
       } else if (target?.type === "group" && target.group) {
-        const members = target.group.getControllableLights();
+        // #311: pick from all members; the online flag is unreliable
+        const members = target.group.lights;
         queryLight = members[0];
       }
 

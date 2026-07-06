@@ -154,9 +154,10 @@ export class SegmentColorDialAction extends BaseDialAction<SegmentColorDialSetti
     }
 
     if (target.type === "group" && target.group) {
-      const capable = target.group
-        .getControllableLights()
-        .filter((l) => l.supportsSegmentedColor());
+      // #311: iterate all members; the online flag is unreliable
+      const capable = target.group.lights.filter((l) =>
+        l.supportsSegmentedColor(),
+      );
       if (capable.length === 0) {
         streamDeck.logger.warn(
           `Segment color: group ${target.group.name} has no segmented-color-capable members`,

@@ -84,9 +84,10 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
           await this.services.applySnapshot(target.light, snapshot);
           anySucceeded = true;
         } else if (target.type === "group" && target.group) {
-          // Apply snapshot to each controllable group member sequentially.
+          // Apply snapshot to each group member sequentially.
           // Groups don't have a single-call path for snapshots.
-          const members = target.group.getControllableLights();
+          // #311: iterate all members; the online flag is unreliable
+          const members = target.group.lights;
           totalCount = members.length;
           for (const member of members) {
             try {
@@ -204,7 +205,8 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
       if (target?.type === "light" && target.light) {
         queryLight = target.light;
       } else if (target?.type === "group" && target.group) {
-        const members = target.group.getControllableLights();
+        // #311: pick from all members; the online flag is unreliable
+        const members = target.group.lights;
         queryLight = members[0];
       }
 

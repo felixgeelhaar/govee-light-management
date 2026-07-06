@@ -92,10 +92,11 @@ class SequenceServiceImpl {
 
     if (step.command === "scene" && step.scenePayload) {
       const payload = step.scenePayload;
+      // #311: iterate all members; the online flag is unreliable
       const lights =
         target.type === "light" && target.light
           ? [target.light]
-          : (target.group?.getControllableLights() ?? []);
+          : (target.group?.lights ?? []);
       for (const light of lights) {
         try {
           if (payload.kind === "diy") {
@@ -130,10 +131,11 @@ class SequenceServiceImpl {
         payload.paramId,
         payload.name,
       );
+      // #311: iterate all members; the online flag is unreliable
       const lights =
         target.type === "light" && target.light
           ? [target.light]
-          : (target.group?.getControllableLights() ?? []);
+          : (target.group?.lights ?? []);
       for (const light of lights) {
         try {
           await this.actionServices.applySnapshot(light, snapshot);
@@ -153,10 +155,11 @@ class SequenceServiceImpl {
         payload.modeId,
         payload.sensitivity,
       );
+      // #311: iterate all members; the online flag is unreliable
       const lights =
         target.type === "light" && target.light
           ? [target.light]
-          : (target.group?.getControllableLights() ?? []);
+          : (target.group?.lights ?? []);
       for (const light of lights) {
         try {
           await this.actionServices.applyMusicModeRaw(light, musicMode);
@@ -172,10 +175,11 @@ class SequenceServiceImpl {
 
     if (step.command === "feature-toggle" && step.togglePayload) {
       const payload = step.togglePayload;
+      // #311: iterate all members; the online flag is unreliable
       const lights =
         target.type === "light" && target.light
           ? [target.light]
-          : (target.group?.getControllableLights() ?? []);
+          : (target.group?.lights ?? []);
       for (const light of lights) {
         try {
           await this.actionServices.toggleFeatureRaw(
@@ -198,10 +202,11 @@ class SequenceServiceImpl {
       const segments: SegmentColor[] = payload.segments.map((seg) =>
         SegmentColor.create(seg.index, ColorRgb.fromHex(seg.hex)),
       );
+      // #311: iterate all members; the online flag is unreliable
       const lights =
         target.type === "light" && target.light
           ? [target.light]
-          : (target.group?.getControllableLights() ?? []);
+          : (target.group?.lights ?? []);
       for (const light of lights) {
         try {
           await this.actionServices.setSegmentColors(light, segments);
@@ -227,10 +232,11 @@ class SequenceServiceImpl {
       // Effects run on single lights only. For groups, kick off playback on
       // each controllable light. Fire-and-forget so sequence progression isn't
       // blocked by a looping effect — the user can cancel it manually later.
+      // #311: iterate all members; the online flag is unreliable
       const lights =
         target.type === "light" && target.light
           ? [target.light]
-          : (target.group?.getControllableLights() ?? []);
+          : (target.group?.lights ?? []);
       for (const light of lights) {
         const targetId = `light:${light.deviceId}|${light.model}`;
         void effectService.playEffect(targetId, preset).catch((error) => {
