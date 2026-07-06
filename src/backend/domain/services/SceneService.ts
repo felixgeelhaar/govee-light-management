@@ -14,10 +14,8 @@ export class SceneService {
    * Apply a scene to a single light
    */
   async applySceneToLight(light: Light, scene: Scene): Promise<void> {
-    if (!light.canBeControlled()) {
-      throw new Error(`${light.name} is offline and cannot be controlled`);
-    }
-
+    // Attempt regardless of the reported online status — the Govee `online`
+    // flag is unreliable (#311). The capability check below is a real guard.
     if (!light.supportsScenes()) {
       throw new Error(`${light.name} does not support scene control`);
     }
@@ -29,9 +27,9 @@ export class SceneService {
    * Apply a scene to all lights in a group that support scenes
    */
   async applySceneToGroup(group: LightGroup, scene: Scene): Promise<void> {
-    const sceneLights = group.lights.filter(
-      (light) => light.supportsScenes() && light.canBeControlled(),
-    );
+    // Filter only on the real capability (scene support), not the unreliable
+    // online flag (#311) — attempt every scene-capable member.
+    const sceneLights = group.lights.filter((light) => light.supportsScenes());
 
     if (sceneLights.length === 0) {
       throw new Error(`${group.name} has no lights with scene support`);

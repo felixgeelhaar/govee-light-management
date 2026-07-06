@@ -90,12 +90,24 @@ describe('LightControlService', () => {
       expect(mockLightRepository.setColorTemperature).toHaveBeenCalledWith(mockLight, colorTemp);
     });
 
-    it('should throw error for offline lights', async () => {
+    it('should attempt control on lights flagged offline (unreliable online flag, #311)', async () => {
+      // The Govee cloud `online` flag is unreliable and often reports reachable
+      // devices as offline. Control must be attempted, not pre-blocked.
       const offlineLight = createMockLight('offline', 'Offline Light', false, false);
+      mockLightRepository.setPower.mockResolvedValue(undefined);
+
+      await service.controlLight(offlineLight, 'on');
+
+      expect(mockLightRepository.setPower).toHaveBeenCalledWith(offlineLight, true);
+    });
+
+    it('should surface the real transport error when a flagged-offline device genuinely fails', async () => {
+      const offlineLight = createMockLight('offline', 'Offline Light', false, false);
+      mockLightRepository.setPower.mockRejectedValue(new Error('device unreachable'));
 
       await expect(
         service.controlLight(offlineLight, 'on')
-      ).rejects.toThrow('Light Offline Light is offline and cannot be controlled');
+      ).rejects.toThrow('device unreachable');
     });
 
     it('should turn on light with settings', async () => {
@@ -121,16 +133,16 @@ describe('LightControlService', () => {
       expect(mockLightRepository.setPower).toHaveBeenCalledTimes(2);
     });
 
-    it('should skip offline lights in group', async () => {
-      // Make one light offline
+    it('should attempt all members regardless of the offline flag (#311)', async () => {
+      // A member flagged offline is no longer pre-filtered — the flag is
+      // unreliable, so every member gets the command.
       const lights = mockGroup.lights;
       lights[1].updateState({ isOnline: false });
       mockLightRepository.setPower.mockResolvedValue(undefined);
 
       await service.controlGroup(mockGroup, 'on');
 
-      // Should only control the online light
-      expect(mockLightRepository.setPower).toHaveBeenCalledTimes(1);
+      expect(mockLightRepository.setPower).toHaveBeenCalledTimes(2);
     });
 
     it('should turn on group with settings', async () => {
@@ -151,7 +163,7 @@ describe('LightControlService', () => {
 
       await expect(
         service.controlGroup(emptyGroup, 'on')
-      ).rejects.toThrow('Group Empty Group has no controllable lights');
+      ).rejects.toThrow('Group Empty Group has no lights');
     });
   });
 
