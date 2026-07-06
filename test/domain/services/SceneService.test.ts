@@ -282,9 +282,11 @@ describe("SceneService", () => {
       expect(sceneService.canApplyScene(testLightWithoutScenes)).toBe(false);
     });
 
-    it("should return false if light is offline", () => {
+    it("should return true even when the light is flagged offline (#311)", () => {
+      // The Govee `online` flag is unreliable, so scene applicability
+      // depends only on the real capability, not the offline flag.
       testLight.updateState({ isOnline: false });
-      expect(sceneService.canApplyScene(testLight)).toBe(false);
+      expect(sceneService.canApplyScene(testLight)).toBe(true);
     });
   });
 });

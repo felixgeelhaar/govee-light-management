@@ -127,10 +127,9 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
       if (operation === "toggle") {
         // For toggle mode, read live state from the first available light.
         let liveState: boolean | undefined;
+        // #311: pick from all members; the online flag is unreliable
         const queryLight =
-          target.type === "light"
-            ? target.light
-            : target.group?.getControllableLights()[0];
+          target.type === "light" ? target.light : target.group?.lights[0];
         if (queryLight) {
           try {
             liveState = await this.services.getToggleFeatureState(
@@ -179,7 +178,8 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
             singleLightUnapplied = true;
           }
         } else if (target.type === "group" && target.group) {
-          const members = target.group.getControllableLights();
+          // #311: iterate all members; the online flag is unreliable
+          const members = target.group.lights;
           totalCount = members.length;
           for (const light of members) {
             try {
@@ -314,7 +314,8 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
       });
       let queryDeviceId = deviceId;
       if (target?.type === "group" && target.group) {
-        const first = target.group.getControllableLights()[0];
+        // #311: pick from all members; the online flag is unreliable
+        const first = target.group.lights[0];
         if (first) {
           queryDeviceId = `light:${first.deviceId}|${first.model}`;
         }

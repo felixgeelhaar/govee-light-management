@@ -1179,7 +1179,8 @@ export class ActionServices {
       targetIds.push(`light:${target.light.deviceId}|${target.light.model}`);
     } else if (target.type === "group" && target.group) {
       targetIds.push(`group:${target.group.id}`);
-      for (const light of target.group.getControllableLights()) {
+      // #311: iterate all members; the online flag is unreliable
+      for (const light of target.group.lights) {
         targetIds.push(`light:${light.deviceId}|${light.model}`);
       }
     }
@@ -1806,7 +1807,8 @@ export class ActionServices {
     if (target.type === "light" && target.light) {
       await this.ensurePreparedForSolidColor(contextId, target.light);
     } else if (target.type === "group" && target.group) {
-      for (const light of target.group.getControllableLights()) {
+      // #311: iterate all members; the online flag is unreliable
+      for (const light of target.group.lights) {
         await this.ensurePreparedForSolidColor(contextId, light);
       }
     }

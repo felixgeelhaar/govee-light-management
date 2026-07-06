@@ -69,6 +69,7 @@ export class SceneService {
    * Check if a scene can be applied to a light
    */
   canApplyScene(light: Light): boolean {
-    return light.supportsScenes() && light.canBeControlled();
+    // #311: depend only on the real capability; the online flag is unreliable
+    return light.supportsScenes();
   }
 }

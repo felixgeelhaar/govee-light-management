@@ -143,7 +143,8 @@ export class SequenceAction extends SingletonAction<SequenceSettings> {
     });
     if (target?.type === "light" && target.light) return target.light;
     if (target?.type === "group" && target.group) {
-      return target.group.getControllableLights()[0];
+      // #311: pick from all members; the online flag is unreliable
+      return target.group.lights[0];
     }
     return undefined;
   }
@@ -295,7 +296,8 @@ export class SequenceAction extends SingletonAction<SequenceSettings> {
       });
       let queryDeviceId = targetId;
       if (target?.type === "group" && target.group) {
-        const first = target.group.getControllableLights()[0];
+        // #311: pick from all members; the online flag is unreliable
+        const first = target.group.lights[0];
         if (first) queryDeviceId = `light:${first.deviceId}|${first.model}`;
       }
       const modes = await this.services.getMusicModes(queryDeviceId);
@@ -358,7 +360,8 @@ export class SequenceAction extends SingletonAction<SequenceSettings> {
       });
       let queryDeviceId = targetId;
       if (target?.type === "group" && target.group) {
-        const first = target.group.getControllableLights()[0];
+        // #311: pick from all members; the online flag is unreliable
+        const first = target.group.lights[0];
         if (first) queryDeviceId = `light:${first.deviceId}|${first.model}`;
       }
       const features = await this.services.getToggleFeatures(queryDeviceId);
