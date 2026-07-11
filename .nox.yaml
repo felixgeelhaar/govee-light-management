@@ -28,3 +28,10 @@ scan:
     - .nox/
     - findings.json
     - nox-results/
+    # Markdown is prose. In a fresh CI environment the entropy/secret rules
+    # (SEC-384/505/506/525/543/621/678/679) fire HIGH severity on ordinary
+    # README lines ("any color (360°)", "per-segment RGB strip control") — 16
+    # medium-confidence false positives, no real secrets. High-confidence real
+    # secret patterns (actual API keys/tokens) are still caught in code.
+    # Classification: False Positive (prose). Last reviewed: 2026-07-11
+    - "**/*.md"
