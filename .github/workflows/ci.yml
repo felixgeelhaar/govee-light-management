@@ -165,9 +165,45 @@ jobs:
         run: npm audit --audit-level high
         continue-on-error: true # ✅ Don't fail CI on audit warnings
 
+      - name: Install nox (pinned + sha256-verified binary)
+        env:
+          NOX_VERSION: "1.7.1"
+          NOX_SHA256: "3106ab3ce7197f43a45fc1128ea27112686421e8ec3eac9be356d4ca42ab4c89"
+        run: |
+          curl -sL -o nox.tar.gz \
+            "https://github.com/nox-hq/nox/releases/download/v${NOX_VERSION}/nox_${NOX_VERSION}_linux_amd64.tar.gz"
+          echo "${NOX_SHA256}  nox.tar.gz" | sha256sum -c -
+          tar xzf nox.tar.gz && sudo mv nox /usr/local/bin/ && nox version
+
       - name: Run nox security scan
-        run: npx nox scan --fail-on critical || true
-        continue-on-error: true
+        run: nox scan . -format json,sarif -output nox-results || true
+
+      - name: Upload nox SARIF to code scanning
+        if: always() && hashFiles('nox-results/findings.sarif') != ''
+        uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
+        with:
+          sarif_file: nox-results/findings.sarif
+          category: nox
+
+      - name: Gate on net-new critical/high nox findings
+        # Self-adjusting: report-only until .nox/baseline.json is committed,
+        # then fails on net-new critical/high. Mirrors the felixgeelhaar/.github
+        # reusable js-ci security gate.
+        if: always() && hashFiles('nox-results/findings.json') != ''
+        run: |
+          f=nox-results/findings.json
+          baselined=$(jq '[.findings[]? | select(.Status=="baselined")] | length' "$f" 2>/dev/null || echo 0)
+          new=$(jq '[.findings[]? | select((.Severity=="critical" or .Severity=="high") and (.Status!="baselined"))] | length' "$f" 2>/dev/null || echo 0)
+          echo "net-new critical/high: $new (baselined findings: $baselined)"
+          if [ "$baselined" -eq 0 ]; then
+            echo "::notice::No nox baseline committed — security gate is report-only. Run 'nox baseline add' and commit .nox/ to enforce net-new critical/high."
+            exit 0
+          fi
+          if [ "$new" -gt 0 ]; then
+            echo "::error::Net-new critical/high nox findings. Run 'nox baseline add' or remediate."
+            jq '.findings[] | select((.Severity=="critical" or .Severity=="high") and (.Status!="baselined")) | {severity:.Severity, rule:.RuleID, file:.Location.FilePath, line:.Location.StartLine}' "$f"
+            exit 1
+          fi
 
       - name: Run CodeQL Analysis
         uses: github/codeql-action/init@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4
