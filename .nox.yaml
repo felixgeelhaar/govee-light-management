@@ -34,4 +34,7 @@ scan:
     # medium-confidence false positives, no real secrets. High-confidence real
     # secret patterns (actual API keys/tokens) are still caught in code.
     # Classification: False Positive (prose). Last reviewed: 2026-07-11
+    # Literal + globs: "README.md" (all 16 FPs are here), "*.md" root, "**/*.md" nested.
+    - README.md
+    - "*.md"
     - "**/*.md"
