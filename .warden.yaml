@@ -1,0 +1,48 @@
+# warden — local CI gate for govee-light-management (sole hook manager; no
+# husky/lint-staged). pre-commit stays fast (typecheck + format check); pre-push
+# runs the FULL CI the GitHub workflow runs, so nothing leaves the machine that
+# CI would reject. warden's native hooks live in .git/hooks and auto-fetch the
+# binary if missing, so a fresh clone is gated without any npm devDependency.
+extends: ''
+agent: auto
+hooks:
+  pre_commit: true
+  pre_push: true
+commands:
+  # type-check passes on the current @elgato/streamdeck; the old husky
+  # "SDK incompatibility" skip is stale.
+  typecheck: npm run type-check
+  formatcheck: npm run format:check
+  # Named 'eslint'/'testcov' (not 'lint'/'test') so warden runs THESE exact
+  # commands rather than its built-in lint/test steps — CI parity incl. coverage.
+  eslint: npm run lint
+  testcov: npm run test:coverage -- --run
+  build: npm run build
+  audit: npm audit --audit-level=high
+steps:
+  # Fast gate on commit: types + formatting. Each step runs in an isolated
+  # worktree (verify-only — warden never mutates your tree), so formatting is
+  # CHECKED and blocked here, not auto-fixed. Run `npm run format` to fix.
+  pre_commit:
+    - typecheck
+    - formatcheck
+  pre_push:
+    - rebase
+    - typecheck
+    - eslint
+    - testcov
+    - build
+    - audit
+timeouts: {}
+cache: {}
+agent_commands: {}
+parallel: null
+notify: null
+risk:
+  diff_lines_high: 400
+  files_touched_high: 15
+pr:
+  enabled: false
+  base: ''
+  comment: null
+rules: []
