@@ -447,9 +447,9 @@ export class ActionServices {
     const target = this.parseTarget(settings);
     if (!target) {
       // Every null return below ends as an unexplained warning triangle on
-      // the key, so each one says which of the five reasons it was. Without
-      // this the user (and we) cannot tell "device vanished from the account"
-      // from "the API call failed" from "settings never had a device".
+      // the key, so each one says which of the five reasons it was.
+      // Without it, a device missing from the account, a failed API call
+      // and settings that never held a device all look identical.
       streamDeck.logger?.warn(
         "resolveTarget: no target in settings — nothing selected, or settings did not parse",
         {
