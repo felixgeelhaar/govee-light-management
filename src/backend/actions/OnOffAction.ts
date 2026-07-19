@@ -147,14 +147,10 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
 
     const apiKey = await this.services.getApiKey(settings);
     if (!apiKey || !settings.selectedDeviceId) {
-      await ev.action.showAlert();
-      return;
-    }
-
-    await this.services.ensureServices(apiKey);
-    const target = await this.services.resolveTarget(settings);
-
-    if (!target) {
+      streamDeck.logger.warn("Key press ignored: not configured", {
+        hasApiKey: Boolean(apiKey),
+        hasSelectedDevice: Boolean(settings.selectedDeviceId),
+      });
       await ev.action.showAlert();
       return;
     }
@@ -163,7 +159,22 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
     const started = Date.now();
     let originalState = this.powerState.get(contextId) ?? false;
 
+    // ensureServices and resolveTarget both reach the network and can throw
+    // (auth failure, rate limit, DNS). They used to sit outside this try, so
+    // a throw escaped onKeyDown entirely — no alert, no log, nothing.
     try {
+      await this.services.ensureServices(apiKey);
+      const target = await this.services.resolveTarget(settings);
+
+      if (!target) {
+        // resolveTarget has already logged which of its five reasons applied.
+        streamDeck.logger.warn(
+          "Key press ignored: could not resolve the selected device or group",
+        );
+        await ev.action.showAlert();
+        return;
+      }
+
       let command: "on" | "off";
 
       if (operation === "toggle") {

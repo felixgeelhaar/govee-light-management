@@ -445,11 +445,37 @@ export class ActionServices {
     forceRefresh = false,
   ): Promise<DeviceTarget | null> {
     const target = this.parseTarget(settings);
-    if (!target) return null;
+    if (!target) {
+      // Every null return below ends as an unexplained warning triangle on
+      // the key, so each one says which of the five reasons it was.
+      // Without it, a device missing from the account, a failed API call
+      // and settings that never held a device all look identical.
+      streamDeck.logger?.warn(
+        "resolveTarget: no target in settings — nothing selected, or settings did not parse",
+        {
+          selectedDeviceId: settings.selectedDeviceId,
+          selectedGroupId: settings.selectedGroupId,
+        },
+      );
+      return null;
+    }
 
     if (target.type === "group" && target.groupId) {
-      if (!this.groupService) return null;
+      if (!this.groupService) {
+        streamDeck.logger?.warn(
+          "resolveTarget: group selected but groupService is not initialised",
+          { groupId: target.groupId },
+        );
+        return null;
+      }
       const group = await this.groupService.findGroupById(target.groupId);
+      if (!group) {
+        streamDeck.logger?.warn(
+          "resolveTarget: group not found in storage — it may have been deleted",
+          { groupId: target.groupId },
+        );
+        return null;
+      }
       if (group) {
         // Group members are deserialized from storage with default
         // state (`isOnline: true, isOn: false`). Hydrate each member
@@ -491,17 +517,43 @@ export class ActionServices {
       }
     }
 
-    if (
-      target.type === "light" &&
-      target.deviceId &&
-      target.model &&
-      this.deviceService
-    ) {
+    if (target.type === "light") {
+      if (!target.deviceId || !target.model || !this.deviceService) {
+        streamDeck.logger?.warn(
+          "resolveTarget: light selected but the target is incomplete",
+          {
+            hasDeviceId: Boolean(target.deviceId),
+            hasModel: Boolean(target.model),
+            hasDeviceService: Boolean(this.deviceService),
+          },
+        );
+        return null;
+      }
+
       // Use DeviceService with its built-in caching (15s TTL)
       const lights = await this.deviceService.discover(forceRefresh);
       const lightItem = lights.find(
         (l) => l.deviceId === target.deviceId && l.model === target.model,
       );
+
+      if (!lightItem) {
+        // The most likely real-world failure: discovery came back without
+        // the selected device. An empty list usually means the API call
+        // failed or was rate-limited rather than the device being gone, so
+        // report the two cases differently.
+        streamDeck.logger?.warn(
+          lights.length === 0
+            ? "resolveTarget: discovery returned no devices at all — likely an API error or rate limit, not a missing device"
+            : "resolveTarget: selected device not present in discovery results",
+          {
+            wantDeviceId: target.deviceId,
+            wantModel: target.model,
+            discoveredCount: lights.length,
+            discoveredModels: lights.slice(0, 20).map((l) => l.model),
+          },
+        );
+        return null;
+      }
 
       if (lightItem) {
         // Convert LightItem to domain Light entity using Light.create()
