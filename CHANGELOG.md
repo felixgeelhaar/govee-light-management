@@ -4,6 +4,16 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
+## [2.7.14] - 2026-07-19
+
+### Fixed
+
+- **Control failures now say why, instead of a bare warning triangle** ([#311](https://github.com/felixgeelhaar/govee-light-management/issues/311)). A follow-up to the v2.7.13 fix, which removed the unreliable online-flag gate but left an earlier, silent one in place: when the plugin could not resolve the selected device or group it showed a warning and logged nothing, so five distinct causes — unparseable settings, a missing group service, a group deleted from storage, an incomplete light target, and the selected device not appearing in discovery — were indistinguishable. Each cause is now logged with its own message, and the discovery-miss case prints the device that was requested alongside the models discovery actually returned, so a model-string mismatch or an intermittently incomplete device list is visible at a glance. An empty discovery result is reported as a probable API error or rate limit rather than a missing device. `ensureServices` and `resolveTarget` were also moved inside the On/Off action's try block, so a network or auth error during resolution surfaces an alert and a log instead of escaping silently.
+
+### Internal
+
+- Added regression tests asserting each `resolveTarget` failure path logs its specific cause (mutation-verified).
+
 ## [2.7.13] - 2026-07-06
 
 ### Fixed
