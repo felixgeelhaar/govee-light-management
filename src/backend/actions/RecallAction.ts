@@ -370,10 +370,11 @@ export class RecallAction extends SingletonAction<RecallSettings> {
   }
 
   /**
-   * Paint the key: the look's name plus any group count in the title,
-   * the ●/◐/○ state on the artwork. The state indicator lives on the
-   * image because Stream Deck ignores `setTitle()` entirely once the
-   * user sets a title of their own (#333).
+   * Paint the key: the look's name plus the ●/◐/○ status in the title,
+   * and the same status as a badge on the artwork. The badge is the
+   * redundant copy — Stream Deck ignores `setTitle()` entirely once
+   * the user sets a title of their own (#333), and only the image
+   * survives that.
    */
   private async render(
     action: ImageCapableAction & { setTitle(title: string): Promise<void> },
@@ -385,15 +386,15 @@ export class RecallAction extends SingletonAction<RecallSettings> {
   }
 
   /**
-   * Compose the visible key title: the look's name on top, the group
-   * `N/M` count below. Either half falls through to the other so the
+   * Compose the visible key title: action label on top, shared status
+   * glyph below. Empty status falls through to the bare label so the
    * key doesn't look broken before the first sync lands.
    */
   private composeTitle(settings: RecallSettings, ctx: string): string {
     const label = this.getTitle(settings);
-    const count = this.state.getGroupCount(ctx);
-    if (!label) return count;
-    if (!count) return label;
-    return `${label}\n${count}`;
+    const status = this.state.getStatusGlyph(ctx);
+    if (!label) return status;
+    if (!status) return label;
+    return `${label}\n${status}`;
   }
 }

@@ -229,7 +229,7 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
           ctx,
           failedCount,
           totalCount,
-          this.getTitle(settings),
+          this.getTitle(settings, ctx),
         );
       }
       await ev.action.showOk();
@@ -357,10 +357,11 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
   }
 
   /**
-   * Paint the key: feature name in the title, on/off state on the
-   * artwork. The state indicator sits on the image because a user-set
-   * title suppresses `setTitle()` altogether (#333) — and the feature
-   * name is exactly the thing a user is likely to retitle.
+   * Paint the key: feature name plus the ●/○ state in the title, and
+   * the same state as a badge on the artwork. The badge is the
+   * redundant copy — a user-set title suppresses `setTitle()`
+   * altogether (#333), and the feature name is exactly the thing a
+   * user is likely to retitle.
    */
   private async render(
     action: ImageCapableAction & { setTitle(title: string): Promise<void> },
@@ -374,13 +375,20 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
         ? powerStatus(undefined, this.featureState.get(contextId))
         : "unknown";
     await applyStatusImage(action, "toggle", status);
-    await action.setTitle(this.getTitle(settings));
+    await action.setTitle(this.getTitle(settings, contextId));
   }
 
-  private getTitle(settings: ToggleSettings): string {
+  private getTitle(settings: ToggleSettings, contextId: string): string {
     const parsed = settings.selectedFeature
       ? parseFeatureSetting(settings.selectedFeature)
       : null;
-    return parsed?.name || "Toggle";
+    const label = parsed?.name || "Toggle";
+
+    const operation = settings.operation ?? "toggle";
+    if (operation === "toggle") {
+      const isOn = this.featureState.get(contextId) ?? false;
+      return `${label}\n${isOn ? "●" : "○"}`;
+    }
+    return label;
   }
 }

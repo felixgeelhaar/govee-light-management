@@ -10,7 +10,7 @@ import {
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
 import { ActionServices, type BaseSettings } from "./shared/ActionServices";
-import { type GroupPowerSummary } from "./shared/power-state";
+import { powerGlyph, type GroupPowerSummary } from "./shared/power-state";
 import {
   applyStatusImage,
   powerStatus,
@@ -324,13 +324,11 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
   }
 
   /**
-   * Paint the key: the ●/◐/○ state onto the artwork, the group count
-   * into the title. The state indicator has to live on the image
-   * because Stream Deck drops every `setTitle()` call once the user
-   * sets a title of their own (#333); only the image survives that.
-   * The `N/M` count stays in the title — it is the one piece that
-   * needs real text, and losing it to a custom title is acceptable
-   * where losing the on/off state was not.
+   * Paint the key: the ●/◐/○ state in the title as #194 designed it,
+   * and the same state as a badge on the artwork. The badge is the
+   * redundant copy — Stream Deck drops every `setTitle()` call once
+   * the user sets a title of their own (#333), and only the image
+   * survives that.
    */
   private async render(
     action: ImageCapableAction & { setTitle(title: string): Promise<void> },
@@ -355,10 +353,12 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
     if (op !== "toggle") return "";
 
     const summary = this.groupSummary.get(contextId);
+    const isOn = this.powerState.get(contextId) ?? false;
+    const glyph = powerGlyph(summary, isOn);
     if (summary && summary.totalCount > 0) {
-      return `${summary.onCount}/${summary.totalCount}`;
+      return `${glyph}\n${summary.onCount}/${summary.totalCount}`;
     }
-    return "";
+    return glyph;
   }
 
   private async syncDisplayedPowerState(

@@ -24,6 +24,7 @@ import type { Light } from "../domain/entities/Light";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { hsvToRgb } from "./shared/color-utils";
 import { clamp } from "./shared/validation";
+import { powerGlyph } from "./shared/power-state";
 import { applyStatusImage, powerStatus } from "./shared/status-badge";
 
 type SegmentColorSettings = BaseDialSettings & {
@@ -236,12 +237,15 @@ export class SegmentColorAction extends BaseDialAction<SegmentColorSettings> {
         if (typeof action.setState === "function") {
           await action.setState(isOn ? 0 : 1);
         }
+        const summary = this.groupSummaryMap.get(ctx);
         await applyStatusImage(
           action,
           "segment-color",
-          powerStatus(this.groupSummaryMap.get(ctx), isOn),
+          powerStatus(summary, isOn),
         );
-        await action.setTitle(this.getKeypadTitle(settings));
+        await action.setTitle(
+          `${this.getKeypadTitle(settings)}\n${powerGlyph(summary, isOn)}`,
+        );
       } catch {
         // No-op if action disappeared mid-render.
       }

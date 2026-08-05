@@ -24,7 +24,7 @@ import type { JsonObject, JsonValue } from "@elgato/utils";
 import { Brightness } from "../domain/value-objects/Brightness";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { clamp } from "./shared/validation";
-import { valuePrefix } from "./shared/power-state";
+import { powerGlyph, valuePrefix } from "./shared/power-state";
 import { applyStatusImage, powerStatus } from "./shared/status-badge";
 import { telemetryService } from "../services/TelemetryService";
 
@@ -255,19 +255,22 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
       }
     } else if (typeof action.setTitle === "function") {
       // Keypad: switch state image (0=on, 1=off) so the icon reflects
-      // power state, then paint the ●/◐/○ badge onto the artwork. The
-      // badge lives on the image rather than the title because a
-      // user-set title suppresses setTitle entirely (#333).
+      // power state, then show the ●/◐/○ state twice over — once in
+      // the title as #194 designed it, once as a badge on the artwork.
+      // The badge is the redundant copy: a user-set title suppresses
+      // setTitle entirely, taking the title glyph with it (#333), and
+      // only the image survives that.
       try {
         if (typeof action.setState === "function") {
           await action.setState(isOn ? 0 : 1);
         }
+        const summary = this.groupSummaryMap.get(ctx);
         await applyStatusImage(
           action,
           "brightness",
-          powerStatus(this.groupSummaryMap.get(ctx), isOn),
+          powerStatus(summary, isOn),
         );
-        await action.setTitle(value);
+        await action.setTitle(`${value}\n${powerGlyph(summary, isOn)}`);
       } catch {
         // No-op if action disappeared mid-render.
       }

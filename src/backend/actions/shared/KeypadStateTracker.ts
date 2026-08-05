@@ -134,15 +134,25 @@ export class KeypadStateTracker {
   }
 
   /**
-   * `N/M` on-count for a group target, or an empty string for a single
-   * light or an unknown target. This is the one piece of state that
-   * needs real text, so it stays in the title while the on/off state
-   * itself moved to the image (see `status-badge.ts`).
+   * Three-state status glyph for the current target. Empty string when
+   * no state is known yet (e.g. first frame after appear, before the
+   * initial sync lands).
+   *
+   * Format:
+   *   - Group: `●\n2/2` / `◐\n1/2` / `○\n0/2`
+   *   - Single light: `●` / `○`
+   *   - Unknown: ``
    */
-  getGroupCount(ctx: string): string {
+  getStatusGlyph(ctx: string): string {
     const summary = this.groupSummary.get(ctx);
     if (summary && summary.totalCount > 0) {
-      return `${summary.onCount}/${summary.totalCount}`;
+      let glyph = "○";
+      if (summary.onCount === summary.totalCount) glyph = "●";
+      else if (summary.onCount > 0) glyph = "◐";
+      return `${glyph}\n${summary.onCount}/${summary.totalCount}`;
+    }
+    if (this.powerState.has(ctx)) {
+      return this.powerState.get(ctx) ? "●" : "○";
     }
     return "";
   }

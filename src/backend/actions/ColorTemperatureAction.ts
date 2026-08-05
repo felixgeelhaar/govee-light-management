@@ -26,7 +26,7 @@ import {
   normalizeKelvin,
 } from "./shared/kelvin-utils";
 import { clamp } from "./shared/validation";
-import { valuePrefix } from "./shared/power-state";
+import { powerGlyph, valuePrefix } from "./shared/power-state";
 import { applyStatusImage, powerStatus } from "./shared/status-badge";
 import { telemetryService } from "../services/TelemetryService";
 
@@ -303,12 +303,9 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
         if (typeof action.setState === "function") {
           await action.setState(isOn ? 0 : 1);
         }
-        await applyStatusImage(
-          action,
-          "colortemp",
-          powerStatus(this.groupSummaryMap.get(ctx), isOn),
-        );
-        await action.setTitle(value);
+        const summary = this.groupSummaryMap.get(ctx);
+        await applyStatusImage(action, "colortemp", powerStatus(summary, isOn));
+        await action.setTitle(`${value}\n${powerGlyph(summary, isOn)}`);
       } catch {
         // No-op if action disappeared mid-render.
       }
