@@ -30,6 +30,10 @@ import {
 } from "./shared/ActionServices";
 import { KeypadStateTracker } from "./shared/KeypadStateTracker";
 import { applyRecallToLight, parseRecallPayload } from "./recall-payload";
+import {
+  applyStatusImage,
+  type ImageCapableAction,
+} from "./shared/status-badge";
 
 type RecallSettings = BaseSettings & {
   selectedRecall?: string;
@@ -46,7 +50,7 @@ export class RecallAction extends SingletonAction<RecallSettings> {
       const action = this.actionsByCtx.get(ctx);
       const settings = this.settingsByCtx.get(ctx);
       if (!action || !settings) return;
-      await action.setTitle(this.composeTitle(settings, ctx));
+      await this.render(action, settings, ctx);
     },
   });
 
@@ -56,7 +60,7 @@ export class RecallAction extends SingletonAction<RecallSettings> {
     const ctx = ev.action.id;
     this.settingsByCtx.set(ctx, ev.payload.settings);
     this.actionsByCtx.set(ctx, ev.action);
-    await ev.action.setTitle(this.composeTitle(ev.payload.settings, ctx));
+    await this.render(ev.action, ev.payload.settings, ctx);
     this.state.attach(ev.action, ev.payload.settings);
   }
 
@@ -74,7 +78,7 @@ export class RecallAction extends SingletonAction<RecallSettings> {
     const ctx = ev.action.id;
     this.settingsByCtx.set(ctx, ev.payload.settings);
     this.actionsByCtx.set(ctx, ev.action);
-    await ev.action.setTitle(this.composeTitle(ev.payload.settings, ctx));
+    await this.render(ev.action, ev.payload.settings, ctx);
     await this.state.settingsChanged(ev.action, ev.payload.settings);
   }
 
@@ -156,7 +160,7 @@ export class RecallAction extends SingletonAction<RecallSettings> {
       const commanded = target.group.getControllableLights().length;
       this.state.setOptimisticGroup(ev.action.id, commanded, total);
     }
-    await ev.action.setTitle(this.composeTitle(settings, ev.action.id));
+    await this.render(ev.action, settings, ev.action.id);
 
     if (failedCount > 0 && totalCount > 0) {
       this.services.showPartialFailureBanner(
@@ -366,15 +370,30 @@ export class RecallAction extends SingletonAction<RecallSettings> {
   }
 
   /**
-   * Compose the visible key title: action label on top, shared status
-   * glyph below. Empty status falls through to the bare label so the
+   * Paint the key: the look's name plus any group count in the title,
+   * the ●/◐/○ state on the artwork. The state indicator lives on the
+   * image because Stream Deck ignores `setTitle()` entirely once the
+   * user sets a title of their own (#333).
+   */
+  private async render(
+    action: ImageCapableAction & { setTitle(title: string): Promise<void> },
+    settings: RecallSettings,
+    ctx: string,
+  ): Promise<void> {
+    await applyStatusImage(action, "recall", this.state.getStatus(ctx));
+    await action.setTitle(this.composeTitle(settings, ctx));
+  }
+
+  /**
+   * Compose the visible key title: the look's name on top, the group
+   * `N/M` count below. Either half falls through to the other so the
    * key doesn't look broken before the first sync lands.
    */
   private composeTitle(settings: RecallSettings, ctx: string): string {
     const label = this.getTitle(settings);
-    const status = this.state.getStatusGlyph(ctx);
-    if (!label) return status;
-    if (!status) return label;
-    return `${label}\n${status}`;
+    const count = this.state.getGroupCount(ctx);
+    if (!label) return count;
+    if (!count) return label;
+    return `${label}\n${count}`;
   }
 }

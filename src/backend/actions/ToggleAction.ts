@@ -15,6 +15,11 @@ import {
   type BaseSettings,
 } from "./shared/ActionServices";
 import { parseFeatureSetting } from "./shared/validation";
+import {
+  applyStatusImage,
+  powerStatus,
+  type ImageCapableAction,
+} from "./shared/status-badge";
 
 type ToggleSettings = BaseSettings & {
   selectedFeature?: string; // JSON: { name, instance }
@@ -73,7 +78,7 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
       }
     }
 
-    await ev.action.setTitle(this.getTitle(ev.payload.settings, ctx));
+    await this.render(ev.action, ev.payload.settings, ctx);
   }
 
   override onWillDisappear(ev: WillDisappearEvent<ToggleSettings>): void {
@@ -85,7 +90,7 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
   override async onDidReceiveSettings(
     ev: DidReceiveSettingsEvent<ToggleSettings>,
   ): Promise<void> {
-    await ev.action.setTitle(this.getTitle(ev.payload.settings, ev.action.id));
+    await this.render(ev.action, ev.payload.settings, ev.action.id);
   }
 
   override async onKeyDown(ev: KeyDownEvent<ToggleSettings>): Promise<void> {
@@ -204,7 +209,7 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
       if (!anySucceeded) {
         // Revert optimistic state since nothing actually changed
         this.featureState.set(ctx, originalState);
-        await ev.action.setTitle(this.getTitle(settings, ctx));
+        await this.render(ev.action, settings, ctx);
         await ev.action.showAlert();
         return;
       }
@@ -213,18 +218,18 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
         // Revert title and warn so the user knows the press was a no-op
         // (see verifyToggleStateApplied for the DreamView-companion case).
         this.featureState.set(ctx, originalState);
-        await ev.action.setTitle(this.getTitle(settings, ctx));
+        await this.render(ev.action, settings, ctx);
         await ev.action.showAlert();
         return;
       }
-      await ev.action.setTitle(this.getTitle(settings, ctx));
+      await this.render(ev.action, settings, ctx);
       if (failedCount > 0 && totalCount > 0) {
         this.services.showPartialFailureBanner(
           ev.action,
           ctx,
           failedCount,
           totalCount,
-          this.getTitle(settings, ctx),
+          this.getTitle(settings),
         );
       }
       await ev.action.showOk();
@@ -232,7 +237,7 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
       streamDeck.logger.error("Failed to toggle feature:", error);
       // Revert to original state
       this.featureState.set(ctx, originalState);
-      await ev.action.setTitle(this.getTitle(settings, ctx));
+      await this.render(ev.action, settings, ctx);
       await ev.action.showAlert();
     }
   }
@@ -351,17 +356,31 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
     }
   }
 
-  private getTitle(settings: ToggleSettings, contextId: string): string {
+  /**
+   * Paint the key: feature name in the title, on/off state on the
+   * artwork. The state indicator sits on the image because a user-set
+   * title suppresses `setTitle()` altogether (#333) — and the feature
+   * name is exactly the thing a user is likely to retitle.
+   */
+  private async render(
+    action: ImageCapableAction & { setTitle(title: string): Promise<void> },
+    settings: ToggleSettings,
+    contextId: string,
+  ): Promise<void> {
+    // A dedicated on/off key is a command, not a state display, so it
+    // reports "unknown" and keeps its plain manifest artwork.
+    const status =
+      (settings.operation ?? "toggle") === "toggle"
+        ? powerStatus(undefined, this.featureState.get(contextId))
+        : "unknown";
+    await applyStatusImage(action, "toggle", status);
+    await action.setTitle(this.getTitle(settings));
+  }
+
+  private getTitle(settings: ToggleSettings): string {
     const parsed = settings.selectedFeature
       ? parseFeatureSetting(settings.selectedFeature)
       : null;
-    const label = parsed?.name || "Toggle";
-
-    const operation = settings.operation ?? "toggle";
-    if (operation === "toggle") {
-      const isOn = this.featureState.get(contextId) ?? false;
-      return `${label}\n${isOn ? "●" : "○"}`;
-    }
-    return label;
+    return parsed?.name || "Toggle";
   }
 }

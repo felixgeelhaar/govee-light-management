@@ -24,7 +24,8 @@ import type { JsonObject, JsonValue } from "@elgato/utils";
 import { Brightness } from "../domain/value-objects/Brightness";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { clamp } from "./shared/validation";
-import { powerGlyph, valuePrefix } from "./shared/power-state";
+import { valuePrefix } from "./shared/power-state";
+import { applyStatusImage, powerStatus } from "./shared/status-badge";
 import { telemetryService } from "../services/TelemetryService";
 
 type BrightnessSettings = BaseDialSettings & {
@@ -253,15 +254,20 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
         // No-op if action disappeared mid-render.
       }
     } else if (typeof action.setTitle === "function") {
-      // Keypad: switch state image (0=on, 1=off) so the icon visually
-      // reflects power state, and append a status glyph badge below
-      // the value so groups show ◐ for mixed.
+      // Keypad: switch state image (0=on, 1=off) so the icon reflects
+      // power state, then paint the ●/◐/○ badge onto the artwork. The
+      // badge lives on the image rather than the title because a
+      // user-set title suppresses setTitle entirely (#333).
       try {
         if (typeof action.setState === "function") {
           await action.setState(isOn ? 0 : 1);
         }
-        const glyph = powerGlyph(this.groupSummaryMap.get(ctx), isOn);
-        await action.setTitle(`${value}\n${glyph}`);
+        await applyStatusImage(
+          action,
+          "brightness",
+          powerStatus(this.groupSummaryMap.get(ctx), isOn),
+        );
+        await action.setTitle(value);
       } catch {
         // No-op if action disappeared mid-render.
       }
