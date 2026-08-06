@@ -278,8 +278,20 @@ export class ColorAction extends BaseDialAction<ColorSettings> {
           await action.setState(isOn ? 0 : 1);
         }
         const summary = this.groupSummaryMap.get(ctx);
-        await applyStatusImage(action, "color", powerStatus(summary, isOn));
-        await action.setTitle(`${value}\n${powerGlyph(summary, isOn)}`);
+        const keyTitle = `${value}
+${powerGlyph(summary, isOn)}`;
+        await action.setTitle(keyTitle);
+        this.titleOverride.noteWritten(ctx, keyTitle);
+        // Badge only once the user's own title has displaced the
+        // glyph above; showing both would put the same dot on the
+        // key twice.
+        await applyStatusImage(
+          action,
+          "color",
+          this.titleOverride.isOverridden(ctx)
+            ? powerStatus(summary, isOn)
+            : "unknown",
+        );
       } catch {
         // No-op if action disappeared mid-render.
       }

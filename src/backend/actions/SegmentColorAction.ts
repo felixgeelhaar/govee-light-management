@@ -238,13 +238,19 @@ export class SegmentColorAction extends BaseDialAction<SegmentColorSettings> {
           await action.setState(isOn ? 0 : 1);
         }
         const summary = this.groupSummaryMap.get(ctx);
+        const keyTitle = `${this.getKeypadTitle(settings)}
+${powerGlyph(summary, isOn)}`;
+        await action.setTitle(keyTitle);
+        this.titleOverride.noteWritten(ctx, keyTitle);
+        // Badge only once the user's own title has displaced the
+        // glyph above; showing both would put the same dot on the
+        // key twice.
         await applyStatusImage(
           action,
           "segment-color",
-          powerStatus(summary, isOn),
-        );
-        await action.setTitle(
-          `${this.getKeypadTitle(settings)}\n${powerGlyph(summary, isOn)}`,
+          this.titleOverride.isOverridden(ctx)
+            ? powerStatus(summary, isOn)
+            : "unknown",
         );
       } catch {
         // No-op if action disappeared mid-render.

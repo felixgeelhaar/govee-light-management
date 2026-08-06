@@ -2,9 +2,10 @@
  * The tracker's read side — the two accessors keypad actions render
  * from, which report the same state in two forms. `getStatusGlyph`
  * builds the title text (#194); `getStatus` drives the badge painted
- * onto the key artwork, added in #333 because Stream Deck ignores
- * `setTitle()` once a user sets a title of their own. They must never
- * disagree, or one copy of the dot would contradict the other.
+ * onto the key artwork, which stands in for the glyph when a user
+ * title has hidden it (#333). Only one is ever shown at a time, but
+ * they must still agree — a key must never read as on in one form and
+ * off in the other.
  */
 import { describe, expect, it } from "vitest";
 import { KeypadStateTracker } from "../../../../src/backend/actions/shared/KeypadStateTracker";
@@ -82,9 +83,9 @@ describe("KeypadStateTracker.getStatusGlyph", () => {
 });
 
 describe("KeypadStateTracker — title glyph and badge agree", () => {
-  // The key shows the same state twice: as text in the title and as a
-  // badge on the artwork. A disagreement between them would be visible
-  // to the user as two dots contradicting each other on one key.
+  // Only one of the two is shown at a time, but which one depends on
+  // whether the user set a title. If they disagreed, the same key would
+  // report a different state before and after being retitled.
   const glyphForStatus = { on: "●", partial: "◐", off: "○" } as const;
 
   it.each([

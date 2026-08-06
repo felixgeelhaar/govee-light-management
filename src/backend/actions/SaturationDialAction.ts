@@ -281,12 +281,20 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
           await action.setState(isOn ? 0 : 1);
         }
         const summary = this.groupSummaryMap.get(ctx);
+        const keyTitle = `${value}
+${powerGlyph(summary, isOn)}`;
+        await action.setTitle(keyTitle);
+        this.titleOverride.noteWritten(ctx, keyTitle);
+        // Badge only once the user's own title has displaced the
+        // glyph above; showing both would put the same dot on the
+        // key twice.
         await applyStatusImage(
           action,
           "saturation-dial",
-          powerStatus(summary, isOn),
+          this.titleOverride.isOverridden(ctx)
+            ? powerStatus(summary, isOn)
+            : "unknown",
         );
-        await action.setTitle(`${value}\n${powerGlyph(summary, isOn)}`);
       } catch {
         // No-op if action disappeared mid-render.
       }

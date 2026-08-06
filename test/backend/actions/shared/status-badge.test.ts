@@ -59,8 +59,9 @@ describe("powerStatus", () => {
   });
 
   it("agrees with the title's powerGlyph on every three-state case", () => {
-    // The key shows this state twice — as powerGlyph text in the title
-    // and as a badge on the artwork. They must never disagree.
+    // The badge stands in for the title glyph when a user title has
+    // hidden it, so the two must describe the same state — a key must
+    // never read as on in the title and off on the artwork.
     const glyphForStatus: Record<Exclude<PowerStatus, "unknown">, string> = {
       on: "●",
       partial: "◐",

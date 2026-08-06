@@ -19,6 +19,7 @@ import {
   WillDisappearEvent,
   type DidReceiveSettingsEvent,
   type SendToPluginEvent,
+  type TitleParametersDidChangeEvent,
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
@@ -34,6 +35,7 @@ import {
   applyStatusImage,
   type ImageCapableAction,
 } from "./shared/status-badge";
+import { TitleOverrideTracker } from "./shared/title-override";
 
 type RecallSettings = BaseSettings & {
   selectedRecall?: string;
@@ -43,6 +45,8 @@ type RecallSettings = BaseSettings & {
 export class RecallAction extends SingletonAction<RecallSettings> {
   private services = new ActionServices();
   private settingsByCtx = new Map<string, RecallSettings>();
+  /** Whether the user's own title has displaced ours (see #333). */
+  private titleOverride = new TitleOverrideTracker();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private actionsByCtx = new Map<string, any>();
   private state = new KeypadStateTracker({
@@ -68,8 +72,29 @@ export class RecallAction extends SingletonAction<RecallSettings> {
     const ctx = ev.action.id;
     this.settingsByCtx.delete(ctx);
     this.actionsByCtx.delete(ctx);
+    this.titleOverride.forget(ctx);
     this.state.detach(ctx);
     this.services.clearPartialFailureBanner(ctx);
+  }
+
+  /**
+   * Stream Deck reports the title it will actually render — the user's
+   * if they set one, otherwise ours. That is the only way to learn our
+   * title has been displaced, so re-render on a real change to swap the
+   * glyph for the artwork badge (or back again).
+   */
+  override async onTitleParametersDidChange(
+    ev: TitleParametersDidChangeEvent<RecallSettings>,
+  ): Promise<void> {
+    const ctx = ev.action.id;
+    const changed = this.titleOverride.observe(ctx, {
+      title: ev.payload.title,
+      showTitle: ev.payload.titleParameters.showTitle,
+    });
+    if (changed) {
+      const settings = this.settingsByCtx.get(ctx) ?? ev.payload.settings;
+      await this.render(ev.action, settings, ctx);
+    }
   }
 
   override async onDidReceiveSettings(
@@ -381,8 +406,18 @@ export class RecallAction extends SingletonAction<RecallSettings> {
     settings: RecallSettings,
     ctx: string,
   ): Promise<void> {
-    await applyStatusImage(action, "recall", this.state.getStatus(ctx));
-    await action.setTitle(this.composeTitle(settings, ctx));
+    const title = this.composeTitle(settings, ctx);
+    await action.setTitle(title);
+    this.titleOverride.noteWritten(ctx, title);
+    // Badge only once the user's own title has displaced the glyph;
+    // showing both would put the same dot on the key twice.
+    await applyStatusImage(
+      action,
+      "recall",
+      this.titleOverride.isOverridden(ctx)
+        ? this.state.getStatus(ctx)
+        : "unknown",
+    );
   }
 
   /**

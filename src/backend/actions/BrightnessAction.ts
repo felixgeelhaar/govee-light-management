@@ -255,22 +255,29 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
       }
     } else if (typeof action.setTitle === "function") {
       // Keypad: switch state image (0=on, 1=off) so the icon reflects
-      // power state, then show the ●/◐/○ state twice over — once in
-      // the title as #194 designed it, once as a badge on the artwork.
-      // The badge is the redundant copy: a user-set title suppresses
-      // setTitle entirely, taking the title glyph with it (#333), and
-      // only the image survives that.
+      // power state, then show the ●/◐/○ state exactly once — in the
+      // title as #194 designed it, or as a badge on the artwork when a
+      // user-set title has suppressed setTitle and taken the glyph
+      // with it (#333).
       try {
         if (typeof action.setState === "function") {
           await action.setState(isOn ? 0 : 1);
         }
         const summary = this.groupSummaryMap.get(ctx);
+        const keyTitle = `${value}
+${powerGlyph(summary, isOn)}`;
+        await action.setTitle(keyTitle);
+        this.titleOverride.noteWritten(ctx, keyTitle);
+        // Badge only once the user's own title has displaced the
+        // glyph above; showing both would put the same dot on the
+        // key twice.
         await applyStatusImage(
           action,
           "brightness",
-          powerStatus(summary, isOn),
+          this.titleOverride.isOverridden(ctx)
+            ? powerStatus(summary, isOn)
+            : "unknown",
         );
-        await action.setTitle(`${value}\n${powerGlyph(summary, isOn)}`);
       } catch {
         // No-op if action disappeared mid-render.
       }
