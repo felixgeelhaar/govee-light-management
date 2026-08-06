@@ -24,7 +24,7 @@ import type { JsonObject, JsonValue } from "@elgato/utils";
 import { Brightness } from "../domain/value-objects/Brightness";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { clamp } from "./shared/validation";
-import { powerGlyph, valuePrefix } from "./shared/power-state";
+import { valuePrefix } from "./shared/power-state";
 import { applyStatusImage, powerStatus } from "./shared/status-badge";
 import { telemetryService } from "../services/TelemetryService";
 
@@ -255,29 +255,19 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
       }
     } else if (typeof action.setTitle === "function") {
       // Keypad: switch state image (0=on, 1=off) so the icon reflects
-      // power state, then show the ●/◐/○ state exactly once — in the
-      // title as #194 designed it, or as a badge on the artwork when a
-      // user-set title has suppressed setTitle and taken the glyph
-      // with it (#333).
+      // power state, then paint the ●/◐/○ badge onto the artwork. The
+      // badge lives on the image rather than the title because a
+      // user-set title suppresses setTitle entirely (#333).
       try {
         if (typeof action.setState === "function") {
           await action.setState(isOn ? 0 : 1);
         }
-        const summary = this.groupSummaryMap.get(ctx);
-        const keyTitle = `${value}
-${powerGlyph(summary, isOn)}`;
-        await action.setTitle(keyTitle);
-        this.titleOverride.noteWritten(ctx, keyTitle);
-        // Badge only once the user's own title has displaced the
-        // glyph above; showing both would put the same dot on the
-        // key twice.
         await applyStatusImage(
           action,
           "brightness",
-          this.titleOverride.isOverridden(ctx)
-            ? powerStatus(summary, isOn)
-            : "unknown",
+          powerStatus(this.groupSummaryMap.get(ctx), isOn),
         );
+        await action.setTitle(value);
       } catch {
         // No-op if action disappeared mid-render.
       }

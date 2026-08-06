@@ -1,11 +1,10 @@
 /**
  * The tracker's read side — the two accessors keypad actions render
- * from, which report the same state in two forms. `getStatusGlyph`
- * builds the title text (#194); `getStatus` drives the badge painted
- * onto the key artwork, which stands in for the glyph when a user
- * title has hidden it (#333). Only one is ever shown at a time, but
- * they must still agree — a key must never read as on in one form and
- * off in the other.
+ * from. `getStatus` drives the ●/◐/○ badge painted onto the key
+ * artwork; `getGroupCount` supplies the `N/M` text that stays in the
+ * title. They were split apart in #333: the status had to leave the
+ * title because Stream Deck ignores `setTitle()` once a user sets a
+ * title of their own.
  */
 import { describe, expect, it } from "vitest";
 import { KeypadStateTracker } from "../../../../src/backend/actions/shared/KeypadStateTracker";
@@ -56,65 +55,34 @@ describe("KeypadStateTracker.getStatus", () => {
   });
 });
 
-describe("KeypadStateTracker.getStatusGlyph", () => {
+describe("KeypadStateTracker.getGroupCount", () => {
   it("is empty before any state has been sampled", () => {
-    expect(makeTracker().getStatusGlyph("ctx")).toBe("");
+    expect(makeTracker().getGroupCount("ctx")).toBe("");
   });
 
-  it("renders a bare glyph for a single light", () => {
+  it("is empty for a single-light target, which has nothing to count", () => {
     const tracker = makeTracker();
     tracker.setOptimisticSingle("ctx", true);
-    expect(tracker.getStatusGlyph("ctx")).toBe("●");
+    expect(tracker.getGroupCount("ctx")).toBe("");
   });
 
-  it("renders glyph over on-count for a group", () => {
+  it("reports on-count over total for a group", () => {
     const tracker = makeTracker();
     tracker.setOptimisticGroup("ctx", 1, 3);
-    expect(tracker.getStatusGlyph("ctx")).toBe("◐\n1/3");
+    expect(tracker.getGroupCount("ctx")).toBe("1/3");
+  });
+
+  it("ignores a zero-total group rather than rendering 0/0", () => {
+    const tracker = makeTracker();
+    tracker.setOptimisticGroup("ctx", 0, 0);
+    expect(tracker.getGroupCount("ctx")).toBe("");
   });
 
   it("drops back to empty once the context is detached", () => {
     const tracker = makeTracker();
     tracker.setOptimisticGroup("ctx", 2, 2);
     tracker.detach("ctx");
-    expect(tracker.getStatusGlyph("ctx")).toBe("");
+    expect(tracker.getGroupCount("ctx")).toBe("");
     expect(tracker.getStatus("ctx")).toBe("unknown");
-  });
-});
-
-describe("KeypadStateTracker — title glyph and badge agree", () => {
-  // Only one of the two is shown at a time, but which one depends on
-  // whether the user set a title. If they disagreed, the same key would
-  // report a different state before and after being retitled.
-  const glyphForStatus = { on: "●", partial: "◐", off: "○" } as const;
-
-  it.each([
-    {
-      label: "single on",
-      apply: (t: KeypadStateTracker) => t.setOptimisticSingle("c", true),
-    },
-    {
-      label: "single off",
-      apply: (t: KeypadStateTracker) => t.setOptimisticSingle("c", false),
-    },
-    {
-      label: "group all on",
-      apply: (t: KeypadStateTracker) => t.setOptimisticGroup("c", 3, 3),
-    },
-    {
-      label: "group partial",
-      apply: (t: KeypadStateTracker) => t.setOptimisticGroup("c", 1, 3),
-    },
-    {
-      label: "group all off",
-      apply: (t: KeypadStateTracker) => t.setOptimisticGroup("c", 0, 3),
-    },
-  ])("$label", ({ apply }) => {
-    const tracker = makeTracker();
-    apply(tracker);
-    const status = tracker.getStatus("c") as keyof typeof glyphForStatus;
-    expect(tracker.getStatusGlyph("c").startsWith(glyphForStatus[status])).toBe(
-      true,
-    );
   });
 });

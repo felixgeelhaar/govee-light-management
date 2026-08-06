@@ -19,7 +19,6 @@ import {
   WillDisappearEvent,
   type DidReceiveSettingsEvent,
   type SendToPluginEvent,
-  type TitleParametersDidChangeEvent,
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
@@ -35,7 +34,6 @@ import {
   applyStatusImage,
   type ImageCapableAction,
 } from "./shared/status-badge";
-import { TitleOverrideTracker } from "./shared/title-override";
 
 type RecallSettings = BaseSettings & {
   selectedRecall?: string;
@@ -45,8 +43,6 @@ type RecallSettings = BaseSettings & {
 export class RecallAction extends SingletonAction<RecallSettings> {
   private services = new ActionServices();
   private settingsByCtx = new Map<string, RecallSettings>();
-  /** Whether the user's own title has displaced ours (see #333). */
-  private titleOverride = new TitleOverrideTracker();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private actionsByCtx = new Map<string, any>();
   private state = new KeypadStateTracker({
@@ -72,29 +68,8 @@ export class RecallAction extends SingletonAction<RecallSettings> {
     const ctx = ev.action.id;
     this.settingsByCtx.delete(ctx);
     this.actionsByCtx.delete(ctx);
-    this.titleOverride.forget(ctx);
     this.state.detach(ctx);
     this.services.clearPartialFailureBanner(ctx);
-  }
-
-  /**
-   * Stream Deck reports the title it will actually render — the user's
-   * if they set one, otherwise ours. That is the only way to learn our
-   * title has been displaced, so re-render on a real change to swap the
-   * glyph for the artwork badge (or back again).
-   */
-  override async onTitleParametersDidChange(
-    ev: TitleParametersDidChangeEvent<RecallSettings>,
-  ): Promise<void> {
-    const ctx = ev.action.id;
-    const changed = this.titleOverride.observe(ctx, {
-      title: ev.payload.title,
-      showTitle: ev.payload.titleParameters.showTitle,
-    });
-    if (changed) {
-      const settings = this.settingsByCtx.get(ctx) ?? ev.payload.settings;
-      await this.render(ev.action, settings, ctx);
-    }
   }
 
   override async onDidReceiveSettings(
@@ -395,41 +370,30 @@ export class RecallAction extends SingletonAction<RecallSettings> {
   }
 
   /**
-   * Paint the key: the look's name plus the ●/◐/○ status in the title,
-   * and the same status as a badge on the artwork. The badge is the
-   * redundant copy — Stream Deck ignores `setTitle()` entirely once
-   * the user sets a title of their own (#333), and only the image
-   * survives that.
+   * Paint the key: the look's name plus any group count in the title,
+   * the ●/◐/○ state on the artwork. The state indicator lives on the
+   * image because Stream Deck ignores `setTitle()` entirely once the
+   * user sets a title of their own (#333).
    */
   private async render(
     action: ImageCapableAction & { setTitle(title: string): Promise<void> },
     settings: RecallSettings,
     ctx: string,
   ): Promise<void> {
-    const title = this.composeTitle(settings, ctx);
-    await action.setTitle(title);
-    this.titleOverride.noteWritten(ctx, title);
-    // Badge only once the user's own title has displaced the glyph;
-    // showing both would put the same dot on the key twice.
-    await applyStatusImage(
-      action,
-      "recall",
-      this.titleOverride.isOverridden(ctx)
-        ? this.state.getStatus(ctx)
-        : "unknown",
-    );
+    await applyStatusImage(action, "recall", this.state.getStatus(ctx));
+    await action.setTitle(this.composeTitle(settings, ctx));
   }
 
   /**
-   * Compose the visible key title: action label on top, shared status
-   * glyph below. Empty status falls through to the bare label so the
+   * Compose the visible key title: the look's name on top, the group
+   * `N/M` count below. Either half falls through to the other so the
    * key doesn't look broken before the first sync lands.
    */
   private composeTitle(settings: RecallSettings, ctx: string): string {
     const label = this.getTitle(settings);
-    const status = this.state.getStatusGlyph(ctx);
-    if (!label) return status;
-    if (!status) return label;
-    return `${label}\n${status}`;
+    const count = this.state.getGroupCount(ctx);
+    if (!label) return count;
+    if (!count) return label;
+    return `${label}\n${count}`;
   }
 }

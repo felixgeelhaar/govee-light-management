@@ -6,7 +6,6 @@ import {
   SingletonAction,
   type DialAction,
   type DialDownEvent,
-  type TitleParametersDidChangeEvent,
   type TouchTapEvent,
   type WillAppearEvent,
   type WillDisappearEvent,
@@ -17,7 +16,6 @@ import {
 import type { JsonObject, JsonValue } from "@elgato/utils";
 import { ActionServices, type BaseSettings } from "./ActionServices";
 import type { GroupPowerSummary } from "./power-state";
-import { TitleOverrideTracker } from "./title-override";
 
 export type BaseDialSettings = BaseSettings & {
   stepSize?: number;
@@ -60,12 +58,6 @@ export abstract class BaseDialAction<
    * via `powerStatus()` in `status-badge.ts`.
    */
   protected groupSummaryMap = new Map<string, GroupPowerSummary>();
-  /**
-   * Tracks whether the user has taken the title over, so `updateDisplay`
-   * knows whether the ●/◐/○ glyph it writes is actually visible. Shared
-   * here because every dial-derived action renders the same way (#333).
-   */
-  protected titleOverride = new TitleOverrideTracker();
   private visibleActions = new Map<
     string,
     DialAction<TSettings & JsonObject>
@@ -88,27 +80,6 @@ export abstract class BaseDialAction<
   private togglePowerEpoch = new Map<string, number>();
 
   // ── Lifecycle ──────────────────────────────────────────────────
-
-  /**
-   * Stream Deck reports the title it will actually render — the user's
-   * if they set one, otherwise ours. That is the only way to learn the
-   * plugin's title has been displaced, so re-render on a real change to
-   * swap the glyph for the artwork badge (or back again).
-   */
-  override async onTitleParametersDidChange(
-    ev: TitleParametersDidChangeEvent<TSettings>,
-  ): Promise<void> {
-    const ctx = ev.action.id;
-    const changed = this.titleOverride.observe(ctx, {
-      title: ev.payload.title,
-      showTitle: ev.payload.titleParameters.showTitle,
-    });
-    if (!changed) return;
-
-    const action = this.visibleActions.get(ctx);
-    const settings = this.settingsMap.get(ctx);
-    if (action && settings) await this.updateDisplay(action, settings);
-  }
 
   override async onWillAppear(ev: WillAppearEvent<TSettings>): Promise<void> {
     const ctx = ev.action.id;
@@ -136,7 +107,6 @@ export abstract class BaseDialAction<
     this.cleanupValueMaps(ctx);
     this.visibleActions.delete(ctx);
     this.settingsMap.delete(ctx);
-    this.titleOverride.forget(ctx);
     this.stopLiveSync(ctx);
     this.liveSyncInFlight.delete(ctx);
     this.liveSyncSuppressedUntil.delete(ctx);

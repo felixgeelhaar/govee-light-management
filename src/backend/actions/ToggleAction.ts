@@ -6,7 +6,6 @@ import {
   WillDisappearEvent,
   type DidReceiveSettingsEvent,
   type SendToPluginEvent,
-  type TitleParametersDidChangeEvent,
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
@@ -16,7 +15,6 @@ import {
   type BaseSettings,
 } from "./shared/ActionServices";
 import { parseFeatureSetting } from "./shared/validation";
-import { TitleOverrideTracker } from "./shared/title-override";
 import {
   applyStatusImage,
   powerStatus,
@@ -39,10 +37,6 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
    * `featureState` with stale data.
    */
   private toggleEpoch = new Map<string, number>();
-  /** Whether the user's own title has displaced ours (see #333). */
-  private titleOverride = new TitleOverrideTracker();
-  /** Last settings seen per context, for re-rendering off-cycle. */
-  private settingsByCtx = new Map<string, ToggleSettings>();
 
   override async onWillAppear(
     ev: WillAppearEvent<ToggleSettings>,
@@ -90,29 +84,7 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
   override onWillDisappear(ev: WillDisappearEvent<ToggleSettings>): void {
     this.featureState.delete(ev.action.id);
     this.toggleEpoch.delete(ev.action.id);
-    this.titleOverride.forget(ev.action.id);
-    this.settingsByCtx.delete(ev.action.id);
     this.services.clearPartialFailureBanner(ev.action.id);
-  }
-
-  /**
-   * Stream Deck reports the title it will actually render — the user's
-   * if they set one, otherwise ours. That is the only way to learn our
-   * title has been displaced, so re-render on a real change to swap the
-   * glyph for the artwork badge (or back again).
-   */
-  override async onTitleParametersDidChange(
-    ev: TitleParametersDidChangeEvent<ToggleSettings>,
-  ): Promise<void> {
-    const ctx = ev.action.id;
-    const changed = this.titleOverride.observe(ctx, {
-      title: ev.payload.title,
-      showTitle: ev.payload.titleParameters.showTitle,
-    });
-    if (changed) {
-      const settings = this.settingsByCtx.get(ctx) ?? ev.payload.settings;
-      await this.render(ev.action, settings, ctx);
-    }
   }
 
   override async onDidReceiveSettings(
@@ -257,7 +229,7 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
           ctx,
           failedCount,
           totalCount,
-          this.getTitle(settings, ctx),
+          this.getTitle(settings),
         );
       }
       await ev.action.showOk();
@@ -385,45 +357,30 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
   }
 
   /**
-   * Paint the key: feature name plus the ●/○ state in the title, and
-   * the same state as a badge on the artwork. The badge is the
-   * redundant copy — a user-set title suppresses `setTitle()`
-   * altogether (#333), and the feature name is exactly the thing a
-   * user is likely to retitle.
+   * Paint the key: feature name in the title, on/off state on the
+   * artwork. The state indicator sits on the image because a user-set
+   * title suppresses `setTitle()` altogether (#333) — and the feature
+   * name is exactly the thing a user is likely to retitle.
    */
   private async render(
     action: ImageCapableAction & { setTitle(title: string): Promise<void> },
     settings: ToggleSettings,
     contextId: string,
   ): Promise<void> {
-    this.settingsByCtx.set(contextId, settings);
-    const title = this.getTitle(settings, contextId);
-    await action.setTitle(title);
-    this.titleOverride.noteWritten(contextId, title);
-
-    // The badge is the fallback for when the title glyph is not
-    // visible: either the user took the title over, or this is a
-    // dedicated on/off key, which is a command rather than a state
-    // display and shows no glyph at all.
-    const tracksState = (settings.operation ?? "toggle") === "toggle";
+    // A dedicated on/off key is a command, not a state display, so it
+    // reports "unknown" and keeps its plain manifest artwork.
     const status =
-      tracksState && this.titleOverride.isOverridden(contextId)
+      (settings.operation ?? "toggle") === "toggle"
         ? powerStatus(undefined, this.featureState.get(contextId))
         : "unknown";
     await applyStatusImage(action, "toggle", status);
+    await action.setTitle(this.getTitle(settings));
   }
 
-  private getTitle(settings: ToggleSettings, contextId: string): string {
+  private getTitle(settings: ToggleSettings): string {
     const parsed = settings.selectedFeature
       ? parseFeatureSetting(settings.selectedFeature)
       : null;
-    const label = parsed?.name || "Toggle";
-
-    const operation = settings.operation ?? "toggle";
-    if (operation === "toggle") {
-      const isOn = this.featureState.get(contextId) ?? false;
-      return `${label}\n${isOn ? "●" : "○"}`;
-    }
-    return label;
+    return parsed?.name || "Toggle";
   }
 }

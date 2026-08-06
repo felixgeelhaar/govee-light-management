@@ -6,18 +6,16 @@ import {
   WillDisappearEvent,
   type DidReceiveSettingsEvent,
   type SendToPluginEvent,
-  type TitleParametersDidChangeEvent,
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
 import { ActionServices, type BaseSettings } from "./shared/ActionServices";
-import { powerGlyph, type GroupPowerSummary } from "./shared/power-state";
+import { type GroupPowerSummary } from "./shared/power-state";
 import {
   applyStatusImage,
   powerStatus,
   type ImageCapableAction,
 } from "./shared/status-badge";
-import { TitleOverrideTracker } from "./shared/title-override";
 import { telemetryService } from "../services/TelemetryService";
 
 type OnOffSettings = BaseSettings & {
@@ -66,8 +64,6 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private visibleActions = new Map<string, any>();
   private settingsMap = new Map<string, OnOffSettings>();
-  /** Whether the user's own title has displaced ours (see #333). */
-  private titleOverride = new TitleOverrideTracker();
 
   override async onWillAppear(
     ev: WillAppearEvent<OnOffSettings>,
@@ -92,7 +88,6 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
     this.toggleEpoch.delete(ctx);
     this.visibleActions.delete(ctx);
     this.settingsMap.delete(ctx);
-    this.titleOverride.forget(ctx);
     this.stopLiveSync(ctx);
   }
 
@@ -144,28 +139,6 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
     } else {
       await this.render(ev.action, ev.payload.settings, contextId);
     }
-  }
-
-  /**
-   * Stream Deck reports the title it will actually render — the user's
-   * if they set one, otherwise ours. That is the only way to learn our
-   * title has been displaced, so re-render on a real change to swap the
-   * glyph for the artwork badge (or back again).
-   */
-  override async onTitleParametersDidChange(
-    ev: TitleParametersDidChangeEvent<OnOffSettings>,
-  ): Promise<void> {
-    const ctx = ev.action.id;
-    const changed = this.titleOverride.observe(ctx, {
-      title: ev.payload.title,
-      showTitle: ev.payload.titleParameters.showTitle,
-    });
-    if (changed)
-      await this.render(
-        ev.action,
-        this.settingsMap.get(ctx) ?? ev.payload.settings,
-        ctx,
-      );
   }
 
   override async onKeyDown(ev: KeyDownEvent<OnOffSettings>): Promise<void> {
@@ -351,11 +324,13 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
   }
 
   /**
-   * Paint the key: the ●/◐/○ state in the title as #194 designed it,
-   * and the same state as a badge on the artwork. The badge is the
-   * redundant copy — Stream Deck drops every `setTitle()` call once
-   * the user sets a title of their own (#333), and only the image
-   * survives that.
+   * Paint the key: the ●/◐/○ state onto the artwork, the group count
+   * into the title. The state indicator has to live on the image
+   * because Stream Deck drops every `setTitle()` call once the user
+   * sets a title of their own (#333); only the image survives that.
+   * The `N/M` count stays in the title — it is the one piece that
+   * needs real text, and losing it to a custom title is acceptable
+   * where losing the on/off state was not.
    */
   private async render(
     action: ImageCapableAction & { setTitle(title: string): Promise<void> },
@@ -364,23 +339,15 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
   ): Promise<void> {
     // A dedicated on/off key is a command, not a state display, so it
     // reports "unknown" and keeps its plain manifest artwork.
-    const title = this.getTitle(settings, contextId);
-    await action.setTitle(title);
-    this.titleOverride.noteWritten(contextId, title);
-
-    // The badge is the fallback for when the title glyph is not
-    // visible: either the user took the title over, or this is a
-    // dedicated on/off key, which is a command rather than a state
-    // display and shows no glyph at all.
-    const tracksState = (settings.operation || "toggle") === "toggle";
     const status =
-      tracksState && this.titleOverride.isOverridden(contextId)
+      (settings.operation || "toggle") === "toggle"
         ? powerStatus(
             this.groupSummary.get(contextId),
             this.powerState.get(contextId),
           )
         : "unknown";
     await applyStatusImage(action, "light", status);
+    await action.setTitle(this.getTitle(settings, contextId));
   }
 
   private getTitle(_settings: OnOffSettings, contextId: string): string {
@@ -388,12 +355,10 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
     if (op !== "toggle") return "";
 
     const summary = this.groupSummary.get(contextId);
-    const isOn = this.powerState.get(contextId) ?? false;
-    const glyph = powerGlyph(summary, isOn);
     if (summary && summary.totalCount > 0) {
-      return `${glyph}\n${summary.onCount}/${summary.totalCount}`;
+      return `${summary.onCount}/${summary.totalCount}`;
     }
-    return glyph;
+    return "";
   }
 
   private async syncDisplayedPowerState(

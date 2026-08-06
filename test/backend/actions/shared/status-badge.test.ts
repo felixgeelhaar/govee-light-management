@@ -1,7 +1,6 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, expect, it, vi } from "vitest";
-import { powerGlyph } from "../../../../src/backend/actions/shared/power-state";
 import {
   applyStatusImage,
   KEY_ART_NAMES,
@@ -58,31 +57,28 @@ describe("powerStatus", () => {
     expect(powerStatus({ onCount: 0, totalCount: 0 }, true)).toBe("on");
   });
 
-  it("agrees with the title's powerGlyph on every three-state case", () => {
-    // The badge stands in for the title glyph when a user title has
-    // hidden it, so the two must describe the same state — a key must
-    // never read as on in the title and off on the artwork.
+  it("preserves the documented ●/◐/○ vocabulary from #194", () => {
+    // These were the glyphs the title used to carry. The badge shapes
+    // replaced them one-for-one, so the mapping has to stay stable or
+    // users relearn the shape language.
     const glyphForStatus: Record<Exclude<PowerStatus, "unknown">, string> = {
       on: "●",
       partial: "◐",
       off: "○",
     };
-    const cases: Array<{
-      summary: { onCount: number; totalCount: number } | undefined;
-      isOn: boolean;
-    }> = [
-      { summary: undefined, isOn: true },
-      { summary: undefined, isOn: false },
-      { summary: { onCount: 2, totalCount: 2 }, isOn: true },
-      { summary: { onCount: 1, totalCount: 2 }, isOn: true },
-      { summary: { onCount: 0, totalCount: 2 }, isOn: false },
+    const cases = [
+      { summary: undefined, isOn: true, glyph: "●" },
+      { summary: undefined, isOn: false, glyph: "○" },
+      { summary: { onCount: 2, totalCount: 2 }, isOn: true, glyph: "●" },
+      { summary: { onCount: 1, totalCount: 2 }, isOn: true, glyph: "◐" },
+      { summary: { onCount: 0, totalCount: 2 }, isOn: false, glyph: "○" },
     ];
     for (const c of cases) {
       const status = powerStatus(c.summary, c.isOn) as Exclude<
         PowerStatus,
         "unknown"
       >;
-      expect(glyphForStatus[status]).toBe(powerGlyph(c.summary, c.isOn));
+      expect(glyphForStatus[status]).toBe(c.glyph);
     }
   });
 });
