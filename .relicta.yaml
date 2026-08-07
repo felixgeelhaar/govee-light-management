@@ -1,7 +1,25 @@
+# Relicta is a HELPER here, not the release driver.
+#
+# Releases are cut manually: a `chore(release): plugin X.Y.Z` PR bumps
+# package.json, package-lock.json and manifest.json, and merging it is followed
+# by an annotated `vX.Y.Z` tag. Pushing that tag is what triggers .github/
+# workflows/release.yml, which builds, packs and publishes the .streamDeckPlugin.
+#
+# Relicta is used for version inference (`relicta infer-version`) and changelog
+# drafting only. `gittag`, `gitpush` and the github plugin are therefore all
+# OFF: with them on, `relicta publish` would tag and push from a local checkout,
+# bypassing the release PR and firing release.yml behind your back, and the
+# github plugin would create a GitHub release that release.yml also creates.
+#
+# `versionfile` is deliberately EMPTY. It takes a single path, but this repo has
+# two version files in two formats — package.json (`2.7.15`) and manifest.json
+# (`2.7.15.0`, four-part, mandatory for Stream Deck). Pointing it at one would
+# bump half the repo and ship a manifest/package mismatch. Bump both by hand, or
+# see workflow.prereleasehook if you ever want this automated.
 ai:
     enabled: false
-    provider: openai
-    model: gpt-4
+    provider: ""
+    model: ""
     apikey: ""
     baseurl: ""
     apiversion: ""
@@ -25,26 +43,33 @@ changelog:
     productname: ""
     groupby: type
     template: ""
-    includecommithash: true
+    # The hand-written changelog carries no commit hashes and links every issue
+    # and PR it cites, so match that: hashes off, issue links on.
+    includecommithash: false
     includeauthor: false
     includedate: true
     linkcommits: false
-    linkissues: false
-    repositoryurl: ""
-    issueurl: ""
+    linkissues: true
+    repositoryurl: https://github.com/felixgeelhaar/govee-light-management
+    issueurl: https://github.com/felixgeelhaar/govee-light-management/issues
+    # `chore` and `ci` are NOT excluded — the Internal section of recent releases
+    # is exactly that work (workflow SHA pinning, the warden audit change).
     exclude:
-        - chore
-        - ci
         - docs
         - style
         - test
+    # Headings match keep-a-changelog and the sections actually used in
+    # 2.7.13-2.7.15: Fixed, Security, Internal, Changed.
     categories:
-        build: Build System
-        feat: Features
-        fix: Bug Fixes
-        perf: Performance Improvements
-        refactor: Code Refactoring
-        revert: Reverts
+        build: Internal
+        chore: Internal
+        ci: Internal
+        feat: Added
+        fix: Fixed
+        perf: Changed
+        refactor: Internal
+        revert: Changed
+        security: Security
 output:
     format: text
     color: true
@@ -54,8 +79,10 @@ output:
     loglevel: info
     pluginauditlog: ""
 plugins:
+    # Off: release.yml publishes the GitHub release on tag push. Enabling this
+    # would create a second, competing release.
     - name: github
-      enabled: true
+      enabled: false
       path: ""
       config:
         draft: false
@@ -66,8 +93,8 @@ plugins:
 versioning:
     strategy: conventional
     tagprefix: v
-    gittag: true
-    gitpush: true
+    gittag: false
+    gitpush: false
     gitsign: false
     prereleasesuffix: ""
     buildmetadata: ""
@@ -77,11 +104,10 @@ workflow:
     requireapproval: true
     allowedbranches:
         - main
-        - master
     requirecleanworkingtree: true
     requireuptodate: false
     dryrunbydefault: false
-    autocommitchangelog: true
-    changelogcommitmessage: 'chore(release): update changelog for ${version}'
+    autocommitchangelog: false
+    changelogcommitmessage: 'chore(release): plugin ${version}'
     prereleasehook: ""
     postreleasehook: ""
