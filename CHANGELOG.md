@@ -4,6 +4,21 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
+## [2.7.15] - 2026-08-07
+
+### Fixed
+
+- **The status dot no longer disappears when you set a custom title** ([#333](https://github.com/felixgeelhaar/govee-light-management/issues/333)). Typing anything into a key's Title field silently removed the ●/◐/○ power indicator. This was Stream Deck behaving as documented rather than a logic error: titles resolve by the precedence *user-defined > plugin `setTitle()` > manifest default*, so a user-set title makes every `setTitle()` call from the plugin a no-op — and the status dot lived in the title. It has been moved out of the title entirely and onto the key artwork, as a badge in the top-right corner. Images carry no equivalent override, so no title can displace it. The badge covers all three states across every keypad action — filled for on, hollow for off, and half-filled for a group that is partly on — and On/Off, Brightness, Color, Color Temperature, Saturation, Toggle, and Recall keys all render it alongside whatever title they already showed.
+
+### Security
+
+- **Six advisories in transitive dependencies resolved — one critical, five high** ([#335](https://github.com/felixgeelhaar/govee-light-management/pull/335)). All six had fixes inside the semver ranges already declared, so only `package-lock.json` changed: `tar` 7.5.16 → 7.5.22 (critical — PAX numeric path type confusion, plus decompression DoS and an infinite-loop path), `undici` 7.28.0 → 7.29.0, `axios` 1.16.0 → 1.19.0, `postcss` 8.5.16 → 8.5.26, `fast-uri` 3.1.2 → 3.1.5, and `brace-expansion` 2.1.0 → 2.1.4. `npm audit --audit-level=high` now reports zero vulnerabilities. Five of the six are dev-only and never reach users; **`axios` is the exception** — it arrives via `@felixgeelhaar/govee-api-client` and is bundled into the shipped plugin, where it is the HTTP client behind every Govee API call, so that bump was verified against live hardware (discovery, state reads, and commands) rather than assumed safe.
+
+### Internal
+
+- Every GitHub Actions `uses:` reference across the CI, release, and stale-sweep workflows is now pinned to a full commit SHA instead of a floating tag ([#336](https://github.com/felixgeelhaar/govee-light-management/pull/336)), closing the supply-chain window where a retagged action could alter a build.
+- Warden's local `npm audit` step is now advisory, matching the `continue-on-error` treatment `ci.yml` already applied to the same command. It had been stricter than the CI it exists to mirror, blocking every push on pre-existing transitive advisories that no change had introduced. Findings are still printed on each push; they simply no longer gate it.
+
 ## [2.7.14] - 2026-07-19
 
 ### Fixed
