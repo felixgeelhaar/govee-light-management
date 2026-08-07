@@ -13,6 +13,7 @@
  */
 import { streamDeck } from "@elgato/streamdeck";
 import { ActionServices, type BaseSettings } from "./ActionServices";
+import { powerStatus, type PowerStatus } from "./status-badge";
 
 interface GroupPowerSummary {
   onCount: number;
@@ -122,25 +123,26 @@ export class KeypadStateTracker {
   }
 
   /**
-   * Three-state status glyph for the current target. Empty string when
-   * no state is known yet (e.g. first frame after appear, before the
-   * initial sync lands).
-   *
-   * Format:
-   *   - Group: `●\n2/2` / `◐\n1/2` / `○\n0/2`
-   *   - Single light: `●` / `○`
-   *   - Unknown: ``
+   * Three-state power status for the current target, for rendering the
+   * ●/◐/○ badge onto the key artwork. `"unknown"` when no state has
+   * been sampled yet (e.g. the first frame after appear, before the
+   * initial sync lands) — the badge omits itself rather than claiming
+   * the light is off.
    */
-  getStatusGlyph(ctx: string): string {
+  getStatus(ctx: string): PowerStatus {
+    return powerStatus(this.groupSummary.get(ctx), this.powerState.get(ctx));
+  }
+
+  /**
+   * `N/M` on-count for a group target, or an empty string for a single
+   * light or an unknown target. This is the one piece of state that
+   * needs real text, so it stays in the title while the on/off state
+   * itself moved to the image (see `status-badge.ts`).
+   */
+  getGroupCount(ctx: string): string {
     const summary = this.groupSummary.get(ctx);
     if (summary && summary.totalCount > 0) {
-      let glyph = "○";
-      if (summary.onCount === summary.totalCount) glyph = "●";
-      else if (summary.onCount > 0) glyph = "◐";
-      return `${glyph}\n${summary.onCount}/${summary.totalCount}`;
-    }
-    if (this.powerState.has(ctx)) {
-      return this.powerState.get(ctx) ? "●" : "○";
+      return `${summary.onCount}/${summary.totalCount}`;
     }
     return "";
   }

@@ -1,34 +1,19 @@
 /**
- * Shared power-state primitives used by every state-reflective action to
- * render the keypad status glyph (○ / ◐ / ●). Centralising this guarantees
- * that Brightness, Color, ColorTemperature, Saturation, SegmentColor, and
- * OnOff all interpret "all on / partial / all off" identically.
+ * Shared power-state primitives for keypad actions.
  *
- * Rules (matches OnOff three-state, see #194):
- *   ● — every controllable group member is on (or single light is on)
- *   ◐ — at least one but not all controllable members are on
- *   ○ — every controllable member is off (or single light is off)
+ * The three-state power reading itself (all on / partial / all off,
+ * see #194) lives in `status-badge.ts` as `powerStatus()`, because it
+ * is now rendered as a ●/◐/○ badge on the key image rather than as
+ * text in the title — Stream Deck suppresses `setTitle()` entirely
+ * once the user sets a title of their own (#333).
  *
- * Value-mixing (different brightness/colour across members while all are
- * on) is communicated by a separate prefix glyph from `valuePrefix()`.
- * The glyph stays bound to power state only so users learn one shape
- * language across the plugin.
+ * What remains here is value-mixing: whether group members share the
+ * same brightness/colour while all on. That is orthogonal to power and
+ * still belongs in the title, next to the value it qualifies.
  */
 export interface GroupPowerSummary {
   onCount: number;
   totalCount: number;
-}
-
-export function powerGlyph(
-  summary: GroupPowerSummary | undefined,
-  fallbackIsOn: boolean | undefined,
-): string {
-  if (summary && summary.totalCount > 0) {
-    if (summary.onCount === 0) return "○";
-    if (summary.onCount === summary.totalCount) return "●";
-    return "◐";
-  }
-  return fallbackIsOn ? "●" : "○";
 }
 
 /**

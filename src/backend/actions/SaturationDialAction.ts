@@ -9,7 +9,8 @@ import type { JsonObject } from "@elgato/utils";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { hsvToRgb, rgbToHue, rgbToSaturation } from "./shared/color-utils";
 import { clamp } from "./shared/validation";
-import { powerGlyph, valuePrefix } from "./shared/power-state";
+import { valuePrefix } from "./shared/power-state";
+import { applyStatusImage, powerStatus } from "./shared/status-badge";
 import { ColorRgb } from "../domain/value-objects/ColorRgb";
 import { telemetryService } from "../services/TelemetryService";
 
@@ -279,8 +280,12 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
         if (typeof action.setState === "function") {
           await action.setState(isOn ? 0 : 1);
         }
-        const glyph = powerGlyph(this.groupSummaryMap.get(ctx), isOn);
-        await action.setTitle(`${value}\n${glyph}`);
+        await applyStatusImage(
+          action,
+          "saturation-dial",
+          powerStatus(this.groupSummaryMap.get(ctx), isOn),
+        );
+        await action.setTitle(value);
       } catch {
         // No-op if action disappeared mid-render.
       }

@@ -54,8 +54,8 @@ export abstract class BaseDialAction<
    * Per-context power-state summary for group targets. Populated by
    * subclass `syncLiveState` whenever the resolved target is a group;
    * cleared (deleted) when the target is a single light or the action
-   * disappears. Used by `updateDisplay` to drive the shared ●/◐/○ glyph
-   * via `powerGlyph()` in `power-state.ts`.
+   * disappears. Used by `updateDisplay` to drive the shared ●/◐/○ badge
+   * via `powerStatus()` in `status-badge.ts`.
    */
   protected groupSummaryMap = new Map<string, GroupPowerSummary>();
   private visibleActions = new Map<

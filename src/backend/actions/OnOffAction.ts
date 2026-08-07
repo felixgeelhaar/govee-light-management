@@ -10,7 +10,12 @@ import {
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
 import { ActionServices, type BaseSettings } from "./shared/ActionServices";
-import { powerGlyph, type GroupPowerSummary } from "./shared/power-state";
+import { type GroupPowerSummary } from "./shared/power-state";
+import {
+  applyStatusImage,
+  powerStatus,
+  type ImageCapableAction,
+} from "./shared/status-badge";
 import { telemetryService } from "../services/TelemetryService";
 
 type OnOffSettings = BaseSettings & {
@@ -132,7 +137,7 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
       this.groupSummary.delete(contextId);
       await this.syncDisplayedPowerState(ev.action, ev.payload.settings);
     } else {
-      await ev.action.setTitle(this.getTitle(ev.payload.settings, contextId));
+      await this.render(ev.action, ev.payload.settings, contextId);
     }
   }
 
@@ -264,7 +269,7 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
         stopSpinner();
       }
 
-      await ev.action.setTitle(this.getTitle(settings, contextId));
+      await this.render(ev.action, settings, contextId);
       await ev.action.showOk();
 
       telemetryService.recordCommand({
@@ -276,7 +281,7 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
       streamDeck.logger.error("Failed to toggle power:", error);
       // Revert to original state, not a double-flip
       this.powerState.set(contextId, originalState);
-      await ev.action.setTitle(this.getTitle(settings, contextId));
+      await this.render(ev.action, settings, contextId);
       await ev.action.showAlert();
     }
   }
@@ -318,17 +323,42 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
     }
   }
 
+  /**
+   * Paint the key: the ●/◐/○ state onto the artwork, the group count
+   * into the title. The state indicator has to live on the image
+   * because Stream Deck drops every `setTitle()` call once the user
+   * sets a title of their own (#333); only the image survives that.
+   * The `N/M` count stays in the title — it is the one piece that
+   * needs real text, and losing it to a custom title is acceptable
+   * where losing the on/off state was not.
+   */
+  private async render(
+    action: ImageCapableAction & { setTitle(title: string): Promise<void> },
+    settings: OnOffSettings,
+    contextId: string,
+  ): Promise<void> {
+    // A dedicated on/off key is a command, not a state display, so it
+    // reports "unknown" and keeps its plain manifest artwork.
+    const status =
+      (settings.operation || "toggle") === "toggle"
+        ? powerStatus(
+            this.groupSummary.get(contextId),
+            this.powerState.get(contextId),
+          )
+        : "unknown";
+    await applyStatusImage(action, "light", status);
+    await action.setTitle(this.getTitle(settings, contextId));
+  }
+
   private getTitle(_settings: OnOffSettings, contextId: string): string {
     const op = _settings.operation || "toggle";
     if (op !== "toggle") return "";
 
     const summary = this.groupSummary.get(contextId);
-    const isOn = this.powerState.get(contextId) ?? false;
-    const glyph = powerGlyph(summary, isOn);
     if (summary && summary.totalCount > 0) {
-      return `${glyph}\n${summary.onCount}/${summary.totalCount}`;
+      return `${summary.onCount}/${summary.totalCount}`;
     }
-    return glyph;
+    return "";
   }
 
   private async syncDisplayedPowerState(
@@ -403,6 +433,6 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
       this.lastSyncedDevice.set(contextId, settings.selectedDeviceId ?? "");
     }
 
-    await action.setTitle(this.getTitle(settings, contextId));
+    await this.render(action, settings, contextId);
   }
 }
