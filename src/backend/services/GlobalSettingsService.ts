@@ -7,10 +7,30 @@ export interface GlobalPluginSettings {
   apiKeyLastValidated?: number;
   pluginVersion?: string;
   recentColors?: Array<{ hex: string; name: string }>;
-  /** Whether the corner status badge is drawn on keys (#339). */
-  showStatusBadge?: boolean;
+  /**
+   * Whether the corner status badge is drawn on keys (#339).
+   *
+   * Typed loosely because the property inspector writes it with an
+   * `sdpi-select`, and a select's option values are strings — so this
+   * arrives as `"false"`, not `false`.
+   */
+  showStatusBadge?: boolean | string;
   scheduledActions?: unknown[];
   [key: string]: unknown;
+}
+
+/**
+ * Reads the badge preference from whatever the settings blob holds.
+ *
+ * Anything but an explicit off means on, so a settings blob written before
+ * the option existed keeps the badge. The string case is not defensive
+ * padding: the property inspector sets this with an `sdpi-select`, whose
+ * option values are strings, so `"false"` is the value that actually
+ * arrives from the UI. Comparing against the boolean alone would leave the
+ * badge on for everyone who turned it off.
+ */
+export function isStatusBadgeEnabled(value: unknown): boolean {
+  return value !== false && value !== "false";
 }
 
 export class GlobalSettingsService {
@@ -56,7 +76,7 @@ export class GlobalSettingsService {
    */
   async getShowStatusBadge(): Promise<boolean> {
     const settings = await this.getSettings();
-    return settings.showStatusBadge !== false;
+    return isStatusBadgeEnabled(settings.showStatusBadge);
   }
 
   async setShowStatusBadge(visible: boolean): Promise<void> {

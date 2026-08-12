@@ -19,7 +19,10 @@ import { SequenceAction } from "./actions/SequenceAction";
 import { CustomEffectAction } from "./actions/CustomEffectAction";
 import { RecallAction } from "./actions/RecallAction";
 import { schedulerService } from "./services/SchedulerService";
-import { globalSettingsService } from "./services/GlobalSettingsService";
+import {
+  globalSettingsService,
+  isStatusBadgeEnabled,
+} from "./services/GlobalSettingsService";
 import { setStatusBadgeVisible } from "./actions/shared/status-badge";
 
 streamDeck.logger.setLevel("info");
@@ -67,8 +70,8 @@ void globalSettingsService
 // renderer has to be told. Without this the keys keep their old look until
 // the plugin restarts.
 streamDeck.settings.onDidReceiveGlobalSettings((event) => {
-  const settings = event.settings as { showStatusBadge?: boolean };
-  setStatusBadgeVisible(settings?.showStatusBadge !== false);
+  const settings = event.settings as { showStatusBadge?: unknown };
+  setStatusBadgeVisible(isStatusBadgeEnabled(settings?.showStatusBadge));
 });
 
 streamDeck.logger.info(
