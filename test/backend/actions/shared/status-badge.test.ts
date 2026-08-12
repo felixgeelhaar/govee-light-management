@@ -28,6 +28,21 @@ const BASE_SVG =
   '<rect x="14" y="14" width="260" height="260" rx="40" fill="#0B0E1A"/>' +
   "</svg>";
 
+/**
+ * Shaped like the shipped key art, which draws everything in one three-stop
+ * gradient. BASE_SVG has no gradient at all, so it cannot exercise the state
+ * shift — a bare rect would silently pass any assertion about stop offsets.
+ */
+const GRADIENT_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 288 288">' +
+  '<defs><linearGradient id="g" x1="0" y1="0" x2="288" y2="288">' +
+  '<stop offset="0" stop-color="#A855F7"/>' +
+  '<stop offset=".5" stop-color="#6366F1"/>' +
+  '<stop offset="1" stop-color="#22D3EE"/>' +
+  "</linearGradient></defs>" +
+  '<rect x="14" y="14" width="260" height="260" rx="40" fill="url(#g)"/>' +
+  "</svg>";
+
 describe("powerStatus", () => {
   it("reports unknown when nothing has been sampled yet", () => {
     expect(powerStatus(undefined, undefined)).toBe("unknown");
@@ -129,15 +144,66 @@ describe("renderStatusKey", () => {
   });
 
   it("dims the artwork when off but leaves the badge at full strength", () => {
+    // 0.55, not the old 0.4. Grey-and-faded read as broken rather than off
+    // (#339), so off now carries the gradient too and only sits back a little.
     const svg = renderStatusKey(BASE_SVG, "off");
-    expect(svg).toContain('opacity="0.4"');
+    expect(svg).toContain('opacity="0.55"');
     // The dimming group must close before the badge group opens.
     expect(svg.indexOf("</g>")).toBeLessThan(svg.indexOf('data-status="off"'));
   });
 
   it("does not dim the artwork when on or partial", () => {
-    expect(renderStatusKey(BASE_SVG, "on")).not.toContain('opacity="0.4"');
-    expect(renderStatusKey(BASE_SVG, "partial")).not.toContain('opacity="0.4"');
+    // The badge's backing disc carries fill-opacity, so this has to look for
+    // the artwork wrapper specifically rather than any opacity at all.
+    expect(renderStatusKey(BASE_SVG, "on")).not.toContain("<g opacity=");
+    expect(renderStatusKey(BASE_SVG, "partial")).not.toContain("<g opacity=");
+  });
+
+  it("shifts the gradient midpoint per state without inventing a colour", () => {
+    // Only the middle stop moves. The end colours are the artwork's own, so
+    // a state can never introduce a hue the key was not drawn in.
+    const midpoint = (status: "on" | "partial" | "off") => {
+      const svg = renderStatusKey(GRADIENT_SVG, status, false);
+      const stops = [...svg.matchAll(/offset="([\d.]+)"/g)];
+      return Number(stops[1]![1]);
+    };
+
+    // Cyan end dominates for on, purple end for off, authored balance between.
+    expect(midpoint("on")).toBeLessThan(midpoint("partial"));
+    expect(midpoint("partial")).toBeLessThan(midpoint("off"));
+    // The end colours never move, so no new hue can appear.
+    const ends = [
+      ...renderStatusKey(GRADIENT_SVG, "off", false).matchAll(
+        /stop-color="([^"]+)"/g,
+      ),
+    ];
+    expect(ends.map((m) => m[1])).toEqual(["#A855F7", "#6366F1", "#22D3EE"]);
+  });
+
+  it("omits the badge when the dot is turned off", () => {
+    // #339 asked to ditch the dot. It is opt-out rather than gone, because
+    // without it partial leans toward on.
+    expect(renderStatusKey(BASE_SVG, "partial", false)).not.toContain(
+      "data-status=",
+    );
+    expect(renderStatusKey(BASE_SVG, "partial", true)).toContain(
+      "data-status=",
+    );
+  });
+
+  it("still separates every state when the dot is hidden", () => {
+    const [on, partial, off] = (["on", "partial", "off"] as const).map((s) =>
+      renderStatusKey(GRADIENT_SVG, s, false),
+    );
+    expect(new Set([on, partial, off]).size).toBe(3);
+  });
+
+  it("leaves artwork alone when its gradient is not three stops", () => {
+    const twoStop = GRADIENT_SVG.replace(/<stop offset="\.5"[^>]*\/>/, "");
+    const offsets = [
+      ...renderStatusKey(twoStop, "off", false).matchAll(/offset="([^"]+)"/g),
+    ];
+    expect(offsets.map((m) => m[1])).toEqual(["0", "1"]);
   });
 
   it("places the badge in the top-right quadrant, clear of a bottom title", () => {
