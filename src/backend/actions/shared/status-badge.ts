@@ -300,6 +300,40 @@ export function loadKeyArt(
 
 const imageCache = new Map<string, string>();
 
+/**
+ * Whether the corner badge is drawn, globally.
+ *
+ * #339 asked to be rid of the dot now that the artwork itself carries the
+ * state. It is opt-out rather than removed: without it `partial` leans
+ * toward `on`, and it is the one cue that survives for someone who cannot
+ * separate the colours.
+ *
+ * Held here rather than read from settings on every render. This module
+ * stays free of the SDK and the settings service — which is what makes it
+ * cheap to test — and the plugin pushes the value in at startup and
+ * whenever global settings change.
+ */
+let badgeVisible = true;
+
+/**
+ * Sets the global badge preference.
+ *
+ * Clears the image cache, because entries rendered under the previous
+ * preference are keyed by it but the *default* argument resolves at call
+ * time — without this, keys already painted would keep their old look until
+ * the plugin restarted.
+ */
+export function setStatusBadgeVisible(visible: boolean): void {
+  if (visible === badgeVisible) return;
+  badgeVisible = visible;
+  imageCache.clear();
+}
+
+/** The current global badge preference. */
+export function isStatusBadgeVisible(): boolean {
+  return badgeVisible;
+}
+
 /** Composited data URI for an action's artwork in a given power state. */
 export function statusKeyImage(
   artName: string,
@@ -342,7 +376,7 @@ export async function applyStatusImage(
   artName: string,
   status: PowerStatus,
   root: URL | string = defaultArtRoot,
-  showDot = true,
+  showDot = badgeVisible,
 ): Promise<void> {
   if (typeof action.setImage !== "function") return;
 

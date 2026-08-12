@@ -7,6 +7,8 @@ export interface GlobalPluginSettings {
   apiKeyLastValidated?: number;
   pluginVersion?: string;
   recentColors?: Array<{ hex: string; name: string }>;
+  /** Whether the corner status badge is drawn on keys (#339). */
+  showStatusBadge?: boolean;
   scheduledActions?: unknown[];
   [key: string]: unknown;
 }
@@ -41,6 +43,28 @@ export class GlobalSettingsService {
       this.lastFetched = now;
       return this.cache;
     }
+  }
+
+  /**
+   * Whether keys draw the corner status badge.
+   *
+   * Defaults to true: the artwork's gradient carries the state on its own,
+   * but without the badge `partial` leans toward `on`, and the badge is the
+   * cue that survives for someone who cannot separate the colours. Only an
+   * explicit `false` turns it off, so a settings blob that predates the
+   * option keeps the badge.
+   */
+  async getShowStatusBadge(): Promise<boolean> {
+    const settings = await this.getSettings();
+    return settings.showStatusBadge !== false;
+  }
+
+  async setShowStatusBadge(visible: boolean): Promise<void> {
+    const settings = await this.getSettings();
+    // Goes through save() rather than calling setGlobalSettings directly:
+    // GlobalPluginSettings has an `unknown` index signature the SDK's
+    // JsonObject will not accept, and save() already owns that cast.
+    await this.save({ ...settings, showStatusBadge: visible });
   }
 
   async getApiKey(): Promise<string | undefined> {
