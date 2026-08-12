@@ -11,9 +11,14 @@
  * which is a separate opt-in almost nobody uses.
  *
  * So the glyph moves onto the artwork. This module takes an action's
- * shipped `key.svg`, composites a status badge into the top-right
- * corner (clear of the bottom-aligned title), dims the artwork when the
- * target is off, and hands back a data URI ready for `setImage()`.
+ * shipped `key.svg`, shifts the artwork's own gradient toward one end to
+ * signal the state, optionally composites a status badge into the top-right
+ * corner (clear of the bottom-aligned title), and hands back a data URI
+ * ready for `setImage()`.
+ *
+ * The badge can be turned off globally (#339). The gradient shift cannot:
+ * it replaced a desaturate-to-grey treatment that was hard to read across
+ * a room, and there is no user for whom grey is preferable.
  *
  * The badge shapes mirror `powerGlyph()` in `power-state.ts` one-for-one
  * so users learn a single shape language:
@@ -151,18 +156,68 @@ function renderBadge(
 }
 
 /**
- * Desaturate-and-fade treatment for the off state. Matches the shipped
- * `key-off.svg` variants exactly, so actions that already had a second
- * manifest state look identical whether the image comes from the
- * manifest or from here.
+ * Where the artwork's own gradient is pushed for each state.
+ *
+ * The shipped key art is drawn in one linear gradient running purple →
+ * indigo → cyan. Rather than introducing a second colour language, each
+ * state slides that gradient's midpoint so one end dominates: purple for
+ * off, cyan for on, and the authored balance for partial.
+ *
+ * This replaces a desaturate-and-fade treatment. Greying the artwork is
+ * the one change guaranteed to cost legibility at a distance, which is
+ * what #339 reported — an off key was hard to tell from a lit one across
+ * a room. A hue shift keeps the mark bright and still reads as plainly
+ * different.
  */
-function dim(body: string): string {
+const GRADIENT_MIDPOINT: Record<Exclude<PowerStatus, "unknown">, number> = {
+  // Cyan reaches almost to the start, so the key reads as lit.
+  on: 0.1,
+  // The artwork's own balance, so a mixed group sits visibly between the two.
+  partial: 0.5,
+  // Purple holds almost the whole sweep, so the key reads as cold.
+  off: 0.9,
+};
+
+/**
+ * Off keys are still dimmed, just far less than the old 0.4.
+ *
+ * Hue alone could not carry three states. The gradient is one axis, so
+ * wherever `partial` sits it is adjacent to one of its neighbours: left at
+ * the authored midpoint it reads too close to `off`, and pulled toward cyan
+ * it reads too close to `on`. Dimming `off` adds a second axis, and all
+ * three separate at key size.
+ */
+const OFF_OPACITY = 0.55;
+
+const GRADIENT_STOP = /<stop\b[^>]*offset\s*=\s*["']([^"']+)["'][^>]*>/gi;
+
+/**
+ * Slides the midpoint of the artwork's gradient toward one end.
+ *
+ * Only a three-stop gradient is touched, and only its middle stop moves —
+ * the end colours stay exactly as authored, so this cannot introduce a
+ * colour the artwork does not already use. Artwork with any other number
+ * of stops is returned untouched rather than guessed at.
+ */
+function shiftGradient(
+  body: string,
+  status: Exclude<PowerStatus, "unknown">,
+): string {
+  const stops = [...body.matchAll(GRADIENT_STOP)];
+  const middle = stops.length === 3 ? stops[1] : undefined;
+  if (!middle || middle.index === undefined) {
+    return body;
+  }
+
+  const shifted = middle[0].replace(
+    /offset\s*=\s*["'][^"']+["']/i,
+    `offset="${n(GRADIENT_MIDPOINT[status])}"`,
+  );
+
   return (
-    '<defs><filter id="gv-status-dim"><feColorMatrix type="saturate" values="0"/>' +
-    '<feComponentTransfer><feFuncR type="linear" slope="0.7"/>' +
-    '<feFuncG type="linear" slope="0.7"/><feFuncB type="linear" slope="0.7"/>' +
-    "</feComponentTransfer></filter></defs>" +
-    `<g filter="url(#gv-status-dim)" opacity="0.4">${body}</g>`
+    body.slice(0, middle.index) +
+    shifted +
+    body.slice(middle.index + middle[0].length)
   );
 }
 
@@ -172,7 +227,11 @@ function dim(body: string): string {
  *
  * @throws if `baseSvg` has no `<svg>` root element.
  */
-export function renderStatusKey(baseSvg: string, status: PowerStatus): string {
+export function renderStatusKey(
+  baseSvg: string,
+  status: PowerStatus,
+  showDot = true,
+): string {
   if (status === "unknown") return baseSvg;
 
   const open = SVG_OPEN_TAG.exec(baseSvg);
@@ -183,13 +242,17 @@ export function renderStatusKey(baseSvg: string, status: PowerStatus): string {
 
   const box = parseViewBox(open[1]);
   const body = baseSvg.slice(open.index + open[0].length, close);
-  const artwork = status === "off" ? dim(body) : body;
+  const shifted = shiftGradient(body, status);
+  const artwork =
+    status === "off"
+      ? `<g opacity="${n(OFF_OPACITY)}">${shifted}</g>`
+      : shifted;
   const viewBox = `${n(box.x)} ${n(box.y)} ${n(box.width)} ${n(box.height)}`;
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">` +
     artwork +
-    renderBadge(status, box) +
+    (showDot ? renderBadge(status, box) : "") +
     "</svg>"
   );
 }
@@ -197,10 +260,14 @@ export function renderStatusKey(baseSvg: string, status: PowerStatus): string {
 const DATA_URI_PREFIX = "data:image/svg+xml;base64,";
 
 /** Encode a composited key for `setImage()`. */
-export function statusKeyDataUri(baseSvg: string, status: PowerStatus): string {
+export function statusKeyDataUri(
+  baseSvg: string,
+  status: PowerStatus,
+  showDot = true,
+): string {
   return (
     DATA_URI_PREFIX +
-    Buffer.from(renderStatusKey(baseSvg, status)).toString("base64")
+    Buffer.from(renderStatusKey(baseSvg, status, showDot)).toString("base64")
   );
 }
 
@@ -238,12 +305,16 @@ export function statusKeyImage(
   artName: string,
   status: PowerStatus,
   root: URL | string = defaultArtRoot,
+  showDot = true,
 ): string {
-  const key = `${String(root)}|${artName}|${status}`;
+  // `showDot` is part of the key: the same art and status render two
+  // different images depending on it, and a cache that ignored it would
+  // serve whichever was asked for first until the plugin restarted.
+  const key = `${String(root)}|${artName}|${status}|${showDot ? "dot" : "nodot"}`;
   const cached = imageCache.get(key);
   if (cached !== undefined) return cached;
 
-  const uri = statusKeyDataUri(loadKeyArt(artName, root), status);
+  const uri = statusKeyDataUri(loadKeyArt(artName, root), status, showDot);
   imageCache.set(key, uri);
   return uri;
 }
@@ -271,13 +342,14 @@ export async function applyStatusImage(
   artName: string,
   status: PowerStatus,
   root: URL | string = defaultArtRoot,
+  showDot = true,
 ): Promise<void> {
   if (typeof action.setImage !== "function") return;
 
   let image: string | undefined;
   if (status !== "unknown") {
     try {
-      image = statusKeyImage(artName, status, root);
+      image = statusKeyImage(artName, status, root, showDot);
     } catch {
       return;
     }
