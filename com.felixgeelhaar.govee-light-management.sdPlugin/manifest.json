@@ -15,7 +15,24 @@
       "States": [
         {
           "Image": "imgs/actions/light/key",
-          "TitleAlignment": "bottom"
+          "TitleAlignment": "bottom",
+          "Name": "Off",
+          "Title": "●",
+          "TextColor": "#8B949E"
+        },
+        {
+          "Image": "imgs/actions/light/icon",
+          "TitleAlignment": "bottom",
+          "Name": "On",
+          "Title": "●",
+          "TextColor": "#FDE047"
+        },
+        {
+          "Image": "imgs/actions/light/key",
+          "TitleAlignment": "bottom",
+          "Name": "Partial",
+          "Title": "●",
+          "TextColor": "#FBBF24"
         }
       ]
     },
