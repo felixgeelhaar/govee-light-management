@@ -146,20 +146,32 @@ describe("renderStatusKey", () => {
     expect(svg).not.toContain('fill="#22D3EE"');
   });
 
-  it("dims the artwork when off but leaves the badge at full strength", () => {
-    // 0.55, not the old 0.4. Grey-and-faded read as broken rather than off
-    // (#339), so off now carries the gradient too and only sits back a little.
-    const svg = renderStatusKey(BASE_SVG, "off");
+  it("dims an off key that nothing else marks", () => {
+    // No badge and no drawn glyph, so hue is alone and needs a second axis.
+    // 0.55, not the old 0.4: grey-and-faded read as broken rather than off.
+    const svg = renderStatusKey(BASE_SVG, "off", false);
     expect(svg).toContain('opacity="0.55"');
-    // The dimming group must close before the badge group opens.
-    expect(svg.indexOf("</g>")).toBeLessThan(svg.indexOf('data-status="off"'));
+  });
+
+  it("leaves off at full colour whenever the badge marks it", () => {
+    // The badge is the better second axis, so the dim would only darken a
+    // key that already says what it is.
+    const svg = renderStatusKey(BASE_SVG, "off", true);
+    expect(svg).toContain('data-status="off"');
+    expect(svg).not.toContain("<g opacity=");
   });
 
   it("does not dim the artwork when on or partial", () => {
     // The badge's backing disc carries fill-opacity, so this has to look for
     // the artwork wrapper specifically rather than any opacity at all.
-    expect(renderStatusKey(BASE_SVG, "on")).not.toContain("<g opacity=");
-    expect(renderStatusKey(BASE_SVG, "partial")).not.toContain("<g opacity=");
+    for (const showDot of [true, false]) {
+      expect(renderStatusKey(BASE_SVG, "on", showDot)).not.toContain(
+        "<g opacity=",
+      );
+      expect(renderStatusKey(BASE_SVG, "partial", showDot)).not.toContain(
+        "<g opacity=",
+      );
+    }
   });
 
   it("shifts the gradient midpoint per state without inventing a colour", () => {
@@ -396,20 +408,30 @@ describe("the badge and the drawn glyph never appear together", () => {
     expect(svg).not.toContain("stroke-dasharray");
   });
 
-  it("still dims a generated off key, but never a drawn one", () => {
-    expect(rendered("off", true)).toContain("<g opacity=");
+  it("never dims the light key, which always has a better marker", () => {
+    // Badge on: the dot marks it. Badge off: the drawn ring marks it.
+    // Either way the artwork keeps its full colour.
+    expect(rendered("off", true)).not.toContain("<g opacity=");
     expect(rendered("off", false)).not.toContain("<g opacity=");
   });
 
-  it("falls back to the generated treatment where nothing is drawn", () => {
-    const svg = Buffer.from(
-      statusKeyImage("brightness", "off", REAL_ART_ROOT, false).split(",")[1]!,
-      "base64",
-    ).toString("utf-8");
-    // Badge hidden and no drawn art to take over, so the generated dim is
-    // the only thing left saying "off".
-    expect(svg).not.toContain("data-status=");
-    expect(svg).toContain("<g opacity=");
+  it("keeps the dim only where nothing else can mark an off key", () => {
+    const brightness = (showDot: boolean): string =>
+      Buffer.from(
+        statusKeyImage("brightness", "off", REAL_ART_ROOT, showDot).split(
+          ",",
+        )[1]!,
+        "base64",
+      ).toString("utf-8");
+
+    // Badge hidden and no drawn art to take over: the dim is the only thing
+    // left saying "off", and brightness is one of seven actions in that boat.
+    expect(brightness(false)).not.toContain("data-status=");
+    expect(brightness(false)).toContain("<g opacity=");
+
+    // Badge shown: it marks the key, so the dim would be redundant.
+    expect(brightness(true)).toContain("data-status=");
+    expect(brightness(true)).not.toContain("<g opacity=");
   });
 });
 

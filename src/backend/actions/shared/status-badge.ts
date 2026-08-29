@@ -179,13 +179,19 @@ const GRADIENT_MIDPOINT: Record<Exclude<PowerStatus, "unknown">, number> = {
 };
 
 /**
- * Off keys are still dimmed, just far less than the old 0.4.
+ * Last-resort dim for an off key, used only when nothing else marks it.
  *
- * Hue alone could not carry three states. The gradient is one axis, so
- * wherever `partial` sits it is adjacent to one of its neighbours: left at
- * the authored midpoint it reads too close to `off`, and pulled toward cyan
- * it reads too close to `on`. Dimming `off` adds a second axis, and all
- * three separate at key size.
+ * Hue is one axis, and on its own it cannot carry three states: wherever
+ * `partial` sits it is adjacent to a neighbour. So a key always needs a
+ * second axis, and there are three candidates in order of preference —
+ * the corner badge, a glyph drawn into the artwork, and finally this dim.
+ *
+ * The first two are better because they say "off" rather than merely
+ * "less". This is reached only with the badge hidden and no drawn state
+ * art, which is every action but `light` today. It matters most for the
+ * artwork the gradient barely touches: the colour wheel, the segment bars
+ * and the saturation dial are drawn in their own fixed colours, so
+ * shifting the gradient leaves `on` and `partial` nearly identical.
  */
 const OFF_OPACITY = 0.55;
 
@@ -225,12 +231,13 @@ function shiftGradient(
  * Composite `baseSvg` with a status badge. Pure — no filesystem, no SDK
  * — so the geometry is straightforward to test.
  *
- * `authoredForState` marks artwork drawn for this exact state (#339). Both
- * generated treatments are then skipped: the gradient is left at whatever
- * the artist chose, and `off` is not dimmed. The dim exists only because
- * hue is a single axis and `partial` would otherwise crowd a neighbour —
- * art that gives each state its own glyph has a second axis already, so
- * dimming it would darken a key for a reason that no longer applies.
+ * `authoredForState` marks artwork drawn for this exact state (#339), whose
+ * gradient is then left exactly as the artist set it.
+ *
+ * A key carries hue plus exactly one more axis, and `showDot` and
+ * `authoredForState` between them say which: the badge, the drawn glyph, or
+ * — when neither is present — the off dim. Off is left at full colour
+ * whenever something better is already marking it.
  *
  * @throws if `baseSvg` has no `<svg>` root element.
  */
@@ -251,10 +258,12 @@ export function renderStatusKey(
   const box = parseViewBox(open[1]);
   const body = baseSvg.slice(open.index + open[0].length, close);
   const shifted = authoredForState ? body : shiftGradient(body, status);
-  const artwork =
-    status === "off" && !authoredForState
-      ? `<g opacity="${n(OFF_OPACITY)}">${shifted}</g>`
-      : shifted;
+  // Dim only when nothing else marks the key as off — no badge above it and
+  // no glyph drawn into it. See OFF_OPACITY for the ordering.
+  const needsDim = status === "off" && !authoredForState && !showDot;
+  const artwork = needsDim
+    ? `<g opacity="${n(OFF_OPACITY)}">${shifted}</g>`
+    : shifted;
   const viewBox = `${n(box.x)} ${n(box.y)} ${n(box.width)} ${n(box.height)}`;
 
   return (
