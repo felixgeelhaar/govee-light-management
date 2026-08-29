@@ -225,12 +225,20 @@ function shiftGradient(
  * Composite `baseSvg` with a status badge. Pure — no filesystem, no SDK
  * — so the geometry is straightforward to test.
  *
+ * `authoredForState` marks artwork drawn for this exact state (#339). Both
+ * generated treatments are then skipped: the gradient is left at whatever
+ * the artist chose, and `off` is not dimmed. The dim exists only because
+ * hue is a single axis and `partial` would otherwise crowd a neighbour —
+ * art that gives each state its own glyph has a second axis already, so
+ * dimming it would darken a key for a reason that no longer applies.
+ *
  * @throws if `baseSvg` has no `<svg>` root element.
  */
 export function renderStatusKey(
   baseSvg: string,
   status: PowerStatus,
   showDot = true,
+  authoredForState = false,
 ): string {
   if (status === "unknown") return baseSvg;
 
@@ -242,9 +250,9 @@ export function renderStatusKey(
 
   const box = parseViewBox(open[1]);
   const body = baseSvg.slice(open.index + open[0].length, close);
-  const shifted = shiftGradient(body, status);
+  const shifted = authoredForState ? body : shiftGradient(body, status);
   const artwork =
-    status === "off"
+    status === "off" && !authoredForState
       ? `<g opacity="${n(OFF_OPACITY)}">${shifted}</g>`
       : shifted;
   const viewBox = `${n(box.x)} ${n(box.y)} ${n(box.width)} ${n(box.height)}`;
@@ -264,10 +272,13 @@ export function statusKeyDataUri(
   baseSvg: string,
   status: PowerStatus,
   showDot = true,
+  authoredForState = false,
 ): string {
   return (
     DATA_URI_PREFIX +
-    Buffer.from(renderStatusKey(baseSvg, status, showDot)).toString("base64")
+    Buffer.from(
+      renderStatusKey(baseSvg, status, showDot, authoredForState),
+    ).toString("base64")
   );
 }
 
@@ -296,6 +307,66 @@ export function loadKeyArt(
   const svg = readFileSync(fileURLToPath(file), "utf-8");
   artCache.set(file.href, svg);
   return svg;
+}
+
+/** Artwork for one state, and whether it was drawn for that state. */
+export interface KeyArt {
+  svg: string;
+  /**
+   * True when the file was authored for this exact state, so the generated
+   * gradient shift and the `off` dim must not be layered on top of it.
+   */
+  authoredForState: boolean;
+}
+
+/**
+ * Resolved art per `(root, artName, status)`. Misses are cached too: an
+ * action with no state art would otherwise attempt — and fail — a
+ * filesystem read on every single repaint.
+ */
+const stateArtCache = new Map<string, KeyArt>();
+
+/**
+ * Pick the artwork for a state, preferring art drawn for it.
+ *
+ * `<artName>/state-<status>.svg` wins when it exists; otherwise the shipped
+ * `<artName>/key.svg` is used and the generated treatment applies. This is
+ * what lets hand-drawn states (#339) land one action at a time without
+ * every other action needing artwork drawn for it.
+ *
+ * Deliberately not `key-<status>.svg`: `key-off.svg` is already taken. Five
+ * actions declare one as their manifest State 1 image, and those files are
+ * the desaturate-to-grey treatment this feature exists to replace. Matching
+ * that name would silently adopt the old look as though an artist had
+ * chosen it.
+ */
+export function resolveKeyArt(
+  artName: string,
+  status: PowerStatus,
+  root: URL | string = defaultArtRoot,
+): KeyArt {
+  if (status === "unknown") {
+    return { svg: loadKeyArt(artName, root), authoredForState: false };
+  }
+
+  const cacheKey = `${String(root)}|${artName}|${status}`;
+  const cached = stateArtCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+
+  let art: KeyArt;
+  try {
+    const file = new URL(`${artName}/state-${status}.svg`, root);
+    art = {
+      svg: readFileSync(fileURLToPath(file), "utf-8"),
+      authoredForState: true,
+    };
+  } catch {
+    // No state art for this action — fall back to the generated treatment.
+    art = { svg: loadKeyArt(artName, root), authoredForState: false };
+  }
+
+  stateArtCache.set(cacheKey, art);
+  return art;
 }
 
 const imageCache = new Map<string, string>();
@@ -348,7 +419,8 @@ export function statusKeyImage(
   const cached = imageCache.get(key);
   if (cached !== undefined) return cached;
 
-  const uri = statusKeyDataUri(loadKeyArt(artName, root), status, showDot);
+  const art = resolveKeyArt(artName, status, root);
+  const uri = statusKeyDataUri(art.svg, status, showDot, art.authoredForState);
   imageCache.set(key, uri);
   return uri;
 }

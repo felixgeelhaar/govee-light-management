@@ -8,6 +8,7 @@ import {
   powerStatus,
   renderStatusKey,
   resolveArtRoot,
+  resolveKeyArt,
   statusKeyDataUri,
   statusKeyImage,
   type PowerStatus,
@@ -316,6 +317,96 @@ describe("loadKeyArt", () => {
       const uri = statusKeyImage(name, "partial", REAL_ART_ROOT);
       expect(uri.startsWith("data:image/svg+xml;base64,")).toBe(true);
     }
+  });
+});
+
+/** The three states the light action ships hand-drawn artwork for (#339). */
+const DRAWN_STATES = ["on", "partial", "off"] as const;
+
+describe("resolveKeyArt", () => {
+  it("ships state artwork for every drawn state of the light action", () => {
+    for (const status of DRAWN_STATES) {
+      const file = new URL(`light/state-${status}.svg`, REAL_ART_ROOT);
+      expect(
+        existsSync(fileURLToPath(file)),
+        `missing light/state-${status}.svg`,
+      ).toBe(true);
+    }
+  });
+
+  it("prefers artwork drawn for the state", () => {
+    for (const status of DRAWN_STATES) {
+      const art = resolveKeyArt("light", status, REAL_ART_ROOT);
+      expect(art.authoredForState).toBe(true);
+      // Not merely "some svg" — it must differ from the generic key.svg,
+      // or the resolver could be falling back and the test would not notice.
+      expect(art.svg).not.toBe(loadKeyArt("light", REAL_ART_ROOT));
+    }
+  });
+
+  it("draws off as a closed ring rather than the shipped filament", () => {
+    const off = resolveKeyArt("light", "off", REAL_ART_ROOT).svg;
+    // The shipped filament is a dashed circle plus a stem — the power mark.
+    // The off glyph closes the dash and drops the stem, giving a plain O.
+    expect(loadKeyArt("light", REAL_ART_ROOT)).toContain("stroke-dasharray");
+    expect(off).not.toContain("stroke-dasharray");
+  });
+
+  it("falls back to key.svg for an action with no state artwork", () => {
+    const art = resolveKeyArt("brightness", "off", REAL_ART_ROOT);
+    expect(art.authoredForState).toBe(false);
+    expect(art.svg).toBe(loadKeyArt("brightness", REAL_ART_ROOT));
+  });
+
+  it("falls back for an unknown status, which has no artwork of its own", () => {
+    const art = resolveKeyArt("light", "unknown", REAL_ART_ROOT);
+    expect(art.authoredForState).toBe(false);
+    expect(art.svg).toBe(loadKeyArt("light", REAL_ART_ROOT));
+  });
+
+  it("caches both hits and misses", () => {
+    expect(resolveKeyArt("light", "off", REAL_ART_ROOT)).toBe(
+      resolveKeyArt("light", "off", REAL_ART_ROOT),
+    );
+    expect(resolveKeyArt("brightness", "off", REAL_ART_ROOT)).toBe(
+      resolveKeyArt("brightness", "off", REAL_ART_ROOT),
+    );
+  });
+});
+
+describe("renderStatusKey with artwork drawn for the state", () => {
+  /** Offset of the gradient's middle stop, which the generated shift moves. */
+  const midpoints = (svg: string): string[] =>
+    [...svg.matchAll(/<stop offset="([^"]+)"/g)].map((m) => m[1]);
+
+  it("leaves the gradient where the artist put it", () => {
+    // Both directions: without the flag the midpoint is driven to 0.9,
+    // with it the authored .5 survives. Asserting only one would pass
+    // even if the flag did nothing.
+    expect(
+      midpoints(renderStatusKey(GRADIENT_SVG, "off", false, false)),
+    ).toEqual(["0", "0.9", "1"]);
+    expect(
+      midpoints(renderStatusKey(GRADIENT_SVG, "off", false, true)),
+    ).toEqual(["0", ".5", "1"]);
+  });
+
+  it("does not dim an off key that was drawn as off", () => {
+    expect(renderStatusKey(GRADIENT_SVG, "off", false, true)).not.toContain(
+      "<g opacity=",
+    );
+    expect(renderStatusKey(GRADIENT_SVG, "off", false, false)).toContain(
+      "<g opacity=",
+    );
+  });
+
+  it("still composites the badge when the dot is on", () => {
+    expect(renderStatusKey(GRADIENT_SVG, "partial", true, true)).toContain(
+      'data-status="partial"',
+    );
+    expect(renderStatusKey(GRADIENT_SVG, "partial", false, true)).not.toContain(
+      'data-status="partial"',
+    );
   });
 });
 
