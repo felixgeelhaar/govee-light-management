@@ -334,6 +334,10 @@ const stateArtCache = new Map<string, KeyArt>();
  * what lets hand-drawn states (#339) land one action at a time without
  * every other action needing artwork drawn for it.
  *
+ * Consulted only while the corner badge is hidden — see `statusKeyImage()`.
+ * With the badge on, the artwork deliberately stays neutral so the key does
+ * not report the same state twice.
+ *
  * Deliberately not `key-<status>.svg`: `key-off.svg` is already taken. Five
  * actions declare one as their manifest State 1 image, and those files are
  * the desaturate-to-grey treatment this feature exists to replace. Matching
@@ -419,7 +423,14 @@ export function statusKeyImage(
   const cached = imageCache.get(key);
   if (cached !== undefined) return cached;
 
-  const art = resolveKeyArt(artName, status, root);
+  // One indicator at a time (#339). The corner badge and a glyph drawn
+  // inside the bulb carry the same fact, so showing both states it twice.
+  // The badge wins while it is on and the artwork stays neutral; switch the
+  // badge off and the drawn states take the job over, which is the whole
+  // reason the preference is worth having rather than just losing a dot.
+  const art = showDot
+    ? { svg: loadKeyArt(artName, root), authoredForState: false }
+    : resolveKeyArt(artName, status, root);
   const uri = statusKeyDataUri(art.svg, status, showDot, art.authoredForState);
   imageCache.set(key, uri);
   return uri;

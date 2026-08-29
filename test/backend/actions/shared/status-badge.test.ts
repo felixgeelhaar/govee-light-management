@@ -374,6 +374,45 @@ describe("resolveKeyArt", () => {
   });
 });
 
+describe("the badge and the drawn glyph never appear together", () => {
+  /** Decode what the plugin actually hands to `setImage()`. */
+  const rendered = (status: PowerStatus, showDot: boolean): string =>
+    Buffer.from(
+      statusKeyImage("light", status, REAL_ART_ROOT, showDot).split(",")[1]!,
+      "base64",
+    ).toString("utf-8");
+
+  it("keeps the artwork neutral while the badge is shown", () => {
+    // The drawn off state is a plain ring; the shipped filament is a dashed
+    // circle plus a stem. With the badge on, the shipped one has to win.
+    const svg = rendered("off", true);
+    expect(svg).toContain("data-status=");
+    expect(svg).toContain("stroke-dasharray");
+  });
+
+  it("hands the job to the drawn glyph once the badge is hidden", () => {
+    const svg = rendered("off", false);
+    expect(svg).not.toContain("data-status=");
+    expect(svg).not.toContain("stroke-dasharray");
+  });
+
+  it("still dims a generated off key, but never a drawn one", () => {
+    expect(rendered("off", true)).toContain("<g opacity=");
+    expect(rendered("off", false)).not.toContain("<g opacity=");
+  });
+
+  it("falls back to the generated treatment where nothing is drawn", () => {
+    const svg = Buffer.from(
+      statusKeyImage("brightness", "off", REAL_ART_ROOT, false).split(",")[1]!,
+      "base64",
+    ).toString("utf-8");
+    // Badge hidden and no drawn art to take over, so the generated dim is
+    // the only thing left saying "off".
+    expect(svg).not.toContain("data-status=");
+    expect(svg).toContain("<g opacity=");
+  });
+});
+
 describe("renderStatusKey with artwork drawn for the state", () => {
   /** Offset of the gradient's middle stop, which the generated shift moves. */
   const midpoints = (svg: string): string[] =>
