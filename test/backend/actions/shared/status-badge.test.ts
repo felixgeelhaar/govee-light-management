@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   applyStatusImage,
   KEY_ART_NAMES,
@@ -8,9 +8,12 @@ import {
   powerStatus,
   renderStatusKey,
   resolveArtRoot,
+  resolveKeyArt,
   statusKeyDataUri,
   statusKeyImage,
   type PowerStatus,
+  setStatusBadgeVisible,
+  isStatusBadgeVisible,
 } from "../../../../src/backend/actions/shared/status-badge";
 
 /**
@@ -26,6 +29,21 @@ const REAL_ART_ROOT = new URL(
 const BASE_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 288 288">' +
   '<rect x="14" y="14" width="260" height="260" rx="40" fill="#0B0E1A"/>' +
+  "</svg>";
+
+/**
+ * Shaped like the shipped key art, which draws everything in one three-stop
+ * gradient. BASE_SVG has no gradient at all, so it cannot exercise the state
+ * shift — a bare rect would silently pass any assertion about stop offsets.
+ */
+const GRADIENT_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 288 288">' +
+  '<defs><linearGradient id="g" x1="0" y1="0" x2="288" y2="288">' +
+  '<stop offset="0" stop-color="#A855F7"/>' +
+  '<stop offset=".5" stop-color="#6366F1"/>' +
+  '<stop offset="1" stop-color="#22D3EE"/>' +
+  "</linearGradient></defs>" +
+  '<rect x="14" y="14" width="260" height="260" rx="40" fill="url(#g)"/>' +
   "</svg>";
 
 describe("powerStatus", () => {
@@ -128,16 +146,79 @@ describe("renderStatusKey", () => {
     expect(svg).not.toContain('fill="#22D3EE"');
   });
 
-  it("dims the artwork when off but leaves the badge at full strength", () => {
-    const svg = renderStatusKey(BASE_SVG, "off");
-    expect(svg).toContain('opacity="0.4"');
-    // The dimming group must close before the badge group opens.
-    expect(svg.indexOf("</g>")).toBeLessThan(svg.indexOf('data-status="off"'));
+  it("dims an off key that nothing else marks", () => {
+    // No badge and no drawn glyph, so hue is alone and needs a second axis.
+    // 0.55, not the old 0.4: grey-and-faded read as broken rather than off.
+    const svg = renderStatusKey(BASE_SVG, "off", false);
+    expect(svg).toContain('opacity="0.55"');
+  });
+
+  it("leaves off at full colour whenever the badge marks it", () => {
+    // The badge is the better second axis, so the dim would only darken a
+    // key that already says what it is.
+    const svg = renderStatusKey(BASE_SVG, "off", true);
+    expect(svg).toContain('data-status="off"');
+    expect(svg).not.toContain("<g opacity=");
   });
 
   it("does not dim the artwork when on or partial", () => {
-    expect(renderStatusKey(BASE_SVG, "on")).not.toContain('opacity="0.4"');
-    expect(renderStatusKey(BASE_SVG, "partial")).not.toContain('opacity="0.4"');
+    // The badge's backing disc carries fill-opacity, so this has to look for
+    // the artwork wrapper specifically rather than any opacity at all.
+    for (const showDot of [true, false]) {
+      expect(renderStatusKey(BASE_SVG, "on", showDot)).not.toContain(
+        "<g opacity=",
+      );
+      expect(renderStatusKey(BASE_SVG, "partial", showDot)).not.toContain(
+        "<g opacity=",
+      );
+    }
+  });
+
+  it("shifts the gradient midpoint per state without inventing a colour", () => {
+    // Only the middle stop moves. The end colours are the artwork's own, so
+    // a state can never introduce a hue the key was not drawn in.
+    const midpoint = (status: "on" | "partial" | "off") => {
+      const svg = renderStatusKey(GRADIENT_SVG, status, false);
+      const stops = [...svg.matchAll(/offset="([\d.]+)"/g)];
+      return Number(stops[1]![1]);
+    };
+
+    // Cyan end dominates for on, purple end for off, authored balance between.
+    expect(midpoint("on")).toBeLessThan(midpoint("partial"));
+    expect(midpoint("partial")).toBeLessThan(midpoint("off"));
+    // The end colours never move, so no new hue can appear.
+    const ends = [
+      ...renderStatusKey(GRADIENT_SVG, "off", false).matchAll(
+        /stop-color="([^"]+)"/g,
+      ),
+    ];
+    expect(ends.map((m) => m[1])).toEqual(["#A855F7", "#6366F1", "#22D3EE"]);
+  });
+
+  it("omits the badge when the dot is turned off", () => {
+    // #339 asked to ditch the dot. It is opt-out rather than gone, because
+    // without it partial leans toward on.
+    expect(renderStatusKey(BASE_SVG, "partial", false)).not.toContain(
+      "data-status=",
+    );
+    expect(renderStatusKey(BASE_SVG, "partial", true)).toContain(
+      "data-status=",
+    );
+  });
+
+  it("still separates every state when the dot is hidden", () => {
+    const [on, partial, off] = (["on", "partial", "off"] as const).map((s) =>
+      renderStatusKey(GRADIENT_SVG, s, false),
+    );
+    expect(new Set([on, partial, off]).size).toBe(3);
+  });
+
+  it("leaves artwork alone when its gradient is not three stops", () => {
+    const twoStop = GRADIENT_SVG.replace(/<stop offset="\.5"[^>]*\/>/, "");
+    const offsets = [
+      ...renderStatusKey(twoStop, "off", false).matchAll(/offset="([^"]+)"/g),
+    ];
+    expect(offsets.map((m) => m[1])).toEqual(["0", "1"]);
   });
 
   it("places the badge in the top-right quadrant, clear of a bottom title", () => {
@@ -251,6 +332,145 @@ describe("loadKeyArt", () => {
   });
 });
 
+/** The three states the light action ships hand-drawn artwork for (#339). */
+const DRAWN_STATES = ["on", "partial", "off"] as const;
+
+describe("resolveKeyArt", () => {
+  it("ships state artwork for every drawn state of the light action", () => {
+    for (const status of DRAWN_STATES) {
+      const file = new URL(`light/state-${status}.svg`, REAL_ART_ROOT);
+      expect(
+        existsSync(fileURLToPath(file)),
+        `missing light/state-${status}.svg`,
+      ).toBe(true);
+    }
+  });
+
+  it("prefers artwork drawn for the state", () => {
+    for (const status of DRAWN_STATES) {
+      const art = resolveKeyArt("light", status, REAL_ART_ROOT);
+      expect(art.authoredForState).toBe(true);
+      // Not merely "some svg" — it must differ from the generic key.svg,
+      // or the resolver could be falling back and the test would not notice.
+      expect(art.svg).not.toBe(loadKeyArt("light", REAL_ART_ROOT));
+    }
+  });
+
+  it("draws off as a closed ring rather than the shipped filament", () => {
+    const off = resolveKeyArt("light", "off", REAL_ART_ROOT).svg;
+    // The shipped filament is a dashed circle plus a stem — the power mark.
+    // The off glyph closes the dash and drops the stem, giving a plain O.
+    expect(loadKeyArt("light", REAL_ART_ROOT)).toContain("stroke-dasharray");
+    expect(off).not.toContain("stroke-dasharray");
+  });
+
+  it("falls back to key.svg for an action with no state artwork", () => {
+    const art = resolveKeyArt("brightness", "off", REAL_ART_ROOT);
+    expect(art.authoredForState).toBe(false);
+    expect(art.svg).toBe(loadKeyArt("brightness", REAL_ART_ROOT));
+  });
+
+  it("falls back for an unknown status, which has no artwork of its own", () => {
+    const art = resolveKeyArt("light", "unknown", REAL_ART_ROOT);
+    expect(art.authoredForState).toBe(false);
+    expect(art.svg).toBe(loadKeyArt("light", REAL_ART_ROOT));
+  });
+
+  it("caches both hits and misses", () => {
+    expect(resolveKeyArt("light", "off", REAL_ART_ROOT)).toBe(
+      resolveKeyArt("light", "off", REAL_ART_ROOT),
+    );
+    expect(resolveKeyArt("brightness", "off", REAL_ART_ROOT)).toBe(
+      resolveKeyArt("brightness", "off", REAL_ART_ROOT),
+    );
+  });
+});
+
+describe("the badge and the drawn glyph never appear together", () => {
+  /** Decode what the plugin actually hands to `setImage()`. */
+  const rendered = (status: PowerStatus, showDot: boolean): string =>
+    Buffer.from(
+      statusKeyImage("light", status, REAL_ART_ROOT, showDot).split(",")[1]!,
+      "base64",
+    ).toString("utf-8");
+
+  it("keeps the artwork neutral while the badge is shown", () => {
+    // The drawn off state is a plain ring; the shipped filament is a dashed
+    // circle plus a stem. With the badge on, the shipped one has to win.
+    const svg = rendered("off", true);
+    expect(svg).toContain("data-status=");
+    expect(svg).toContain("stroke-dasharray");
+  });
+
+  it("hands the job to the drawn glyph once the badge is hidden", () => {
+    const svg = rendered("off", false);
+    expect(svg).not.toContain("data-status=");
+    expect(svg).not.toContain("stroke-dasharray");
+  });
+
+  it("never dims the light key, which always has a better marker", () => {
+    // Badge on: the dot marks it. Badge off: the drawn ring marks it.
+    // Either way the artwork keeps its full colour.
+    expect(rendered("off", true)).not.toContain("<g opacity=");
+    expect(rendered("off", false)).not.toContain("<g opacity=");
+  });
+
+  it("keeps the dim only where nothing else can mark an off key", () => {
+    const brightness = (showDot: boolean): string =>
+      Buffer.from(
+        statusKeyImage("brightness", "off", REAL_ART_ROOT, showDot).split(
+          ",",
+        )[1]!,
+        "base64",
+      ).toString("utf-8");
+
+    // Badge hidden and no drawn art to take over: the dim is the only thing
+    // left saying "off", and brightness is one of seven actions in that boat.
+    expect(brightness(false)).not.toContain("data-status=");
+    expect(brightness(false)).toContain("<g opacity=");
+
+    // Badge shown: it marks the key, so the dim would be redundant.
+    expect(brightness(true)).toContain("data-status=");
+    expect(brightness(true)).not.toContain("<g opacity=");
+  });
+});
+
+describe("renderStatusKey with artwork drawn for the state", () => {
+  /** Offset of the gradient's middle stop, which the generated shift moves. */
+  const midpoints = (svg: string): string[] =>
+    [...svg.matchAll(/<stop offset="([^"]+)"/g)].map((m) => m[1]);
+
+  it("leaves the gradient where the artist put it", () => {
+    // Both directions: without the flag the midpoint is driven to 0.9,
+    // with it the authored .5 survives. Asserting only one would pass
+    // even if the flag did nothing.
+    expect(
+      midpoints(renderStatusKey(GRADIENT_SVG, "off", false, false)),
+    ).toEqual(["0", "0.9", "1"]);
+    expect(
+      midpoints(renderStatusKey(GRADIENT_SVG, "off", false, true)),
+    ).toEqual(["0", ".5", "1"]);
+  });
+
+  it("does not dim an off key that was drawn as off", () => {
+    expect(renderStatusKey(GRADIENT_SVG, "off", false, true)).not.toContain(
+      "<g opacity=",
+    );
+    expect(renderStatusKey(GRADIENT_SVG, "off", false, false)).toContain(
+      "<g opacity=",
+    );
+  });
+
+  it("still composites the badge when the dot is on", () => {
+    expect(renderStatusKey(GRADIENT_SVG, "partial", true, true)).toContain(
+      'data-status="partial"',
+    );
+    expect(renderStatusKey(GRADIENT_SVG, "partial", false, true)).not.toContain(
+      'data-status="partial"',
+    );
+  });
+});
+
 describe("applyStatusImage", () => {
   it("pushes the composited key to the action", async () => {
     const setImage = vi.fn().mockResolvedValue(undefined);
@@ -287,5 +507,35 @@ describe("applyStatusImage", () => {
     const setImage = vi.fn().mockResolvedValue(undefined);
     await applyStatusImage({ setImage }, "light", "unknown", REAL_ART_ROOT);
     expect(setImage).toHaveBeenCalledWith();
+  });
+});
+
+describe("the global badge preference", () => {
+  afterEach(() => setStatusBadgeVisible(true));
+
+  it("defaults to visible", () => {
+    expect(isStatusBadgeVisible()).toBe(true);
+  });
+
+  it("takes effect on keys rendered after it changes", async () => {
+    // The cache is keyed by the preference, but the default argument is
+    // resolved at call time — so a stale cache would keep painting the old
+    // look until the plugin restarted. Setting it clears the cache.
+    const painted: string[] = [];
+    const action = {
+      setImage: async (img?: string) => void painted.push(img ?? ""),
+    };
+
+    await applyStatusImage(action, "light", "on", REAL_ART_ROOT);
+    setStatusBadgeVisible(false);
+    await applyStatusImage(action, "light", "on", REAL_ART_ROOT);
+
+    expect(painted).toHaveLength(2);
+    expect(painted[0]).not.toBe(painted[1]);
+  });
+
+  it("ignores a set to the value it already holds", () => {
+    setStatusBadgeVisible(true);
+    expect(isStatusBadgeVisible()).toBe(true);
   });
 });

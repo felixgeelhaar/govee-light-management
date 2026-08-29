@@ -7,8 +7,30 @@ export interface GlobalPluginSettings {
   apiKeyLastValidated?: number;
   pluginVersion?: string;
   recentColors?: Array<{ hex: string; name: string }>;
+  /**
+   * Whether the corner status badge is drawn on keys (#339).
+   *
+   * Typed loosely because the property inspector writes it with an
+   * `sdpi-select`, and a select's option values are strings — so this
+   * arrives as `"false"`, not `false`.
+   */
+  showStatusBadge?: boolean | string;
   scheduledActions?: unknown[];
   [key: string]: unknown;
+}
+
+/**
+ * Reads the badge preference from whatever the settings blob holds.
+ *
+ * Anything but an explicit off means on, so a settings blob written before
+ * the option existed keeps the badge. The string case is not defensive
+ * padding: the property inspector sets this with an `sdpi-select`, whose
+ * option values are strings, so `"false"` is the value that actually
+ * arrives from the UI. Comparing against the boolean alone would leave the
+ * badge on for everyone who turned it off.
+ */
+export function isStatusBadgeEnabled(value: unknown): boolean {
+  return value !== false && value !== "false";
 }
 
 export class GlobalSettingsService {
@@ -41,6 +63,28 @@ export class GlobalSettingsService {
       this.lastFetched = now;
       return this.cache;
     }
+  }
+
+  /**
+   * Whether keys draw the corner status badge.
+   *
+   * Defaults to true: the artwork's gradient carries the state on its own,
+   * but without the badge `partial` leans toward `on`, and the badge is the
+   * cue that survives for someone who cannot separate the colours. Only an
+   * explicit `false` turns it off, so a settings blob that predates the
+   * option keeps the badge.
+   */
+  async getShowStatusBadge(): Promise<boolean> {
+    const settings = await this.getSettings();
+    return isStatusBadgeEnabled(settings.showStatusBadge);
+  }
+
+  async setShowStatusBadge(visible: boolean): Promise<void> {
+    const settings = await this.getSettings();
+    // Goes through save() rather than calling setGlobalSettings directly:
+    // GlobalPluginSettings has an `unknown` index signature the SDK's
+    // JsonObject will not accept, and save() already owns that cast.
+    await this.save({ ...settings, showStatusBadge: visible });
   }
 
   async getApiKey(): Promise<string | undefined> {

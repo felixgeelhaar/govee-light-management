@@ -19,6 +19,11 @@ import { SequenceAction } from "./actions/SequenceAction";
 import { CustomEffectAction } from "./actions/CustomEffectAction";
 import { RecallAction } from "./actions/RecallAction";
 import { schedulerService } from "./services/SchedulerService";
+import {
+  globalSettingsService,
+  isStatusBadgeEnabled,
+} from "./services/GlobalSettingsService";
+import { setStatusBadgeVisible } from "./actions/shared/status-badge";
 
 streamDeck.logger.setLevel("info");
 
@@ -49,6 +54,24 @@ streamDeck.connect();
 // Initialize background services after connection
 void schedulerService.initialize().catch((error) => {
   streamDeck.logger.error("Failed to initialize scheduler:", error);
+});
+
+// The status badge preference is global, so it is pushed into the renderer
+// once rather than read on every repaint — status-badge stays free of the
+// SDK and the settings service, which is what keeps it cheap to test.
+void globalSettingsService
+  .getShowStatusBadge()
+  .then(setStatusBadgeVisible)
+  .catch((error) => {
+    streamDeck.logger.error("Failed to read status badge preference:", error);
+  });
+
+// Global settings change in the property inspector, not here, so the
+// renderer has to be told. Without this the keys keep their old look until
+// the plugin restarts.
+streamDeck.settings.onDidReceiveGlobalSettings((event) => {
+  const settings = event.settings as { showStatusBadge?: unknown };
+  setStatusBadgeVisible(isStatusBadgeEnabled(settings?.showStatusBadge));
 });
 
 streamDeck.logger.info(
