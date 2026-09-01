@@ -602,7 +602,7 @@ describe("ActionServices chokepoint: cancel before user command", () => {
     // contract rather than the full control pipeline.
     const controlService = {
       controlLight: vi.fn().mockResolvedValue(undefined),
-      controlGroup: vi.fn().mockResolvedValue(undefined),
+      controlGroup: vi.fn().mockResolvedValue({ failed: [] }),
     };
     const shared = (
       ActionServices as unknown as {
@@ -649,7 +649,7 @@ describe("ActionServices.controlTarget — group state remembering", () => {
 
     const controlService = {
       controlLight: vi.fn().mockResolvedValue(undefined),
-      controlGroup: vi.fn().mockResolvedValue(undefined),
+      controlGroup: vi.fn().mockResolvedValue({ failed: [] }),
     };
     const shared = (
       ActionServices as unknown as {
@@ -1246,6 +1246,7 @@ describe("ActionServices.controlTarget — per-light colour temperature clamping
             perLightValue ? ((await perLightValue(light)) ?? value) : value,
           );
         }
+        return { failed: [] };
       },
     };
     restore = () => {
