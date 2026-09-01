@@ -182,10 +182,23 @@ describe('LightControlService', () => {
         .mockRejectedValueOnce(new Error('First light failed'))
         .mockResolvedValueOnce(undefined);
 
-      // Should propagate the error from Promise.all
-      await expect(
-        service.controlGroup(mockGroup, 'on')
-      ).rejects.toThrow('First light failed');
+      // One unreachable member must not discard the work that succeeded
+      // on the rest of the group: the command resolves, reporting which
+      // lights failed, and every member was still attempted.
+      const result = await service.controlGroup(mockGroup, 'on');
+
+      expect(result.failed).toHaveLength(1);
+      expect(mockLightRepository.setPower).toHaveBeenCalledTimes(2);
+    });
+
+    it('should reject only when every light in the group fails', async () => {
+      mockLightRepository.setPower.mockRejectedValue(
+        new Error('All lights failed')
+      );
+
+      await expect(service.controlGroup(mockGroup, 'on')).rejects.toThrow(
+        'All lights failed'
+      );
     });
   });
 });

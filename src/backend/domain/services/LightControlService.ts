@@ -80,7 +80,7 @@ export class LightControlService {
     perLightValue?: (
       light: Light,
     ) => Promise<Brightness | ColorRgb | ColorTemperature | undefined>,
-  ): Promise<void> {
+  ): Promise<{ failed: Light[] }> {
     const lights = group.lights;
     if (lights.length === 0) {
       throw new Error(`Group ${group.name} has no lights`);
@@ -97,8 +97,25 @@ export class LightControlService {
       ),
     );
 
-    // Execute all control operations in parallel
-    await Promise.all(promises);
+    // Settle rather than race to the first rejection. One unreachable
+    // member (a lamp dropped off Wi-Fi, say) must not discard the work
+    // that succeeded on every other light — previously `Promise.all`
+    // turned a single offline lamp into a failed group command, so the
+    // action showed an error even though the rest of the group had
+    // already changed.
+    const results = await Promise.allSettled(promises);
+    const failures = results.filter(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+
+    // Only a total failure is a failed command.
+    if (failures.length === lights.length) {
+      throw failures[0].reason;
+    }
+
+    return {
+      failed: lights.filter((_, index) => results[index].status === "rejected"),
+    };
   }
 
   /**

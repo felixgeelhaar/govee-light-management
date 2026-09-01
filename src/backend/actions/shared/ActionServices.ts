@@ -1418,7 +1418,7 @@ export class ActionServices {
           );
           this.rememberLightState(target.light);
         } else if (target.type === "group" && target.group) {
-          await this.lightControlService!.controlGroup(
+          const { failed } = await this.lightControlService!.controlGroup(
             target.group,
             command,
             toDomainControlValue(value),
@@ -1440,6 +1440,19 @@ export class ActionServices {
           // cached (the online flag is unreliable).
           for (const light of target.group.lights) {
             this.rememberLightState(light);
+          }
+          if (failed.length > 0) {
+            // The command succeeded on the rest of the group, so this is
+            // not a failure — but an unreachable lamp must not be silent.
+            streamDeck.logger?.warn(
+              "controlTarget: group command failed on some members",
+              {
+                group: target.group.name,
+                command,
+                failed: failed.map((light) => light.name),
+                succeeded: target.group.lights.length - failed.length,
+              },
+            );
           }
         }
       } catch (error) {
