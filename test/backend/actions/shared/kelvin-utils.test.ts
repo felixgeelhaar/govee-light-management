@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  SAFE_KELVIN_RANGE,
+  unionKelvinRanges,
   kelvinFromPercent,
   kelvinToBarValue,
   normalizeKelvin,
@@ -36,6 +38,70 @@ describe("normalizeKelvin", () => {
   it("keeps the snapped value within the clamped range", () => {
     // A snap that would overshoot max should be clamped back.
     expect(normalizeKelvin(6490, range(2700, 6500, 50))).toBe(6500);
+  });
+});
+
+describe("unionKelvinRanges", () => {
+  it("returns undefined when no ranges are supplied", () => {
+    expect(unionKelvinRanges([])).toBeUndefined();
+  });
+
+  it("returns the only range when a group has a single member", () => {
+    expect(unionKelvinRanges([range(2200, 6500, 1)])).toEqual({
+      min: 2200,
+      max: 6500,
+      precision: 1,
+    });
+  });
+
+  it("spans the full window the group can express", () => {
+    // Real pairing: a Govee H6076 (2200-6500K) grouped with an H60B2
+    // (2700-6500K). The dial travels 2200-6500K; at 2200K the H6076 goes
+    // to 2200K and the H60B2 is clamped to its own 2700K floor, so the
+    // narrower lamp no longer caps the whole group.
+    expect(
+      unionKelvinRanges([range(2200, 6500, 1), range(2700, 6500, 1)]),
+    ).toEqual({ min: 2200, max: 6500, precision: 1 });
+  });
+
+  it("widens to the most capable member", () => {
+    // Adding an H16B0 (1000-10000K) should open the dial up, not be
+    // dragged down to the narrowest member's window.
+    expect(
+      unionKelvinRanges([
+        range(2200, 6500, 1),
+        range(2700, 6500, 1),
+        range(1000, 10000, 1),
+      ]),
+    ).toEqual({ min: 1000, max: 10000, precision: 1 });
+  });
+
+  it("keeps the coarsest precision so every member can land on a step", () => {
+    expect(
+      unionKelvinRanges([range(2000, 9000, 1), range(2000, 9000, 100)]),
+    ).toEqual({ min: 2000, max: 9000, precision: 100 });
+  });
+
+  it("handles members with no overlapping window", () => {
+    // Disjoint members are fine now: each is clamped individually, so the
+    // dial simply spans both.
+    expect(
+      unionKelvinRanges([range(2000, 2600, 1), range(2700, 6500, 1)]),
+    ).toEqual({ min: 2000, max: 6500, precision: 1 });
+  });
+
+  it("never yields a precision below 1K", () => {
+    expect(unionKelvinRanges([range(2700, 6500, 0)])?.precision).toBe(1);
+  });
+});
+
+describe("SAFE_KELVIN_RANGE", () => {
+  it("stays inside the window Govee devices accept", () => {
+    // The old 2000-9000K default was a guess no device honoured; values
+    // outside a device's true range come back as "parameter value out of
+    // range" (#167).
+    expect(SAFE_KELVIN_RANGE.min).toBeGreaterThanOrEqual(2700);
+    expect(SAFE_KELVIN_RANGE.max).toBeLessThanOrEqual(6500);
   });
 });
 

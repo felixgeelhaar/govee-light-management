@@ -13,6 +13,7 @@ import {
   action,
   type DialAction,
   type DialRotateEvent,
+  type DidReceiveSettingsEvent,
   type KeyDownEvent,
   streamDeck,
 } from "@elgato/streamdeck";
@@ -21,6 +22,7 @@ import { ColorTemperature } from "../domain/value-objects/ColorTemperature";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import {
   type KelvinRange,
+  SAFE_KELVIN_RANGE,
   kelvinFromPercent,
   kelvinToBarValue,
   normalizeKelvin,
@@ -34,16 +36,8 @@ type ColorTemperatureSettings = BaseDialSettings & {
   colorTempValue?: number;
 };
 
-const MIN_KELVIN = 2000;
-const MAX_KELVIN = 9000;
 const DEFAULT_KELVIN = 4500;
 const DEFAULT_STEP_KELVIN = 100;
-const DEFAULT_KELVIN_RANGE: KelvinRange = {
-  min: MIN_KELVIN,
-  max: MAX_KELVIN,
-  precision: DEFAULT_STEP_KELVIN,
-};
-const FALLBACK_RANGE: KelvinRange = { min: 2700, max: 6500, precision: 100 };
 
 const DEFAULT_BAR_FILL = "#FFFFFF";
 const DEFAULT_BAR_BG = "0:#FFB347,1:#A8D8EA";
@@ -63,6 +57,15 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
     this.tempMap.delete(ctx);
     this.tempRangeMap.delete(ctx);
     this.displayModeMap.delete(ctx);
+  }
+
+  override async onDidReceiveSettings(
+    ev: DidReceiveSettingsEvent<ColorTemperatureSettings>,
+  ): Promise<void> {
+    // The action may now point at a different light or group with a
+    // different Kelvin window, so drop the cached range.
+    this.tempRangeMap.delete(ev.action.id);
+    await super.onDidReceiveSettings(ev);
   }
 
   // ── Keypad ─────────────────────────────────────────────────────
@@ -88,7 +91,7 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
     const started = Date.now();
     try {
       const tempPercent = settings.colorTempValue ?? 50;
-      const range = await this.resolveKelvinRange(settings);
+      const range = await this.getTemperatureRange(settings, ev.action.id);
       const kelvin = normalizeKelvin(
         kelvinFromPercent(tempPercent, range),
         range,
@@ -160,7 +163,7 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
       {
         action: ev.action,
         getRestoreValue: () => {
-          const localRange = this.tempRangeMap.get(ctx) ?? DEFAULT_KELVIN_RANGE;
+          const localRange = this.tempRangeMap.get(ctx) ?? SAFE_KELVIN_RANGE;
           const kelvin =
             this.tempMap.get(ctx) ?? this.getDefaultKelvinForRange(localRange);
           const isOn = this.powerMap.get(ctx) ?? true;
@@ -315,6 +318,17 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
     }
   }
 
+  /**
+   * Resolve the Kelvin window this action may produce.
+   *
+   * Shared by the keypad and the encoder — they used to disagree, the
+   * keypad clamping to a safe 2700-6500K window (#167) while the dial
+   * ranged over a fabricated 2000-9000K, so the same action produced
+   * valid commands when pressed and rejected ones when turned.
+   *
+   * Only device-advertised ranges are cached; a fallback is returned but
+   * never stored so the action recovers once discovery succeeds.
+   */
   private async getTemperatureRange(
     settings: ColorTemperatureSettings,
     ctx: string,
@@ -322,35 +336,13 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
     const cached = this.tempRangeMap.get(ctx);
     if (cached) return cached;
 
-    const lightItem = await this.services.getLightItem(settings);
-    const min = lightItem?.properties?.colorTem?.range?.min ?? MIN_KELVIN;
-    const max = lightItem?.properties?.colorTem?.range?.max ?? MAX_KELVIN;
-    const precision =
-      lightItem?.properties?.colorTem?.range?.precision ?? DEFAULT_STEP_KELVIN;
-    const range: KelvinRange = {
-      min,
-      max,
-      precision: Math.max(1, precision),
-    };
-    this.tempRangeMap.set(ctx, range);
-    return range;
-  }
-
-  /** Keypad-only range resolver — falls back to a safer 2700-6500K window
-   * (per #167) when the device hasn't advertised a range. */
-  private async resolveKelvinRange(
-    settings: ColorTemperatureSettings,
-  ): Promise<KelvinRange> {
-    const lightItem = await this.services.getLightItem(settings);
-    const declared = lightItem?.properties?.colorTem?.range;
+    const declared = await this.services.resolveKelvinRangeForTarget(settings);
     if (!declared) {
-      return FALLBACK_RANGE;
+      return SAFE_KELVIN_RANGE;
     }
-    return {
-      min: declared.min,
-      max: declared.max,
-      precision: Math.max(1, declared.precision ?? FALLBACK_RANGE.precision),
-    };
+
+    this.tempRangeMap.set(ctx, declared);
+    return declared;
   }
 
   private getDefaultKelvinForRange(range: KelvinRange): number {
