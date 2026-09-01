@@ -79,7 +79,7 @@ export class LightControlService {
      */
     perLightValue?: (
       light: Light,
-    ) => Promise<Brightness | ColorRgb | ColorTemperature | undefined>,
+    ) => Brightness | ColorRgb | ColorTemperature | undefined,
   ): Promise<{ failed: Light[] }> {
     const lights = group.lights;
     if (lights.length === 0) {
@@ -89,12 +89,10 @@ export class LightControlService {
     // Attempt every member regardless of its reported online flag (see
     // controlLight): offline-flagged members are no longer pre-filtered out,
     // because that flag is unreliable (#311).
-    const promises = lights.map(async (light) =>
-      this.controlLight(
-        light,
-        action,
-        perLightValue ? ((await perLightValue(light)) ?? value) : value,
-      ),
+    // Nothing is awaited before controlLight, so every member's request
+    // leaves at the same moment rather than after the ones before it.
+    const promises = lights.map((light) =>
+      this.controlLight(light, action, perLightValue?.(light) ?? value),
     );
 
     // Settle rather than race to the first rejection. One unreachable

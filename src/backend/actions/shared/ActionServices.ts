@@ -418,26 +418,31 @@ export class ActionServices {
    * which preserves the previous behaviour for devices we know nothing
    * about.
    */
-  private async clampColorTemperatureForLight(
-    light: Light,
+  private async buildColorTemperatureClamp(
     value: DomainColorTemperature,
-  ): Promise<DomainColorTemperature> {
+  ): Promise<(light: Light) => DomainColorTemperature> {
+    let items: readonly import("@shared/types").LightItem[] = [];
     try {
-      const range = declaredKelvinRange(
-        findLightItem(await this.cachedLightItems(), light),
+      // Read the device cache once for the whole command. Resolving it
+      // per light meant a cold cache triggered one discovery per member,
+      // adding a round trip to each and landing them out of step.
+      items = await this.cachedLightItems();
+    } catch (error) {
+      streamDeck.logger?.debug(
+        "buildColorTemperatureClamp: sending unclamped values",
+        error,
       );
+      return () => value;
+    }
+
+    return (light) => {
+      const range = declaredKelvinRange(findLightItem(items, light));
       if (!range) return value;
       const clamped = normalizeKelvin(value.kelvin, range);
       return clamped === value.kelvin
         ? value
         : new DomainColorTemperature(clamped);
-    } catch (error) {
-      streamDeck.logger?.debug(
-        "clampColorTemperatureForLight: sending unclamped value",
-        error,
-      );
-      return value;
-    }
+    };
   }
 
   private async cachedLightItems(): Promise<
@@ -1347,6 +1352,7 @@ export class ActionServices {
    */
   async cancelActiveEffectForTarget(target: DeviceTarget): Promise<void> {
     if (!effectCanceller) return;
+    const cancel = effectCanceller;
     const targetIds: string[] = [];
     if (target.type === "light" && target.light) {
       targetIds.push(`light:${target.light.deviceId}|${target.light.model}`);
@@ -1357,16 +1363,20 @@ export class ActionServices {
         targetIds.push(`light:${light.deviceId}|${light.model}`);
       }
     }
-    for (const id of targetIds) {
-      try {
-        await effectCanceller(id);
-      } catch (error) {
-        streamDeck.logger?.debug(
-          `cancelActiveEffectForTarget: cancel failed for ${id}`,
-          error,
-        );
-      }
-    }
+    // Cancel concurrently: sequential awaits made each group member wait
+    // for every member before it, staggering the command that follows.
+    await Promise.all(
+      targetIds.map(async (id) => {
+        try {
+          await cancel(id);
+        } catch (error) {
+          streamDeck.logger?.debug(
+            `cancelActiveEffectForTarget: cancel failed for ${id}`,
+            error,
+          );
+        }
+      }),
+    );
   }
 
   /**
@@ -1401,34 +1411,33 @@ export class ActionServices {
 
     await this.cancelActiveEffectForTarget(target);
 
+    const domainValue = toDomainControlValue(value);
+
+    // Members can advertise different Kelvin windows, so give each light
+    // the closest value it accepts rather than capping the whole group at
+    // its narrowest member. Resolved once, before the retry loop: it
+    // depends only on the devices' advertised ranges, not on the attempt.
+    const clampFor =
+      command === "colorTemperature" &&
+      domainValue instanceof DomainColorTemperature
+        ? await this.buildColorTemperatureClamp(domainValue)
+        : undefined;
+
     const execute = async (attempt: number): Promise<void> => {
       try {
         if (target.type === "light" && target.light) {
-          const domainValue = toDomainControlValue(value);
           await this.lightControlService!.controlLight(
             target.light,
             command,
-            command === "colorTemperature" &&
-              domainValue instanceof DomainColorTemperature
-              ? await this.clampColorTemperatureForLight(
-                  target.light,
-                  domainValue,
-                )
-              : domainValue,
+            clampFor ? clampFor(target.light) : domainValue,
           );
           this.rememberLightState(target.light);
         } else if (target.type === "group" && target.group) {
           const { failed } = await this.lightControlService!.controlGroup(
             target.group,
             command,
-            toDomainControlValue(value),
-            // Members can advertise different Kelvin windows, so give each
-            // light the closest value it actually accepts rather than
-            // capping the whole group at its narrowest member.
-            command === "colorTemperature" &&
-              value instanceof DomainColorTemperature
-              ? (light) => this.clampColorTemperatureForLight(light, value)
-              : undefined,
+            domainValue,
+            clampFor,
           );
           // Persist post-command state for each group member so other
           // actions pointed at the same lights see the new power /
@@ -2010,10 +2019,16 @@ export class ActionServices {
     if (target.type === "light" && target.light) {
       await this.ensurePreparedForSolidColor(contextId, target.light);
     } else if (target.type === "group" && target.group) {
-      // #311: iterate all members; the online flag is unreliable
-      for (const light of target.group.lights) {
-        await this.ensurePreparedForSolidColor(contextId, light);
-      }
+      // #311: iterate all members; the online flag is unreliable.
+      // Prepare members concurrently: each call can issue its own
+      // overlay-clearing API round trips, so awaiting them in sequence
+      // made the last member of a group wait for every member before it
+      // and land visibly later than the rest.
+      await Promise.all(
+        target.group.lights.map((light) =>
+          this.ensurePreparedForSolidColor(contextId, light),
+        ),
+      );
     }
   }
 
