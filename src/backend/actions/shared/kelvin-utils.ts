@@ -25,34 +25,33 @@ export const SAFE_KELVIN_RANGE: KelvinRange = {
 };
 
 /**
- * Narrow a set of device ranges to the window that ALL of them accept.
+ * Widen a set of device ranges to the full span the group can express.
  *
- * A group applies one Kelvin value to every member, so the only safe
- * window is the intersection: the highest minimum, the lowest maximum and
- * the coarsest precision. A group of a 2200-6500K lamp and a 2700-6500K
- * lamp can only be driven across 2700-6500K — anything lower is rejected
- * by the second lamp.
+ * A group is applied by fanning out one command per light, so the dial
+ * does NOT have to be limited to the window every member shares. It
+ * travels the union — the lowest minimum to the highest maximum — and
+ * each light is clamped to its own range at send time (see
+ * `ActionServices.controlTarget`). A 2200-6500K lamp grouped with a
+ * 2700-6500K lamp gives a 2200-6500K dial: at 2200K the first lamp goes
+ * to 2200K and the second sits at its own 2700K floor, instead of both
+ * being capped at the narrower lamp's window.
  *
- * Returns `undefined` when no ranges were supplied or when the members
- * have no overlap at all, leaving the caller to fall back.
+ * Precision is the coarsest of the members, so a step the dial produces
+ * is one every member can land on after its own clamp.
+ *
+ * Returns `undefined` when no ranges were supplied, leaving the caller
+ * to fall back.
  */
-export function intersectKelvinRanges(
+export function unionKelvinRanges(
   ranges: readonly KelvinRange[],
 ): KelvinRange | undefined {
   if (ranges.length === 0) {
     return undefined;
   }
 
-  const min = Math.max(...ranges.map((range) => range.min));
-  const max = Math.min(...ranges.map((range) => range.max));
-  if (min > max) {
-    // Disjoint members — no single value can satisfy every light.
-    return undefined;
-  }
-
   return {
-    min,
-    max,
+    min: Math.min(...ranges.map((range) => range.min)),
+    max: Math.max(...ranges.map((range) => range.max)),
     precision: Math.max(1, ...ranges.map((range) => range.precision)),
   };
 }

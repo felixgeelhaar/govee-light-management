@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   SAFE_KELVIN_RANGE,
-  intersectKelvinRanges,
+  unionKelvinRanges,
   kelvinFromPercent,
   kelvinToBarValue,
   normalizeKelvin,
@@ -41,42 +41,57 @@ describe("normalizeKelvin", () => {
   });
 });
 
-describe("intersectKelvinRanges", () => {
+describe("unionKelvinRanges", () => {
   it("returns undefined when no ranges are supplied", () => {
-    expect(intersectKelvinRanges([])).toBeUndefined();
+    expect(unionKelvinRanges([])).toBeUndefined();
   });
 
   it("returns the only range when a group has a single member", () => {
-    expect(intersectKelvinRanges([range(2200, 6500, 1)])).toEqual({
+    expect(unionKelvinRanges([range(2200, 6500, 1)])).toEqual({
       min: 2200,
       max: 6500,
       precision: 1,
     });
   });
 
-  it("narrows to the window every member accepts", () => {
+  it("spans the full window the group can express", () => {
     // Real pairing: a Govee H6076 (2200-6500K) grouped with an H60B2
-    // (2700-6500K). 2200K is valid for the first lamp and rejected by
-    // the second, so the group can only be driven across 2700-6500K.
+    // (2700-6500K). The dial travels 2200-6500K; at 2200K the H6076 goes
+    // to 2200K and the H60B2 is clamped to its own 2700K floor, so the
+    // narrower lamp no longer caps the whole group.
     expect(
-      intersectKelvinRanges([range(2200, 6500, 1), range(2700, 6500, 1)]),
-    ).toEqual({ min: 2700, max: 6500, precision: 1 });
+      unionKelvinRanges([range(2200, 6500, 1), range(2700, 6500, 1)]),
+    ).toEqual({ min: 2200, max: 6500, precision: 1 });
   });
 
-  it("keeps the coarsest precision so every member accepts the step", () => {
+  it("widens to the most capable member", () => {
+    // Adding an H16B0 (1000-10000K) should open the dial up, not be
+    // dragged down to the narrowest member's window.
     expect(
-      intersectKelvinRanges([range(2000, 9000, 1), range(2000, 9000, 100)]),
+      unionKelvinRanges([
+        range(2200, 6500, 1),
+        range(2700, 6500, 1),
+        range(1000, 10000, 1),
+      ]),
+    ).toEqual({ min: 1000, max: 10000, precision: 1 });
+  });
+
+  it("keeps the coarsest precision so every member can land on a step", () => {
+    expect(
+      unionKelvinRanges([range(2000, 9000, 1), range(2000, 9000, 100)]),
     ).toEqual({ min: 2000, max: 9000, precision: 100 });
   });
 
-  it("returns undefined when members have no overlapping window", () => {
+  it("handles members with no overlapping window", () => {
+    // Disjoint members are fine now: each is clamped individually, so the
+    // dial simply spans both.
     expect(
-      intersectKelvinRanges([range(2000, 2600, 1), range(2700, 6500, 1)]),
-    ).toBeUndefined();
+      unionKelvinRanges([range(2000, 2600, 1), range(2700, 6500, 1)]),
+    ).toEqual({ min: 2000, max: 6500, precision: 1 });
   });
 
   it("never yields a precision below 1K", () => {
-    expect(intersectKelvinRanges([range(2700, 6500, 0)])?.precision).toBe(1);
+    expect(unionKelvinRanges([range(2700, 6500, 0)])?.precision).toBe(1);
   });
 });
 

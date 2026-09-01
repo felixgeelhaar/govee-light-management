@@ -71,6 +71,15 @@ export class LightControlService {
     group: LightGroup,
     action: "on" | "off" | "brightness" | "color" | "colorTemperature",
     value?: Brightness | ColorRgb | ColorTemperature,
+    /**
+     * Optional per-light override. Devices in one group can advertise
+     * different accepted ranges, so callers may narrow the value to what
+     * each member individually supports instead of sending one value the
+     * group's narrowest member would reject.
+     */
+    perLightValue?: (
+      light: Light,
+    ) => Promise<Brightness | ColorRgb | ColorTemperature | undefined>,
   ): Promise<void> {
     const lights = group.lights;
     if (lights.length === 0) {
@@ -80,8 +89,12 @@ export class LightControlService {
     // Attempt every member regardless of its reported online flag (see
     // controlLight): offline-flagged members are no longer pre-filtered out,
     // because that flag is unreliable (#311).
-    const promises = lights.map((light) =>
-      this.controlLight(light, action, value),
+    const promises = lights.map(async (light) =>
+      this.controlLight(
+        light,
+        action,
+        perLightValue ? ((await perLightValue(light)) ?? value) : value,
+      ),
     );
 
     // Execute all control operations in parallel

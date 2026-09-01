@@ -32,8 +32,31 @@ import { isIgnorableLiveStateError, isValidationError } from "./validation";
 import {
   type KelvinRange,
   SAFE_KELVIN_RANGE,
-  intersectKelvinRanges,
+  normalizeKelvin,
+  unionKelvinRanges,
 } from "./kelvin-utils";
+
+/** Read a light's advertised Kelvin window, if it declared one. */
+function declaredKelvinRange(
+  item: import("@shared/types").LightItem | undefined,
+): KelvinRange | undefined {
+  const declared = item?.properties?.colorTem?.range;
+  if (!declared) return undefined;
+  return {
+    min: declared.min,
+    max: declared.max,
+    precision: Math.max(1, declared.precision ?? SAFE_KELVIN_RANGE.precision),
+  };
+}
+
+function findLightItem(
+  items: readonly import("@shared/types").LightItem[],
+  light: Pick<Light, "deviceId" | "model">,
+): import("@shared/types").LightItem | undefined {
+  return items.find(
+    (item) => item.deviceId === light.deviceId && item.model === light.model,
+  );
+}
 
 /** Default timeout for API calls in PI handlers (10 seconds) */
 const PI_HANDLER_TIMEOUT_MS = 10_000;
@@ -356,45 +379,20 @@ export class ActionServices {
       const target = this.parseTarget(settings);
       if (!target || !this.deviceService) return undefined;
 
-      const declaredFor = (
-        item: import("@shared/types").LightItem | undefined,
-      ): KelvinRange | undefined => {
-        const declared = item?.properties?.colorTem?.range;
-        if (!declared) return undefined;
-        return {
-          min: declared.min,
-          max: declared.max,
-          precision: Math.max(
-            1,
-            declared.precision ?? SAFE_KELVIN_RANGE.precision,
-          ),
-        };
-      };
-
       if (target.type === "light") {
-        return declaredFor(await this.getLightItem(settings));
+        return declaredKelvinRange(await this.getLightItem(settings));
       }
 
       if (!target.groupId || !this.groupService) return undefined;
       const group = await this.groupService.findGroupById(target.groupId);
       if (!group || group.lights.length === 0) return undefined;
 
-      const items =
-        this.deviceService.getCachedLights() ??
-        (await this.deviceService.discover(false));
-
+      const items = await this.cachedLightItems();
       const memberRanges = group.lights
-        .map((light) =>
-          declaredFor(
-            items.find(
-              (item) =>
-                item.deviceId === light.deviceId && item.model === light.model,
-            ),
-          ),
-        )
+        .map((light) => declaredKelvinRange(findLightItem(items, light)))
         .filter((range): range is KelvinRange => range !== undefined);
 
-      return intersectKelvinRanges(memberRanges);
+      return unionKelvinRanges(memberRanges);
     } catch (error) {
       // Never let range discovery break the control path — the caller
       // falls back to a conservative window that all devices accept.
@@ -404,6 +402,52 @@ export class ActionServices {
       );
       return undefined;
     }
+  }
+
+  /**
+   * Clamp a colour temperature to what one specific light accepts.
+   *
+   * The dial travels the union of a group's ranges, so a value valid for
+   * one member can be out of range for another. Each light is therefore
+   * clamped to its own advertised window immediately before the command
+   * is sent: dialling to 2200K drives a 2200-6500K lamp to 2200K and
+   * leaves a 2700-6500K lamp at its own 2700K floor, rather than
+   * rejecting the command or capping the whole group.
+   *
+   * Falls back to the requested value when the light advertises no range,
+   * which preserves the previous behaviour for devices we know nothing
+   * about.
+   */
+  private async clampColorTemperatureForLight(
+    light: Light,
+    value: DomainColorTemperature,
+  ): Promise<DomainColorTemperature> {
+    try {
+      const range = declaredKelvinRange(
+        findLightItem(await this.cachedLightItems(), light),
+      );
+      if (!range) return value;
+      const clamped = normalizeKelvin(value.kelvin, range);
+      return clamped === value.kelvin
+        ? value
+        : new DomainColorTemperature(clamped);
+    } catch (error) {
+      streamDeck.logger?.debug(
+        "clampColorTemperatureForLight: sending unclamped value",
+        error,
+      );
+      return value;
+    }
+  }
+
+  private async cachedLightItems(): Promise<
+    import("@shared/types").LightItem[]
+  > {
+    if (!this.deviceService) return [];
+    return (
+      this.deviceService.getCachedLights() ??
+      (await this.deviceService.discover(false))
+    );
   }
 
   /**
@@ -1360,10 +1404,17 @@ export class ActionServices {
     const execute = async (attempt: number): Promise<void> => {
       try {
         if (target.type === "light" && target.light) {
+          const domainValue = toDomainControlValue(value);
           await this.lightControlService!.controlLight(
             target.light,
             command,
-            toDomainControlValue(value),
+            command === "colorTemperature" &&
+              domainValue instanceof DomainColorTemperature
+              ? await this.clampColorTemperatureForLight(
+                  target.light,
+                  domainValue,
+                )
+              : domainValue,
           );
           this.rememberLightState(target.light);
         } else if (target.type === "group" && target.group) {
@@ -1371,6 +1422,13 @@ export class ActionServices {
             target.group,
             command,
             toDomainControlValue(value),
+            // Members can advertise different Kelvin windows, so give each
+            // light the closest value it actually accepts rather than
+            // capping the whole group at its narrowest member.
+            command === "colorTemperature" &&
+              value instanceof DomainColorTemperature
+              ? (light) => this.clampColorTemperatureForLight(light, value)
+              : undefined,
           );
           // Persist post-command state for each group member so other
           // actions pointed at the same lights see the new power /

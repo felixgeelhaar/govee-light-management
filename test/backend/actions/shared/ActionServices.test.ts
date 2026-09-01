@@ -9,6 +9,7 @@ import { LightGroup } from "../../../../src/backend/domain/entities/LightGroup";
 import type { LightState } from "../../../../src/backend/domain/value-objects/LightState";
 import type { DeviceTarget } from "../../../../src/backend/actions/shared/ActionServices";
 import { globalSettingsService } from "../../../../src/backend/services/GlobalSettingsService";
+import { ColorTemperature as DomainColorTemperature } from "../../../../src/backend/domain/value-objects/ColorTemperature";
 
 const makeLight = (opts: {
   deviceId?: string;
@@ -1102,9 +1103,11 @@ describe("ActionServices.resolveKelvinRangeForTarget", () => {
     ).resolves.toEqual({ min: 2200, max: 6500, precision: 100 });
   });
 
-  it("narrows a group to the window every member accepts", async () => {
+  it("spans the full window a group can express", async () => {
     // The exact pairing that produced the bug report: an H6076 that
     // accepts 2200K grouped with an H60B2 that bottoms out at 2700K.
+    // The dial gets the union; each light is clamped when the command is
+    // actually sent.
     const members = [
       makeLight({ deviceId: "dev-1", model: "H6076" }),
       makeLight({ deviceId: "dev-2", model: "H60B2" }),
@@ -1119,7 +1122,7 @@ describe("ActionServices.resolveKelvinRangeForTarget", () => {
 
     await expect(
       services.resolveKelvinRangeForTarget({ selectedDeviceId: "group:g1" }),
-    ).resolves.toEqual({ min: 2700, max: 6500, precision: 1 });
+    ).resolves.toEqual({ min: 2200, max: 6500, precision: 1 });
   });
 
   it("ignores group members that advertise no range", async () => {
@@ -1181,5 +1184,146 @@ describe("ActionServices.resolveKelvinRangeForTarget", () => {
     await expect(
       services.resolveKelvinRangeForTarget({}),
     ).resolves.toBeUndefined();
+  });
+});
+
+/**
+ * The dial spans the union of a group's Kelvin ranges, so a value that is
+ * valid for one member can be out of range for another. Each light must
+ * therefore be clamped to its own advertised window at send time — the
+ * whole point of preferring the union over the intersection is that the
+ * capable lamp is not capped by its narrower groupmate.
+ */
+describe("ActionServices.controlTarget — per-light colour temperature clamping", () => {
+  let services: ActionServices;
+  let restore: () => void;
+
+  const lightItem = (
+    deviceId: string,
+    model: string,
+    range?: { min: number; max: number; precision?: number },
+  ) => ({
+    deviceId,
+    model,
+    name: deviceId,
+    label: deviceId,
+    value: `${deviceId}|${model}`,
+    controllable: true,
+    retrievable: true,
+    supportedCommands: [],
+    properties: range ? { colorTem: { range } } : undefined,
+  });
+
+  const setup = (items: unknown[]) => {
+    const shared = (
+      ActionServices as unknown as {
+        _shared: {
+          deviceService?: unknown;
+          lightControlService?: unknown;
+        };
+      }
+    )._shared;
+    const originalDevice = shared.deviceService;
+    const originalControl = shared.lightControlService;
+
+    const controlLight = vi.fn().mockResolvedValue(undefined);
+    shared.deviceService = {
+      getCachedLights: vi.fn().mockReturnValue(items),
+      discover: vi.fn().mockResolvedValue(items),
+    };
+    shared.lightControlService = {
+      controlLight,
+      controlGroup: async (
+        group: LightGroup,
+        action: string,
+        value: unknown,
+        perLightValue?: (l: Light) => Promise<unknown>,
+      ) => {
+        for (const light of group.lights) {
+          await controlLight(
+            light,
+            action,
+            perLightValue ? ((await perLightValue(light)) ?? value) : value,
+          );
+        }
+      },
+    };
+    restore = () => {
+      shared.deviceService = originalDevice;
+      shared.lightControlService = originalControl;
+    };
+    return controlLight;
+  };
+
+  beforeEach(() => {
+    services = new ActionServices();
+    restore = () => {};
+    vi.spyOn(
+      ActionServices.prototype,
+      "cancelActiveEffectForTarget",
+    ).mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    restore();
+    vi.restoreAllMocks();
+  });
+
+  it("gives each group member the closest value it accepts", async () => {
+    const wide = makeLight({ deviceId: "dev-1", model: "H6076" });
+    const narrow = makeLight({ deviceId: "dev-2", model: "H60B2" });
+    const controlLight = setup([
+      lightItem("dev-1", "H6076", { min: 2200, max: 6500, precision: 1 }),
+      lightItem("dev-2", "H60B2", { min: 2700, max: 6500, precision: 1 }),
+    ]);
+
+    await services.controlTarget(
+      { type: "group", group: LightGroup.create("g1", "Living room", [wide, narrow]) },
+      "colorTemperature",
+      new DomainColorTemperature(2200),
+    );
+
+    const sent = controlLight.mock.calls.map((c) => [
+      (c[0] as Light).deviceId,
+      (c[2] as { kelvin: number }).kelvin,
+    ]);
+    // The capable lamp reaches 2200K; the narrower one sits at its floor
+    // instead of rejecting the command.
+    expect(sent).toEqual([
+      ["dev-1", 2200],
+      ["dev-2", 2700],
+    ]);
+  });
+
+  it("clamps a single light to its own advertised ceiling", async () => {
+    const light = makeLight({ deviceId: "dev-2", model: "H60B2" });
+    const controlLight = setup([
+      lightItem("dev-2", "H60B2", { min: 2700, max: 6500, precision: 1 }),
+    ]);
+
+    await services.controlTarget(
+      { type: "light", light },
+      "colorTemperature",
+      new DomainColorTemperature(9000),
+    );
+
+    expect((controlLight.mock.calls[0][2] as { kelvin: number }).kelvin).toBe(
+      6500,
+    );
+  });
+
+  it("passes the value through untouched when the light declares no range", async () => {
+    const light = makeLight({ deviceId: "dev-3", model: "H0000" });
+    const controlLight = setup([lightItem("dev-3", "H0000")]);
+
+    await services.controlTarget(
+      { type: "light", light },
+      "colorTemperature",
+      new DomainColorTemperature(4500),
+    );
+
+    expect((controlLight.mock.calls[0][2] as { kelvin: number }).kelvin).toBe(
+      4500,
+    );
   });
 });
