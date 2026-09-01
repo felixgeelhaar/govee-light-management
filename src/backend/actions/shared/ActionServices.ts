@@ -29,6 +29,11 @@ import { Brightness as DomainBrightness } from "../../domain/value-objects/Brigh
 import { ColorRgb as DomainColorRgb } from "../../domain/value-objects/ColorRgb";
 import { ColorTemperature as DomainColorTemperature } from "../../domain/value-objects/ColorTemperature";
 import { isIgnorableLiveStateError, isValidationError } from "./validation";
+import {
+  type KelvinRange,
+  SAFE_KELVIN_RANGE,
+  intersectKelvinRanges,
+} from "./kelvin-utils";
 
 /** Default timeout for API calls in PI handlers (10 seconds) */
 const PI_HANDLER_TIMEOUT_MS = 10_000;
@@ -327,6 +332,78 @@ export class ActionServices {
       (light) =>
         light.deviceId === target.deviceId && light.model === target.model,
     );
+  }
+
+  /**
+   * Resolve the Kelvin window that the current target actually accepts.
+   *
+   * `getLightItem` only answers for single lights, so every group-bound
+   * colour-temperature action used to fall back to a hardcoded guess and
+   * then send values the API rejects (#167 fixed this for the keypad on
+   * single lights only; groups and the dial kept the bug).
+   *
+   * For a group this returns the intersection of its members' ranges,
+   * because one Kelvin value is sent to every member.
+   *
+   * Returns `undefined` when nothing could be resolved — no target, no
+   * device service, or no member advertised a range — so callers can
+   * apply their own fallback rather than caching a fabricated window.
+   */
+  async resolveKelvinRangeForTarget(
+    settings: BaseSettings,
+  ): Promise<KelvinRange | undefined> {
+    try {
+      const target = this.parseTarget(settings);
+      if (!target || !this.deviceService) return undefined;
+
+      const declaredFor = (
+        item: import("@shared/types").LightItem | undefined,
+      ): KelvinRange | undefined => {
+        const declared = item?.properties?.colorTem?.range;
+        if (!declared) return undefined;
+        return {
+          min: declared.min,
+          max: declared.max,
+          precision: Math.max(
+            1,
+            declared.precision ?? SAFE_KELVIN_RANGE.precision,
+          ),
+        };
+      };
+
+      if (target.type === "light") {
+        return declaredFor(await this.getLightItem(settings));
+      }
+
+      if (!target.groupId || !this.groupService) return undefined;
+      const group = await this.groupService.findGroupById(target.groupId);
+      if (!group || group.lights.length === 0) return undefined;
+
+      const items =
+        this.deviceService.getCachedLights() ??
+        (await this.deviceService.discover(false));
+
+      const memberRanges = group.lights
+        .map((light) =>
+          declaredFor(
+            items.find(
+              (item) =>
+                item.deviceId === light.deviceId && item.model === light.model,
+            ),
+          ),
+        )
+        .filter((range): range is KelvinRange => range !== undefined);
+
+      return intersectKelvinRanges(memberRanges);
+    } catch (error) {
+      // Never let range discovery break the control path — the caller
+      // falls back to a conservative window that all devices accept.
+      streamDeck.logger?.debug(
+        "resolveKelvinRangeForTarget: falling back to default range",
+        error,
+      );
+      return undefined;
+    }
   }
 
   /**

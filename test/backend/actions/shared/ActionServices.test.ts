@@ -1025,3 +1025,161 @@ describe("ActionServices.verifyToggleStateApplied", () => {
     }
   });
 });
+
+/**
+ * Issue #167 fixed the "parameter value out of range" rejection for the
+ * Color Temperature keypad on a single light, but the reporter also said
+ * "It also does not work for groups" — and that half stayed broken.
+ *
+ * `getLightItem` returns undefined for anything that isn't a single
+ * light, so every group-bound colour-temperature action fell back to a
+ * hardcoded 2000-9000K window and happily sent Kelvin values no real
+ * device accepts. resolveKelvinRangeForTarget answers for groups too, by
+ * intersecting the members' advertised ranges.
+ */
+describe("ActionServices.resolveKelvinRangeForTarget", () => {
+  let services: ActionServices;
+  let restoreShared: () => void;
+
+  const lightItem = (
+    deviceId: string,
+    model: string,
+    range?: { min: number; max: number; precision?: number },
+  ) => ({
+    deviceId,
+    model,
+    name: deviceId,
+    label: deviceId,
+    value: `${deviceId}|${model}`,
+    controllable: true,
+    retrievable: true,
+    supportedCommands: [],
+    properties: range ? { colorTem: { range } } : undefined,
+  });
+
+  const install = (opts: {
+    items?: unknown[];
+    group?: unknown;
+    discover?: () => Promise<unknown>;
+  }) => {
+    const shared = (
+      ActionServices as unknown as {
+        _shared: { deviceService?: unknown; groupService?: unknown };
+      }
+    )._shared;
+    const originalDevice = shared.deviceService;
+    const originalGroup = shared.groupService;
+    shared.deviceService = {
+      getCachedLights: vi.fn().mockReturnValue(opts.items ?? null),
+      discover: opts.discover ?? vi.fn().mockResolvedValue(opts.items ?? []),
+    };
+    shared.groupService = {
+      findGroupById: vi.fn().mockResolvedValue(opts.group ?? null),
+    };
+    restoreShared = () => {
+      shared.deviceService = originalDevice;
+      shared.groupService = originalGroup;
+    };
+  };
+
+  beforeEach(() => {
+    services = new ActionServices();
+    restoreShared = () => {};
+  });
+
+  afterEach(() => {
+    restoreShared();
+    vi.restoreAllMocks();
+  });
+
+  it("returns a single light's advertised range", async () => {
+    install({ items: [lightItem("dev-1", "H6076", { min: 2200, max: 6500 })] });
+
+    await expect(
+      services.resolveKelvinRangeForTarget({
+        selectedDeviceId: "light:dev-1|H6076",
+      }),
+    ).resolves.toEqual({ min: 2200, max: 6500, precision: 100 });
+  });
+
+  it("narrows a group to the window every member accepts", async () => {
+    // The exact pairing that produced the bug report: an H6076 that
+    // accepts 2200K grouped with an H60B2 that bottoms out at 2700K.
+    const members = [
+      makeLight({ deviceId: "dev-1", model: "H6076" }),
+      makeLight({ deviceId: "dev-2", model: "H60B2" }),
+    ];
+    install({
+      items: [
+        lightItem("dev-1", "H6076", { min: 2200, max: 6500, precision: 1 }),
+        lightItem("dev-2", "H60B2", { min: 2700, max: 6500, precision: 1 }),
+      ],
+      group: LightGroup.create("g1", "Living room", members),
+    });
+
+    await expect(
+      services.resolveKelvinRangeForTarget({ selectedDeviceId: "group:g1" }),
+    ).resolves.toEqual({ min: 2700, max: 6500, precision: 1 });
+  });
+
+  it("ignores group members that advertise no range", async () => {
+    const members = [
+      makeLight({ deviceId: "dev-1", model: "H6076" }),
+      makeLight({ deviceId: "dev-2", model: "H60B2" }),
+    ];
+    install({
+      items: [
+        lightItem("dev-1", "H6076", { min: 2700, max: 6500, precision: 1 }),
+        lightItem("dev-2", "H60B2"),
+      ],
+      group: LightGroup.create("g1", "Living room", members),
+    });
+
+    await expect(
+      services.resolveKelvinRangeForTarget({ selectedDeviceId: "group:g1" }),
+    ).resolves.toEqual({ min: 2700, max: 6500, precision: 1 });
+  });
+
+  it("returns undefined when no member advertises a range", async () => {
+    install({
+      items: [lightItem("dev-1", "H6076")],
+      group: LightGroup.create("g1", "Living room", [
+        makeLight({ deviceId: "dev-1", model: "H6076" }),
+      ]),
+    });
+
+    await expect(
+      services.resolveKelvinRangeForTarget({ selectedDeviceId: "group:g1" }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("returns undefined for a group that no longer exists", async () => {
+    install({ items: [], group: null });
+
+    await expect(
+      services.resolveKelvinRangeForTarget({ selectedDeviceId: "group:gone" }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("falls back instead of throwing when discovery fails", async () => {
+    install({
+      items: undefined,
+      discover: vi.fn().mockRejectedValue(new Error("rate limit exceeded")),
+      group: LightGroup.create("g1", "Living room", [
+        makeLight({ deviceId: "dev-1", model: "H6076" }),
+      ]),
+    });
+
+    await expect(
+      services.resolveKelvinRangeForTarget({ selectedDeviceId: "group:g1" }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("returns undefined when nothing is selected", async () => {
+    install({ items: [] });
+
+    await expect(
+      services.resolveKelvinRangeForTarget({}),
+    ).resolves.toBeUndefined();
+  });
+});

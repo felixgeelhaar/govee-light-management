@@ -11,6 +11,53 @@ export interface KelvinRange {
 }
 
 /**
+ * Conservative Kelvin window used when no device has advertised a range.
+ *
+ * Every Govee colour-temperature device we've seen accepts 2700-6500K, so
+ * this is safe to send blind. The previous 2000-9000K default was a guess
+ * that no real device honoured: values outside a device's true range are
+ * rejected by the API with "parameter value out of range" (see #167).
+ */
+export const SAFE_KELVIN_RANGE: KelvinRange = {
+  min: 2700,
+  max: 6500,
+  precision: 100,
+};
+
+/**
+ * Narrow a set of device ranges to the window that ALL of them accept.
+ *
+ * A group applies one Kelvin value to every member, so the only safe
+ * window is the intersection: the highest minimum, the lowest maximum and
+ * the coarsest precision. A group of a 2200-6500K lamp and a 2700-6500K
+ * lamp can only be driven across 2700-6500K — anything lower is rejected
+ * by the second lamp.
+ *
+ * Returns `undefined` when no ranges were supplied or when the members
+ * have no overlap at all, leaving the caller to fall back.
+ */
+export function intersectKelvinRanges(
+  ranges: readonly KelvinRange[],
+): KelvinRange | undefined {
+  if (ranges.length === 0) {
+    return undefined;
+  }
+
+  const min = Math.max(...ranges.map((range) => range.min));
+  const max = Math.min(...ranges.map((range) => range.max));
+  if (min > max) {
+    // Disjoint members — no single value can satisfy every light.
+    return undefined;
+  }
+
+  return {
+    min,
+    max,
+    precision: Math.max(1, ...ranges.map((range) => range.precision)),
+  };
+}
+
+/**
  * Clamp a kelvin value to a device's advertised range and snap it to
  * the device's precision step.
  *

@@ -2,6 +2,7 @@ import {
   action,
   type DialAction,
   type DialRotateEvent,
+  type DidReceiveSettingsEvent,
 } from "@elgato/streamdeck";
 import type { JsonObject } from "@elgato/utils";
 import { ColorTemperature } from "../domain/value-objects/ColorTemperature";
@@ -10,21 +11,15 @@ import { clamp } from "./shared/validation";
 import { valuePrefix } from "./shared/power-state";
 import {
   type KelvinRange,
+  SAFE_KELVIN_RANGE,
   kelvinToBarValue,
   normalizeKelvin,
 } from "./shared/kelvin-utils";
 
 type ColorTempDialSettings = BaseDialSettings;
 
-const MIN_KELVIN = 2000;
-const MAX_KELVIN = 9000;
 const DEFAULT_KELVIN = 4500;
 const DEFAULT_STEP_KELVIN = 100;
-const DEFAULT_KELVIN_RANGE: KelvinRange = {
-  min: MIN_KELVIN,
-  max: MAX_KELVIN,
-  precision: DEFAULT_STEP_KELVIN,
-};
 
 const DEFAULT_BAR_FILL = "#FFFFFF";
 const DEFAULT_BAR_BG = "0:#FFB347,1:#A8D8EA";
@@ -44,6 +39,15 @@ export class ColorTempDialAction extends BaseDialAction<ColorTempDialSettings> {
     this.tempMap.delete(ctx);
     this.tempRangeMap.delete(ctx);
     this.displayModeMap.delete(ctx);
+  }
+
+  override async onDidReceiveSettings(
+    ev: DidReceiveSettingsEvent<ColorTempDialSettings>,
+  ): Promise<void> {
+    // The dial may now point at a different light or group with a
+    // different Kelvin window, so drop the cached range.
+    this.tempRangeMap.delete(ev.action.id);
+    await super.onDidReceiveSettings(ev);
   }
 
   override async onDialRotate(
@@ -84,7 +88,7 @@ export class ColorTempDialAction extends BaseDialAction<ColorTempDialSettings> {
       {
         action: ev.action,
         getRestoreValue: () => {
-          const localRange = this.tempRangeMap.get(ctx) ?? DEFAULT_KELVIN_RANGE;
+          const localRange = this.tempRangeMap.get(ctx) ?? SAFE_KELVIN_RANGE;
           const kelvin =
             this.tempMap.get(ctx) ?? this.getDefaultKelvinForRange(localRange);
           const isOn = this.powerMap.get(ctx) ?? true;
@@ -206,6 +210,14 @@ export class ColorTempDialAction extends BaseDialAction<ColorTempDialSettings> {
     });
   }
 
+  /**
+   * Resolve the Kelvin window this dial may travel.
+   *
+   * Only a range the device actually advertised gets cached. A fallback is
+   * returned but never stored, so a dial that came up before discovery
+   * finished re-resolves on the next tick instead of being stuck on the
+   * wrong scale until Stream Deck restarts.
+   */
   private async getTemperatureRange(
     settings: ColorTempDialSettings,
     ctx: string,
@@ -215,18 +227,13 @@ export class ColorTempDialAction extends BaseDialAction<ColorTempDialSettings> {
       return cached;
     }
 
-    const lightItem = await this.services.getLightItem(settings);
-    const min = lightItem?.properties?.colorTem?.range?.min ?? MIN_KELVIN;
-    const max = lightItem?.properties?.colorTem?.range?.max ?? MAX_KELVIN;
-    const precision =
-      lightItem?.properties?.colorTem?.range?.precision ?? DEFAULT_STEP_KELVIN;
-    const range: KelvinRange = {
-      min,
-      max,
-      precision: Math.max(1, precision),
-    };
-    this.tempRangeMap.set(ctx, range);
-    return range;
+    const declared = await this.services.resolveKelvinRangeForTarget(settings);
+    if (!declared) {
+      return SAFE_KELVIN_RANGE;
+    }
+
+    this.tempRangeMap.set(ctx, declared);
+    return declared;
   }
 
   private getDefaultKelvinForRange(range: KelvinRange): number {
