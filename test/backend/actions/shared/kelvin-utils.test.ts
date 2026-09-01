@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  SAFE_KELVIN_RANGE,
+  intersectKelvinRanges,
   kelvinFromPercent,
   kelvinToBarValue,
   normalizeKelvin,
@@ -36,6 +38,55 @@ describe("normalizeKelvin", () => {
   it("keeps the snapped value within the clamped range", () => {
     // A snap that would overshoot max should be clamped back.
     expect(normalizeKelvin(6490, range(2700, 6500, 50))).toBe(6500);
+  });
+});
+
+describe("intersectKelvinRanges", () => {
+  it("returns undefined when no ranges are supplied", () => {
+    expect(intersectKelvinRanges([])).toBeUndefined();
+  });
+
+  it("returns the only range when a group has a single member", () => {
+    expect(intersectKelvinRanges([range(2200, 6500, 1)])).toEqual({
+      min: 2200,
+      max: 6500,
+      precision: 1,
+    });
+  });
+
+  it("narrows to the window every member accepts", () => {
+    // Real pairing: a Govee H6076 (2200-6500K) grouped with an H60B2
+    // (2700-6500K). 2200K is valid for the first lamp and rejected by
+    // the second, so the group can only be driven across 2700-6500K.
+    expect(
+      intersectKelvinRanges([range(2200, 6500, 1), range(2700, 6500, 1)]),
+    ).toEqual({ min: 2700, max: 6500, precision: 1 });
+  });
+
+  it("keeps the coarsest precision so every member accepts the step", () => {
+    expect(
+      intersectKelvinRanges([range(2000, 9000, 1), range(2000, 9000, 100)]),
+    ).toEqual({ min: 2000, max: 9000, precision: 100 });
+  });
+
+  it("returns undefined when members have no overlapping window", () => {
+    expect(
+      intersectKelvinRanges([range(2000, 2600, 1), range(2700, 6500, 1)]),
+    ).toBeUndefined();
+  });
+
+  it("never yields a precision below 1K", () => {
+    expect(intersectKelvinRanges([range(2700, 6500, 0)])?.precision).toBe(1);
+  });
+});
+
+describe("SAFE_KELVIN_RANGE", () => {
+  it("stays inside the window Govee devices accept", () => {
+    // The old 2000-9000K default was a guess no device honoured; values
+    // outside a device's true range come back as "parameter value out of
+    // range" (#167).
+    expect(SAFE_KELVIN_RANGE.min).toBeGreaterThanOrEqual(2700);
+    expect(SAFE_KELVIN_RANGE.max).toBeLessThanOrEqual(6500);
   });
 });
 
