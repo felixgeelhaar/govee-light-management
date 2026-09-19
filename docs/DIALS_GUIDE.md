@@ -51,8 +51,8 @@ Turn your Stream Deck+ dials into tactile smart light controllers. Rotate to adj
 
 **What it does:**
 
-- Rotate clockwise for cooler white (toward 9000K daylight)
-- Rotate counter-clockwise for warmer white (toward 2000K candlelight)
+- Rotate clockwise for cooler white, up to your light's coolest setting
+- Rotate counter-clockwise for warmer white, down to its warmest
 - Press dial to toggle power on/off
 - Visual feedback: Warm amber-to-cool blue gradient
 
@@ -70,10 +70,14 @@ Turn your Stream Deck+ dials into tactile smart light controllers. Rotate to adj
 
 **Color range:**
 
-- 2000K: Warm candlelight (orange-amber)
-- 4000K: Neutral warm white (middle position)
-- 6500K: Cool daylight white (neutral)
-- 9000K: Crisp cool blue-white (brightness assistant mode)
+The dial travels the range your light reports to Govee — commonly
+2700K–6500K, wider on some models. For a group it spans every member's
+range, and each light stops at its own limit. A light that reports no
+range gets a safe 2700K–6500K.
+
+- 2700K: Warm white (orange-amber)
+- 4000K: Neutral warm white
+- 6500K: Cool daylight white
 
 **Example workflow:**
 
