@@ -4,6 +4,7 @@ import { ILightRepository } from "../repositories/ILightRepository";
 import { Brightness } from "../value-objects/Brightness";
 import { ColorRgb } from "../value-objects/ColorRgb";
 import { ColorTemperature } from "../value-objects/ColorTemperature";
+import { type FanOutOutcome, fanOutToLights } from "./group-fan-out";
 
 export class LightControlService {
   constructor(private readonly lightRepository: ILightRepository) {}
@@ -80,40 +81,17 @@ export class LightControlService {
     perLightValue?: (
       light: Light,
     ) => Brightness | ColorRgb | ColorTemperature | undefined,
-  ): Promise<{ failed: Light[] }> {
-    const lights = group.lights;
-    if (lights.length === 0) {
+  ): Promise<FanOutOutcome> {
+    if (group.lights.length === 0) {
       throw new Error(`Group ${group.name} has no lights`);
     }
 
     // Attempt every member regardless of its reported online flag (see
     // controlLight): offline-flagged members are no longer pre-filtered out,
     // because that flag is unreliable (#311).
-    // Nothing is awaited before controlLight, so every member's request
-    // leaves at the same moment rather than after the ones before it.
-    const promises = lights.map((light) =>
+    return fanOutToLights(group.lights, (light) =>
       this.controlLight(light, action, perLightValue?.(light) ?? value),
     );
-
-    // Settle rather than race to the first rejection. One unreachable
-    // member (a lamp dropped off Wi-Fi, say) must not discard the work
-    // that succeeded on every other light — previously `Promise.all`
-    // turned a single offline lamp into a failed group command, so the
-    // action showed an error even though the rest of the group had
-    // already changed.
-    const results = await Promise.allSettled(promises);
-    const failures = results.filter(
-      (result): result is PromiseRejectedResult => result.status === "rejected",
-    );
-
-    // Only a total failure is a failed command.
-    if (failures.length === lights.length) {
-      throw failures[0].reason;
-    }
-
-    return {
-      failed: lights.filter((_, index) => results[index].status === "rejected"),
-    };
   }
 
   /**

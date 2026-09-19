@@ -5,8 +5,13 @@
  */
 import { streamDeck } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
+import type { LightItem } from "@shared/types";
 import { GoveeLightRepository } from "../../infrastructure/repositories/GoveeLightRepository";
 import { LightControlService } from "../../domain/services/LightControlService";
+import {
+  type FanOutOutcome,
+  fanOutToLights,
+} from "../../domain/services/group-fan-out";
 import { Light, LightCapabilities } from "../../domain/entities/Light";
 import { LightGroup } from "../../domain/entities/LightGroup";
 import type { LightState } from "../../domain/value-objects/LightState";
@@ -38,7 +43,7 @@ import {
 
 /** Read a light's advertised Kelvin window, if it declared one. */
 function declaredKelvinRange(
-  item: import("@shared/types").LightItem | undefined,
+  item: LightItem | undefined,
 ): KelvinRange | undefined {
   const declared = item?.properties?.colorTem?.range;
   if (!declared) return undefined;
@@ -50,9 +55,9 @@ function declaredKelvinRange(
 }
 
 function findLightItem(
-  items: readonly import("@shared/types").LightItem[],
+  items: readonly LightItem[],
   light: Pick<Light, "deviceId" | "model">,
-): import("@shared/types").LightItem | undefined {
+): LightItem | undefined {
   return items.find(
     (item) => item.deviceId === light.deviceId && item.model === light.model,
   );
@@ -334,9 +339,7 @@ export class ActionServices {
     );
   }
 
-  async getLightItem(
-    settings: BaseSettings,
-  ): Promise<import("@shared/types").LightItem | undefined> {
+  async getLightItem(settings: BaseSettings): Promise<LightItem | undefined> {
     const target = this.parseTarget(settings);
     if (
       !target ||
@@ -348,13 +351,10 @@ export class ActionServices {
       return undefined;
     }
 
-    const lights =
-      this.deviceService.getCachedLights() ??
-      (await this.deviceService.discover(false));
-    return lights.find(
-      (light) =>
-        light.deviceId === target.deviceId && light.model === target.model,
-    );
+    return findLightItem(await this.cachedLightItems(), {
+      deviceId: target.deviceId,
+      model: target.model,
+    });
   }
 
   /**
@@ -365,8 +365,10 @@ export class ActionServices {
    * then send values the API rejects (#167 fixed this for the keypad on
    * single lights only; groups and the dial kept the bug).
    *
-   * For a group this returns the intersection of its members' ranges,
-   * because one Kelvin value is sent to every member.
+   * For a group this returns the union of its members' ranges: each
+   * member is clamped to its own window when the command is sent (see
+   * `buildColorTemperatureClamp`), so the dial may travel as far as the
+   * most capable lamp allows.
    *
    * Returns `undefined` when nothing could be resolved — no target, no
    * device service, or no member advertised a range — so callers can
@@ -421,7 +423,7 @@ export class ActionServices {
   private async buildColorTemperatureClamp(
     value: DomainColorTemperature,
   ): Promise<(light: Light) => DomainColorTemperature> {
-    let items: readonly import("@shared/types").LightItem[] = [];
+    let items: readonly LightItem[] = [];
     try {
       // Read the device cache once for the whole command. Resolving it
       // per light meant a cold cache triggered one discovery per member,
@@ -445,9 +447,7 @@ export class ActionServices {
     };
   }
 
-  private async cachedLightItems(): Promise<
-    import("@shared/types").LightItem[]
-  > {
+  private async cachedLightItems(): Promise<LightItem[]> {
     if (!this.deviceService) return [];
     return (
       this.deviceService.getCachedLights() ??
@@ -618,9 +618,7 @@ export class ActionServices {
               this.deviceService.getCachedLights() ??
               (await this.deviceService.discover(forceRefresh));
             for (const light of group.lights) {
-              const item = cached.find(
-                (c) => c.deviceId === light.deviceId && c.model === light.model,
-              );
+              const item = findLightItem(cached, light);
               if (item) {
                 light.updateState({ isOnline: item.controllable });
               } else {
@@ -1398,13 +1396,18 @@ export class ActionServices {
   /**
    * Execute a control command on either a light or group
    * Includes retry logic with exponential backoff for resilience
+   *
+   * Resolves with how the command fared per light. A group command that
+   * reached only some members resolves — pass the outcome to
+   * `reportPartialFailure` so the key says so — and rejects only when no
+   * member could be controlled.
    */
   async controlTarget(
     target: DeviceTarget,
     command: "on" | "off" | "brightness" | "color" | "colorTemperature",
     value?: DomainBrightness | DomainColorRgb | DomainColorTemperature,
     maxRetries = 3,
-  ): Promise<void> {
+  ): Promise<FanOutOutcome> {
     if (!this.lightControlService) {
       throw new Error("Light control service not initialized");
     }
@@ -1423,7 +1426,7 @@ export class ActionServices {
         ? await this.buildColorTemperatureClamp(domainValue)
         : undefined;
 
-    const execute = async (attempt: number): Promise<void> => {
+    const execute = async (attempt: number): Promise<FanOutOutcome> => {
       try {
         if (target.type === "light" && target.light) {
           await this.lightControlService!.controlLight(
@@ -1432,38 +1435,20 @@ export class ActionServices {
             clampFor ? clampFor(target.light) : domainValue,
           );
           this.rememberLightState(target.light);
-        } else if (target.type === "group" && target.group) {
-          const { failed } = await this.lightControlService!.controlGroup(
+          return { total: 1, failed: [] };
+        }
+        if (target.type === "group" && target.group) {
+          const outcome = await this.lightControlService!.controlGroup(
             target.group,
             command,
             domainValue,
             clampFor,
           );
-          // Persist post-command state for each group member so other
-          // actions pointed at the same lights see the new power /
-          // brightness / colour value via the shared snapshot cache.
-          // Without this, toggling a group from one action leaves the
-          // dial state stale until the live-sync timer next refreshes.
-          // #311: remember all members — controlGroup commanded all of them,
-          // so a member wrongly flagged offline must still have its new state
-          // cached (the online flag is unreliable).
-          for (const light of target.group.lights) {
-            this.rememberLightState(light);
-          }
-          if (failed.length > 0) {
-            // The command succeeded on the rest of the group, so this is
-            // not a failure — but an unreachable lamp must not be silent.
-            streamDeck.logger?.warn(
-              "controlTarget: group command failed on some members",
-              {
-                group: target.group.name,
-                command,
-                failed: failed.map((light) => light.name),
-                succeeded: target.group.lights.length - failed.length,
-              },
-            );
-          }
+          this.rememberReachedMembers(target.group, outcome);
+          this.logMemberFailures(`Command ${command}`, outcome);
+          return outcome;
         }
+        return { total: 0, failed: [] };
       } catch (error) {
         // Don't retry on validation errors - these are likely API issues
         if (
@@ -1485,7 +1470,85 @@ export class ActionServices {
       }
     };
 
-    await execute(0);
+    return execute(0);
+  }
+
+  /**
+   * Apply one operation to every light a target covers.
+   *
+   * A single light is applied directly and its failure propagates. A
+   * group's members are applied all at once rather than one after
+   * another, so they change together; members that fail are logged and
+   * reported in the outcome, and the call rejects only when every member
+   * failed. Every member is attempted regardless of its online flag,
+   * which is unreliable (#311).
+   *
+   * @param label names the operation in the per-member failure log
+   */
+  async applyToTarget(
+    target: DeviceTarget,
+    label: string,
+    apply: (light: Light) => Promise<unknown>,
+  ): Promise<FanOutOutcome> {
+    if (target.type === "light" && target.light) {
+      await apply(target.light);
+      return { total: 1, failed: [] };
+    }
+    if (target.type === "group" && target.group) {
+      const outcome = await fanOutToLights(target.group.lights, apply);
+      this.logMemberFailures(label, outcome);
+      return outcome;
+    }
+    throw new Error("Target resolved to neither a light nor a group");
+  }
+
+  /**
+   * Show the "⚠ N/M" banner when a group command missed some members;
+   * a no-op when every light was reached.
+   */
+  reportPartialFailure(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    action: any,
+    contextId: string,
+    outcome: FanOutOutcome,
+    baseTitle: string,
+  ): void {
+    if (outcome.failed.length === 0) return;
+    this.showPartialFailureBanner(
+      action,
+      contextId,
+      outcome.failed.length,
+      outcome.total,
+      baseTitle,
+    );
+  }
+
+  /**
+   * Persist post-command state for the group members the command reached,
+   * so other actions pointed at the same lights see the new power /
+   * brightness / colour value via the shared snapshot cache. Without this,
+   * toggling a group from one action leaves the dial state stale until the
+   * live-sync timer next refreshes. A member the command never reached is
+   * skipped: its cached state is not news, and marking it fresh would
+   * suppress the next live refresh that could correct it.
+   */
+  private rememberReachedMembers(
+    group: LightGroup,
+    outcome: FanOutOutcome,
+  ): void {
+    const missed = new Set(outcome.failed.map(({ light }) => light));
+    for (const light of group.lights) {
+      if (!missed.has(light)) this.rememberLightState(light);
+    }
+  }
+
+  private logMemberFailures(label: string, outcome: FanOutOutcome): void {
+    for (const { light, error } of outcome.failed) {
+      streamDeck.logger?.warn(
+        `${label} failed for group member ${light.name}:`,
+        error,
+      );
+    }
   }
 
   /**

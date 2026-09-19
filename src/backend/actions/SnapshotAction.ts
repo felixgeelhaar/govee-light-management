@@ -76,49 +76,19 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
       );
 
       const stopSpinner = this.services.showSpinner(ev.action);
-      let anySucceeded = false;
-      let failedCount = 0;
-      let totalCount = 0;
-      try {
-        if (target.type === "light" && target.light) {
-          await this.services.applySnapshot(target.light, snapshot);
-          anySucceeded = true;
-        } else if (target.type === "group" && target.group) {
-          // Apply snapshot to each group member sequentially.
-          // Groups don't have a single-call path for snapshots.
-          // #311: iterate all members; the online flag is unreliable
-          const members = target.group.lights;
-          totalCount = members.length;
-          for (const member of members) {
-            try {
-              await this.services.applySnapshot(member, snapshot);
-              anySucceeded = true;
-            } catch (error) {
-              failedCount++;
-              streamDeck.logger.warn(
-                `Snapshot apply failed for group member ${member.name}:`,
-                error,
-              );
-              // Continue to next light — don't fail the whole group
-            }
-          }
-        }
-      } finally {
-        stopSpinner();
-      }
-      if (!anySucceeded) {
-        await ev.action.showAlert();
-        return;
-      }
-      if (failedCount > 0 && totalCount > 0) {
-        this.services.showPartialFailureBanner(
-          ev.action,
-          ev.action.id,
-          failedCount,
-          totalCount,
-          this.getTitle(settings),
-        );
-      }
+      // Groups have no single-call path for snapshots, so each member is
+      // applied on its own — all at once, tolerating partial failure.
+      const outcome = await this.services
+        .applyToTarget(target, "Snapshot apply", (light) =>
+          this.services.applySnapshot(light, snapshot),
+        )
+        .finally(stopSpinner);
+      this.services.reportPartialFailure(
+        ev.action,
+        ev.action.id,
+        outcome,
+        this.getTitle(settings),
+      );
       await ev.action.showOk();
     } catch (error) {
       streamDeck.logger.error("Failed to apply snapshot:", error);

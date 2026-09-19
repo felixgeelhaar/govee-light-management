@@ -19,6 +19,7 @@ import {
 } from "@elgato/streamdeck";
 import type { JsonObject, JsonValue } from "@elgato/utils";
 import { ColorRgb } from "../domain/value-objects/ColorRgb";
+import type { FanOutOutcome } from "../domain/services/group-fan-out";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { hsvToRgb, rgbToHue } from "./shared/color-utils";
 import { clamp } from "./shared/validation";
@@ -95,14 +96,15 @@ export class ColorAction extends BaseDialAction<ColorSettings> {
         normalizedHex === "000" ||
         normalizedHex === "";
       const stopSpinner = this.services.showSpinner(ev.action);
+      let outcome: FanOutOutcome;
       try {
         if (isBlack) {
-          await this.services.controlTarget(target, "off");
+          outcome = await this.services.controlTarget(target, "off");
           this.powerMap.set(ev.action.id, false);
         } else {
           const color = ColorRgb.fromHex(hex);
           await this.services.ensurePreparedForTarget(ev.action.id, target);
-          await this.services.controlTarget(target, "color", color);
+          outcome = await this.services.controlTarget(target, "color", color);
           // Optimistic local hue + on so the next sync doesn't briefly flip.
           this.hueMap.set(ev.action.id, rgbToHue(color));
           this.powerMap.set(ev.action.id, true);
@@ -110,6 +112,12 @@ export class ColorAction extends BaseDialAction<ColorSettings> {
       } finally {
         stopSpinner();
       }
+      this.services.reportPartialFailure(
+        ev.action,
+        ev.action.id,
+        outcome,
+        this.displayValue(ev.action.id),
+      );
       await ev.action.showOk();
 
       if (!isBlack) {
@@ -251,6 +259,14 @@ export class ColorAction extends BaseDialAction<ColorSettings> {
 
   // ── Title / LCD render ────────────────────────────────────────
 
+  /** The value shown on the key title and the dial's LCD. */
+  private displayValue(ctx: string): string {
+    const hue = this.hueMap.get(ctx) ?? 0;
+    const isOn = this.powerMap.get(ctx) ?? true;
+    const displayMode = this.displayModeMap.get(ctx) ?? "single";
+    return !isOn ? "Off" : `${valuePrefix(displayMode)}${hue} °`;
+  }
+
   protected async updateDisplay(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     action: DialAction<ColorSettings & JsonObject> | any,
@@ -259,8 +275,7 @@ export class ColorAction extends BaseDialAction<ColorSettings> {
     const ctx = action.id || "default";
     const hue = this.hueMap.get(ctx) ?? 0;
     const isOn = this.powerMap.get(ctx) ?? true;
-    const displayMode = this.displayModeMap.get(ctx) ?? "single";
-    const value = !isOn ? "Off" : `${valuePrefix(displayMode)}${hue} °`;
+    const value = this.displayValue(ctx);
 
     if (typeof action.setFeedback === "function") {
       try {

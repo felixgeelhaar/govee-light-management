@@ -602,7 +602,7 @@ describe("ActionServices chokepoint: cancel before user command", () => {
     // contract rather than the full control pipeline.
     const controlService = {
       controlLight: vi.fn().mockResolvedValue(undefined),
-      controlGroup: vi.fn().mockResolvedValue({ failed: [] }),
+      controlGroup: vi.fn().mockResolvedValue({ total: 2, failed: [] }),
     };
     const shared = (
       ActionServices as unknown as {
@@ -649,7 +649,7 @@ describe("ActionServices.controlTarget — group state remembering", () => {
 
     const controlService = {
       controlLight: vi.fn().mockResolvedValue(undefined),
-      controlGroup: vi.fn().mockResolvedValue({ failed: [] }),
+      controlGroup: vi.fn().mockResolvedValue({ total: 2, failed: [] }),
     };
     const shared = (
       ActionServices as unknown as {
@@ -1326,5 +1326,185 @@ describe("ActionServices.controlTarget — per-light colour temperature clamping
     expect((controlLight.mock.calls[0][2] as { kelvin: number }).kelvin).toBe(
       4500,
     );
+  });
+});
+
+/**
+ * Group fan-out. Scenes, snapshots, toggles, music modes and segment
+ * colours each looped over group members one at a time, so the last lamp
+ * changed visibly after the first. They now share one concurrent path
+ * that tolerates a partial failure and reports it.
+ */
+describe("ActionServices.applyToTarget", () => {
+  const makeMember = (deviceId: string) =>
+    makeLight({ deviceId, model: "H6001" });
+
+  it("applies to a single light and reports it as one success", async () => {
+    const services = new ActionServices();
+    const light = makeMember("solo");
+    const apply = vi.fn().mockResolvedValue(undefined);
+
+    const outcome = await services.applyToTarget(
+      { type: "light", light },
+      "Scene",
+      apply,
+    );
+
+    expect(apply).toHaveBeenCalledWith(light);
+    expect(outcome).toEqual({ total: 1, failed: [] });
+  });
+
+  it("propagates a single light's failure", async () => {
+    const services = new ActionServices();
+
+    await expect(
+      services.applyToTarget(
+        { type: "light", light: makeMember("solo") },
+        "Scene",
+        vi.fn().mockRejectedValue(new Error("rate limited")),
+      ),
+    ).rejects.toThrow("rate limited");
+  });
+
+  it("applies to every group member at once and reports the ones that failed", async () => {
+    const services = new ActionServices();
+    const [a, b, c] = ["a", "b", "c"].map(makeMember);
+    const group = LightGroup.create("grp", "Living Room", [a, b, c]);
+    let inFlight = 0;
+    let peak = 0;
+
+    const outcome = await services.applyToTarget(
+      { type: "group", group },
+      "Scene",
+      async (light) => {
+        inFlight++;
+        peak = Math.max(peak, inFlight);
+        await Promise.resolve();
+        inFlight--;
+        if (light === b) throw new Error("offline");
+      },
+    );
+
+    expect(peak).toBe(3);
+    expect(outcome.total).toBe(3);
+    expect(outcome.failed.map((f) => f.light)).toEqual([b]);
+  });
+
+  it("rejects when every group member fails", async () => {
+    const services = new ActionServices();
+    const group = LightGroup.create("grp", "Living Room", [
+      makeMember("a"),
+      makeMember("b"),
+    ]);
+
+    await expect(
+      services.applyToTarget(
+        { type: "group", group },
+        "Scene",
+        vi.fn().mockRejectedValue(new Error("all down")),
+      ),
+    ).rejects.toThrow("all down");
+  });
+
+  it("rejects a target that resolved to neither a light nor a group", async () => {
+    const services = new ActionServices();
+
+    await expect(
+      services.applyToTarget({ type: "group" }, "Scene", vi.fn()),
+    ).rejects.toThrow();
+  });
+});
+
+describe("ActionServices.controlTarget — group outcome", () => {
+  const snapshots = (
+    ActionServices as unknown as { lightStateSnapshots: Map<string, unknown> }
+  ).lightStateSnapshots;
+  const shared = (
+    ActionServices as unknown as { _shared: { lightControlService?: unknown } }
+  )._shared;
+  let originalControl: unknown;
+
+  beforeEach(() => {
+    originalControl = shared.lightControlService;
+  });
+
+  afterEach(() => {
+    shared.lightControlService = originalControl;
+  });
+
+  it("reports which members failed and remembers state only for the rest", async () => {
+    const reached = makeLight({ deviceId: "reached", model: "H6001" });
+    const unreachable = makeLight({ deviceId: "unreachable", model: "H6001" });
+    const group = LightGroup.create("grp", "Living Room", [
+      reached,
+      unreachable,
+    ]);
+    const failed = [{ light: unreachable, error: new Error("offline") }];
+    shared.lightControlService = {
+      controlGroup: vi.fn().mockResolvedValue({ total: 2, failed }),
+    };
+    snapshots.delete("reached|H6001");
+    snapshots.delete("unreachable|H6001");
+
+    const outcome = await new ActionServices().controlTarget(
+      { type: "group", group },
+      "on",
+    );
+
+    expect(outcome).toEqual({ total: 2, failed });
+    expect(snapshots.has("reached|H6001")).toBe(true);
+    // The command never reached this lamp, so its cached state is not
+    // news — marking it fresh would suppress the next live refresh.
+    expect(snapshots.has("unreachable|H6001")).toBe(false);
+  });
+
+  it("reports a single light as one success", async () => {
+    shared.lightControlService = {
+      controlLight: vi.fn().mockResolvedValue(undefined),
+    };
+
+    const outcome = await new ActionServices().controlTarget(
+      { type: "light", light: makeLight() },
+      "on",
+    );
+
+    expect(outcome).toEqual({ total: 1, failed: [] });
+  });
+});
+
+describe("ActionServices.reportPartialFailure", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("shows the ⚠ banner when some lights failed", () => {
+    const services = new ActionServices();
+    const action = { setTitle: vi.fn().mockResolvedValue(undefined) };
+    const outcome = {
+      total: 3,
+      failed: [{ light: makeLight(), error: new Error("offline") }],
+    };
+
+    services.reportPartialFailure(action, "ctx-1", outcome, "50%");
+
+    expect(action.setTitle).toHaveBeenLastCalledWith("50%\n⚠ 1/3");
+  });
+
+  it("leaves the title alone when every light succeeded", () => {
+    const services = new ActionServices();
+    const action = { setTitle: vi.fn().mockResolvedValue(undefined) };
+
+    services.reportPartialFailure(
+      action,
+      "ctx-1",
+      { total: 3, failed: [] },
+      "50%",
+    );
+
+    expect(action.setTitle).not.toHaveBeenCalled();
   });
 });

@@ -22,6 +22,7 @@ import {
 } from "@elgato/streamdeck";
 import type { JsonObject, JsonValue } from "@elgato/utils";
 import { Brightness } from "../domain/value-objects/Brightness";
+import type { FanOutOutcome } from "../domain/services/group-fan-out";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { clamp } from "./shared/validation";
 import { valuePrefix } from "./shared/power-state";
@@ -74,9 +75,14 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
     try {
       const brightness = new Brightness(settings.brightnessValue ?? 50);
       const stopSpinner = this.services.showSpinner(ev.action);
+      let outcome: FanOutOutcome;
       try {
         await this.services.ensurePreparedForTarget(ev.action.id, target);
-        await this.services.controlTarget(target, "brightness", brightness);
+        outcome = await this.services.controlTarget(
+          target,
+          "brightness",
+          brightness,
+        );
       } finally {
         stopSpinner();
       }
@@ -84,6 +90,12 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
       // revert to a stale brightness value.
       this.brightnessMap.set(ev.action.id, brightness.level);
       this.powerMap.set(ev.action.id, brightness.level > 0);
+      this.services.reportPartialFailure(
+        ev.action,
+        ev.action.id,
+        outcome,
+        this.displayValue(ev.action.id),
+      );
       await ev.action.showOk();
 
       telemetryService.recordCommand({
@@ -228,6 +240,14 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
 
   // ── Title / LCD render ─────────────────────────────────────────
 
+  /** The value shown on the key title and the dial's LCD. */
+  private displayValue(ctx: string): string {
+    const brightness = this.brightnessMap.get(ctx) ?? 50;
+    const isOn = this.powerMap.get(ctx) ?? true;
+    const displayMode = this.displayModeMap.get(ctx) ?? "single";
+    return !isOn ? "Off" : `${valuePrefix(displayMode)}${brightness}%`;
+  }
+
   protected async updateDisplay(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     action: DialAction<BrightnessSettings & JsonObject> | any,
@@ -236,8 +256,7 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
     const ctx = action.id || "default";
     const brightness = this.brightnessMap.get(ctx) ?? 50;
     const isOn = this.powerMap.get(ctx) ?? true;
-    const displayMode = this.displayModeMap.get(ctx) ?? "single";
-    const value = !isOn ? "Off" : `${valuePrefix(displayMode)}${brightness}%`;
+    const value = this.displayValue(ctx);
 
     // Encoder gets the LCD layout (label + value + bar). Keypad just
     // gets a setTitle since it has no LCD strip. setFeedback is only

@@ -9,6 +9,7 @@ import {
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
+import type { Light } from "../domain/entities/Light";
 import { DynamicSceneOption } from "../domain/value-objects/DynamicSceneOption";
 import { DiySceneOption } from "../domain/value-objects/DiySceneOption";
 import {
@@ -75,80 +76,32 @@ export class SceneAction extends SingletonAction<SceneSettings> {
         name: string;
       };
       const sceneKind = parsed.kind === "diy" ? "diy" : "dynamic";
+      const applyScene =
+        sceneKind === "diy"
+          ? (light: Light) =>
+              this.services.applyDiyScene(
+                light,
+                DiySceneOption.create(parsed.id, parsed.paramId, parsed.name),
+              )
+          : (light: Light) =>
+              this.services.applyDynamicScene(
+                light,
+                DynamicSceneOption.create(
+                  parsed.id,
+                  parsed.paramId,
+                  parsed.name,
+                ),
+              );
       const stopSpinner = this.services.showSpinner(ev.action);
-      let anySucceeded = false;
-      let failedCount = 0;
-      let totalCount = 0;
-      try {
-        if (sceneKind === "diy") {
-          const scene = DiySceneOption.create(
-            parsed.id,
-            parsed.paramId,
-            parsed.name,
-          );
-          if (target.type === "light" && target.light) {
-            await this.services.applyDiyScene(target.light, scene);
-            anySucceeded = true;
-          } else if (target.type === "group" && target.group) {
-            // #311: iterate all members; the online flag is unreliable
-            const members = target.group.lights;
-            totalCount = members.length;
-            for (const light of members) {
-              try {
-                await this.services.applyDiyScene(light, scene);
-                anySucceeded = true;
-              } catch (error) {
-                failedCount++;
-                streamDeck.logger.warn(
-                  `Scene apply failed for group member ${light.name}:`,
-                  error,
-                );
-              }
-            }
-          }
-        } else {
-          const scene = DynamicSceneOption.create(
-            parsed.id,
-            parsed.paramId,
-            parsed.name,
-          );
-          if (target.type === "light" && target.light) {
-            await this.services.applyDynamicScene(target.light, scene);
-            anySucceeded = true;
-          } else if (target.type === "group" && target.group) {
-            // #311: iterate all members; the online flag is unreliable
-            const members = target.group.lights;
-            totalCount = members.length;
-            for (const light of members) {
-              try {
-                await this.services.applyDynamicScene(light, scene);
-                anySucceeded = true;
-              } catch (error) {
-                failedCount++;
-                streamDeck.logger.warn(
-                  `Scene apply failed for group member ${light.name}:`,
-                  error,
-                );
-              }
-            }
-          }
-        }
-      } finally {
-        stopSpinner();
-      }
-      if (!anySucceeded) {
-        await ev.action.showAlert();
-        return;
-      }
-      if (failedCount > 0 && totalCount > 0) {
-        this.services.showPartialFailureBanner(
-          ev.action,
-          ev.action.id,
-          failedCount,
-          totalCount,
-          this.getTitle(settings),
-        );
-      }
+      const outcome = await this.services
+        .applyToTarget(target, "Scene apply", applyScene)
+        .finally(stopSpinner);
+      this.services.reportPartialFailure(
+        ev.action,
+        ev.action.id,
+        outcome,
+        this.getTitle(settings),
+      );
       await ev.action.showOk();
     } catch (error) {
       streamDeck.logger.error("Failed to apply scene:", error);
