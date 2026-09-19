@@ -11,6 +11,52 @@ export interface KelvinRange {
 }
 
 /**
+ * Conservative Kelvin window used when no device has advertised a range.
+ *
+ * Every Govee colour-temperature device we've seen accepts 2700-6500K, so
+ * this is safe to send blind. The previous 2000-9000K default was a guess
+ * that no real device honoured: values outside a device's true range are
+ * rejected by the API with "parameter value out of range" (see #167).
+ */
+export const SAFE_KELVIN_RANGE: KelvinRange = {
+  min: 2700,
+  max: 6500,
+  precision: 100,
+};
+
+/**
+ * Widen a set of device ranges to the full span the group can express.
+ *
+ * A group is applied by fanning out one command per light, so the dial
+ * does NOT have to be limited to the window every member shares. It
+ * travels the union — the lowest minimum to the highest maximum — and
+ * each light is clamped to its own range at send time (see
+ * `ActionServices.controlTarget`). A 2200-6500K lamp grouped with a
+ * 2700-6500K lamp gives a 2200-6500K dial: at 2200K the first lamp goes
+ * to 2200K and the second sits at its own 2700K floor, instead of both
+ * being capped at the narrower lamp's window.
+ *
+ * Precision is the coarsest of the members, so a step the dial produces
+ * is one every member can land on after its own clamp.
+ *
+ * Returns `undefined` when no ranges were supplied, leaving the caller
+ * to fall back.
+ */
+export function unionKelvinRanges(
+  ranges: readonly KelvinRange[],
+): KelvinRange | undefined {
+  if (ranges.length === 0) {
+    return undefined;
+  }
+
+  return {
+    min: Math.min(...ranges.map((range) => range.min)),
+    max: Math.max(...ranges.map((range) => range.max)),
+    precision: Math.max(1, ...ranges.map((range) => range.precision)),
+  };
+}
+
+/**
  * Clamp a kelvin value to a device's advertised range and snap it to
  * the device's precision step.
  *
