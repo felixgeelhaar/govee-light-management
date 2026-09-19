@@ -256,7 +256,7 @@ setGradientToggle(deviceId: string, model: string, enabled: boolean): Promise<vo
 - [x] Implemented `setMusicMode()` with mode ID mapping via `MusicModeMapper`
 - [x] Implemented `toggleNightlight()` using `client.setNightlightToggle()`
 - [x] Implemented `toggleGradient()` using `client.setGradientToggle()`
-- [x] All methods use ErrorBoundaries and circuit breaker pattern for resilience
+- [x] All methods rely on govee-api-client's circuit breaker and retry for resilience
 - [x] Comprehensive logging for all operations
 
 ### Phase 3: Handle Unsupported Features ✅ COMPLETED
