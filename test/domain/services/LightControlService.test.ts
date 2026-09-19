@@ -133,6 +133,25 @@ describe('LightControlService', () => {
       expect(mockLightRepository.setPower).toHaveBeenCalledTimes(2);
     });
 
+    it('should dispatch every member concurrently, not one after another', async () => {
+      // Group members must leave together. When the fan-out awaited work
+      // per light before dispatching, each member's request went out only
+      // after the ones before it, so the lamps visibly changed out of step.
+      let inFlight = 0;
+      let peakInFlight = 0;
+      mockLightRepository.setPower.mockImplementation(async () => {
+        inFlight += 1;
+        peakInFlight = Math.max(peakInFlight, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        inFlight -= 1;
+      });
+
+      await service.controlGroup(mockGroup, 'on');
+
+      // Both members in flight at once; sequential dispatch peaks at 1.
+      expect(peakInFlight).toBe(mockGroup.lights.length);
+    });
+
     it('should attempt all members regardless of the offline flag (#311)', async () => {
       // A member flagged offline is no longer pre-filtered — the flag is
       // unreliable, so every member gets the command.
@@ -182,10 +201,23 @@ describe('LightControlService', () => {
         .mockRejectedValueOnce(new Error('First light failed'))
         .mockResolvedValueOnce(undefined);
 
-      // Should propagate the error from Promise.all
-      await expect(
-        service.controlGroup(mockGroup, 'on')
-      ).rejects.toThrow('First light failed');
+      // One unreachable member must not discard the work that succeeded
+      // on the rest of the group: the command resolves, reporting which
+      // lights failed, and every member was still attempted.
+      const result = await service.controlGroup(mockGroup, 'on');
+
+      expect(result.failed).toHaveLength(1);
+      expect(mockLightRepository.setPower).toHaveBeenCalledTimes(2);
+    });
+
+    it('should reject only when every light in the group fails', async () => {
+      mockLightRepository.setPower.mockRejectedValue(
+        new Error('All lights failed')
+      );
+
+      await expect(service.controlGroup(mockGroup, 'on')).rejects.toThrow(
+        'All lights failed'
+      );
     });
   });
 });
