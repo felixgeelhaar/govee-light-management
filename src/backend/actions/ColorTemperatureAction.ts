@@ -19,6 +19,7 @@ import {
 } from "@elgato/streamdeck";
 import type { JsonObject } from "@elgato/utils";
 import { ColorTemperature } from "../domain/value-objects/ColorTemperature";
+import type { FanOutOutcome } from "../domain/services/group-fan-out";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import {
   type KelvinRange,
@@ -98,9 +99,10 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
       );
       const colorTemp = new ColorTemperature(kelvin);
       const stopSpinner = this.services.showSpinner(ev.action);
+      let outcome: FanOutOutcome;
       try {
         await this.services.ensurePreparedForTarget(ev.action.id, target);
-        await this.services.controlTarget(
+        outcome = await this.services.controlTarget(
           target,
           "colorTemperature",
           colorTemp,
@@ -110,6 +112,12 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
       }
       this.tempMap.set(ev.action.id, kelvin);
       this.powerMap.set(ev.action.id, true);
+      this.services.reportPartialFailure(
+        ev.action,
+        ev.action.id,
+        outcome,
+        this.displayValue(ev.action.id, kelvin),
+      );
       await ev.action.showOk();
 
       telemetryService.recordCommand({
@@ -275,6 +283,13 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
 
   // ── Title / LCD render ───────────────────────────────────────
 
+  /** The value shown on the key title and the dial's LCD. */
+  private displayValue(ctx: string, kelvin: number): string {
+    const isOn = this.powerMap.get(ctx) ?? true;
+    const displayMode = this.displayModeMap.get(ctx) ?? "single";
+    return !isOn ? "Off" : `${valuePrefix(displayMode)}${kelvin}K`;
+  }
+
   protected async updateDisplay(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     action: DialAction<ColorTemperatureSettings & JsonObject> | any,
@@ -288,8 +303,7 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
       this.tempMap.get(ctx) ?? this.getDefaultKelvinForRange(range);
     const isOn = this.powerMap.get(ctx) ?? true;
     const barValue = kelvinToBarValue(kelvin, range.min, range.max);
-    const displayMode = this.displayModeMap.get(ctx) ?? "single";
-    const value = !isOn ? "Off" : `${valuePrefix(displayMode)}${kelvin}K`;
+    const value = this.displayValue(ctx, kelvin);
 
     if (typeof action.setFeedback === "function") {
       try {

@@ -85,39 +85,17 @@ export class SegmentColorAction extends BaseDialAction<SegmentColorSettings> {
 
     try {
       const segments = this.buildSegments(settings);
-      if (target.type === "light" && target.light) {
-        await this.services.setSegmentColors(target.light, segments);
-      } else if (target.type === "group" && target.group) {
-        // #311: iterate all members; the online flag is unreliable
-        const members = target.group.lights;
-        let anySucceeded = false;
-        let failedCount = 0;
-        for (const light of members) {
-          try {
-            await this.services.setSegmentColors(light, segments);
-            anySucceeded = true;
-          } catch (error) {
-            failedCount++;
-            streamDeck.logger.warn(
-              `Segment color apply failed for group member ${light.name}:`,
-              error,
-            );
-          }
-        }
-        if (!anySucceeded) {
-          await ev.action.showAlert();
-          return;
-        }
-        if (failedCount > 0 && members.length > 0) {
-          this.services.showPartialFailureBanner(
-            ev.action,
-            ev.action.id,
-            failedCount,
-            members.length,
-            this.getKeypadTitle(settings),
-          );
-        }
-      }
+      const outcome = await this.services.applyToTarget(
+        target,
+        "Segment color apply",
+        (light) => this.services.setSegmentColors(light, segments),
+      );
+      this.services.reportPartialFailure(
+        ev.action,
+        ev.action.id,
+        outcome,
+        this.getKeypadTitle(settings),
+      );
       this.powerMap.set(ev.action.id, true);
       await ev.action.showOk();
     } catch (error) {

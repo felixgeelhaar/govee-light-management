@@ -9,6 +9,7 @@ import {
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
+import type { FanOutOutcome } from "../domain/services/group-fan-out";
 import { ActionServices, type BaseSettings } from "./shared/ActionServices";
 import { type GroupPowerSummary } from "./shared/power-state";
 import {
@@ -245,24 +246,22 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
 
       const stopSpinner = this.services.showSpinner(ev.action);
 
+      let outcome: FanOutOutcome;
       try {
-        await this.services.controlTarget(target, command);
+        outcome = await this.services.controlTarget(target, command);
         if (target.type === "light" && target.light) {
           await this.services.verifyLivePowerState(
             target.light,
             command === "on",
           );
         } else if (target.type === "group" && target.group) {
-          // After a successful group toggle, every controllable member
-          // moved to the commanded state. Offline members weren't
-          // commanded, so onCount reflects only those that were —
-          // totalCount stays at full group size so the user sees that
-          // the offline member exists ("1/2" rather than "1/1").
-          const total = target.group.lights.length;
-          const commanded = target.group.getControllableLights().length;
+          // Count what each member reports now. A member the command
+          // reached moved to the commanded state; one it missed kept its
+          // previous state, so the count stays honest ("2/3" rather than
+          // "3/3" when one lamp is unreachable).
           this.groupSummary.set(contextId, {
-            onCount: command === "on" ? commanded : 0,
-            totalCount: total,
+            onCount: target.group.lights.filter((light) => light.isOn).length,
+            totalCount: target.group.lights.length,
           });
         }
       } finally {
@@ -270,6 +269,12 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
       }
 
       await this.render(ev.action, settings, contextId);
+      this.services.reportPartialFailure(
+        ev.action,
+        contextId,
+        outcome,
+        this.getTitle(settings, contextId),
+      );
       await ev.action.showOk();
 
       telemetryService.recordCommand({
