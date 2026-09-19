@@ -11,9 +11,14 @@
  * which is a separate opt-in almost nobody uses.
  *
  * So the glyph moves onto the artwork. This module takes an action's
- * shipped `key.svg`, composites a status badge into the top-right
- * corner (clear of the bottom-aligned title), dims the artwork when the
- * target is off, and hands back a data URI ready for `setImage()`.
+ * shipped `key.svg`, shifts the artwork's own gradient toward one end to
+ * signal the state, optionally composites a status badge into the top-right
+ * corner (clear of the bottom-aligned title), and hands back a data URI
+ * ready for `setImage()`.
+ *
+ * The badge can be turned off globally (#339). The gradient shift cannot:
+ * it replaced a desaturate-to-grey treatment that was hard to read across
+ * a room, and there is no user for whom grey is preferable.
  *
  * The badge shapes mirror `powerGlyph()` in `power-state.ts` one-for-one
  * so users learn a single shape language:
@@ -151,18 +156,74 @@ function renderBadge(
 }
 
 /**
- * Desaturate-and-fade treatment for the off state. Matches the shipped
- * `key-off.svg` variants exactly, so actions that already had a second
- * manifest state look identical whether the image comes from the
- * manifest or from here.
+ * Where the artwork's own gradient is pushed for each state.
+ *
+ * The shipped key art is drawn in one linear gradient running purple →
+ * indigo → cyan. Rather than introducing a second colour language, each
+ * state slides that gradient's midpoint so one end dominates: purple for
+ * off, cyan for on, and the authored balance for partial.
+ *
+ * This replaces a desaturate-and-fade treatment. Greying the artwork is
+ * the one change guaranteed to cost legibility at a distance, which is
+ * what #339 reported — an off key was hard to tell from a lit one across
+ * a room. A hue shift keeps the mark bright and still reads as plainly
+ * different.
  */
-function dim(body: string): string {
+const GRADIENT_MIDPOINT: Record<Exclude<PowerStatus, "unknown">, number> = {
+  // Cyan reaches almost to the start, so the key reads as lit.
+  on: 0.1,
+  // The artwork's own balance, so a mixed group sits visibly between the two.
+  partial: 0.5,
+  // Purple holds almost the whole sweep, so the key reads as cold.
+  off: 0.9,
+};
+
+/**
+ * Last-resort dim for an off key, used only when nothing else marks it.
+ *
+ * Hue is one axis, and on its own it cannot carry three states: wherever
+ * `partial` sits it is adjacent to a neighbour. So a key always needs a
+ * second axis, and there are three candidates in order of preference —
+ * the corner badge, a glyph drawn into the artwork, and finally this dim.
+ *
+ * The first two are better because they say "off" rather than merely
+ * "less". This is reached only with the badge hidden and no drawn state
+ * art, which is every action but `light` today. It matters most for the
+ * artwork the gradient barely touches: the colour wheel, the segment bars
+ * and the saturation dial are drawn in their own fixed colours, so
+ * shifting the gradient leaves `on` and `partial` nearly identical.
+ */
+const OFF_OPACITY = 0.55;
+
+const GRADIENT_STOP = /<stop\b[^>]*offset\s*=\s*["']([^"']+)["'][^>]*>/gi;
+
+/**
+ * Slides the midpoint of the artwork's gradient toward one end.
+ *
+ * Only a three-stop gradient is touched, and only its middle stop moves —
+ * the end colours stay exactly as authored, so this cannot introduce a
+ * colour the artwork does not already use. Artwork with any other number
+ * of stops is returned untouched rather than guessed at.
+ */
+function shiftGradient(
+  body: string,
+  status: Exclude<PowerStatus, "unknown">,
+): string {
+  const stops = [...body.matchAll(GRADIENT_STOP)];
+  const middle = stops.length === 3 ? stops[1] : undefined;
+  if (!middle || middle.index === undefined) {
+    return body;
+  }
+
+  const shifted = middle[0].replace(
+    /offset\s*=\s*["'][^"']+["']/i,
+    `offset="${n(GRADIENT_MIDPOINT[status])}"`,
+  );
+
   return (
-    '<defs><filter id="gv-status-dim"><feColorMatrix type="saturate" values="0"/>' +
-    '<feComponentTransfer><feFuncR type="linear" slope="0.7"/>' +
-    '<feFuncG type="linear" slope="0.7"/><feFuncB type="linear" slope="0.7"/>' +
-    "</feComponentTransfer></filter></defs>" +
-    `<g filter="url(#gv-status-dim)" opacity="0.4">${body}</g>`
+    body.slice(0, middle.index) +
+    shifted +
+    body.slice(middle.index + middle[0].length)
   );
 }
 
@@ -170,9 +231,22 @@ function dim(body: string): string {
  * Composite `baseSvg` with a status badge. Pure — no filesystem, no SDK
  * — so the geometry is straightforward to test.
  *
+ * `authoredForState` marks artwork drawn for this exact state (#339), whose
+ * gradient is then left exactly as the artist set it.
+ *
+ * A key carries hue plus exactly one more axis, and `showDot` and
+ * `authoredForState` between them say which: the badge, the drawn glyph, or
+ * — when neither is present — the off dim. Off is left at full colour
+ * whenever something better is already marking it.
+ *
  * @throws if `baseSvg` has no `<svg>` root element.
  */
-export function renderStatusKey(baseSvg: string, status: PowerStatus): string {
+export function renderStatusKey(
+  baseSvg: string,
+  status: PowerStatus,
+  showDot = true,
+  authoredForState = false,
+): string {
   if (status === "unknown") return baseSvg;
 
   const open = SVG_OPEN_TAG.exec(baseSvg);
@@ -183,13 +257,19 @@ export function renderStatusKey(baseSvg: string, status: PowerStatus): string {
 
   const box = parseViewBox(open[1]);
   const body = baseSvg.slice(open.index + open[0].length, close);
-  const artwork = status === "off" ? dim(body) : body;
+  const shifted = authoredForState ? body : shiftGradient(body, status);
+  // Dim only when nothing else marks the key as off — no badge above it and
+  // no glyph drawn into it. See OFF_OPACITY for the ordering.
+  const needsDim = status === "off" && !authoredForState && !showDot;
+  const artwork = needsDim
+    ? `<g opacity="${n(OFF_OPACITY)}">${shifted}</g>`
+    : shifted;
   const viewBox = `${n(box.x)} ${n(box.y)} ${n(box.width)} ${n(box.height)}`;
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">` +
     artwork +
-    renderBadge(status, box) +
+    (showDot ? renderBadge(status, box) : "") +
     "</svg>"
   );
 }
@@ -197,10 +277,17 @@ export function renderStatusKey(baseSvg: string, status: PowerStatus): string {
 const DATA_URI_PREFIX = "data:image/svg+xml;base64,";
 
 /** Encode a composited key for `setImage()`. */
-export function statusKeyDataUri(baseSvg: string, status: PowerStatus): string {
+export function statusKeyDataUri(
+  baseSvg: string,
+  status: PowerStatus,
+  showDot = true,
+  authoredForState = false,
+): string {
   return (
     DATA_URI_PREFIX +
-    Buffer.from(renderStatusKey(baseSvg, status)).toString("base64")
+    Buffer.from(
+      renderStatusKey(baseSvg, status, showDot, authoredForState),
+    ).toString("base64")
   );
 }
 
@@ -231,19 +318,129 @@ export function loadKeyArt(
   return svg;
 }
 
+/** Artwork for one state, and whether it was drawn for that state. */
+export interface KeyArt {
+  svg: string;
+  /**
+   * True when the file was authored for this exact state, so the generated
+   * gradient shift and the `off` dim must not be layered on top of it.
+   */
+  authoredForState: boolean;
+}
+
+/**
+ * Resolved art per `(root, artName, status)`. Misses are cached too: an
+ * action with no state art would otherwise attempt — and fail — a
+ * filesystem read on every single repaint.
+ */
+const stateArtCache = new Map<string, KeyArt>();
+
+/**
+ * Pick the artwork for a state, preferring art drawn for it.
+ *
+ * `<artName>/state-<status>.svg` wins when it exists; otherwise the shipped
+ * `<artName>/key.svg` is used and the generated treatment applies. This is
+ * what lets hand-drawn states (#339) land one action at a time without
+ * every other action needing artwork drawn for it.
+ *
+ * Consulted only while the corner badge is hidden — see `statusKeyImage()`.
+ * With the badge on, the artwork deliberately stays neutral so the key does
+ * not report the same state twice.
+ *
+ * Deliberately not `key-<status>.svg`: `key-off.svg` is already taken. Five
+ * actions declare one as their manifest State 1 image, and those files are
+ * the desaturate-to-grey treatment this feature exists to replace. Matching
+ * that name would silently adopt the old look as though an artist had
+ * chosen it.
+ */
+export function resolveKeyArt(
+  artName: string,
+  status: PowerStatus,
+  root: URL | string = defaultArtRoot,
+): KeyArt {
+  if (status === "unknown") {
+    return { svg: loadKeyArt(artName, root), authoredForState: false };
+  }
+
+  const cacheKey = `${String(root)}|${artName}|${status}`;
+  const cached = stateArtCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+
+  let art: KeyArt;
+  try {
+    const file = new URL(`${artName}/state-${status}.svg`, root);
+    art = {
+      svg: readFileSync(fileURLToPath(file), "utf-8"),
+      authoredForState: true,
+    };
+  } catch {
+    // No state art for this action — fall back to the generated treatment.
+    art = { svg: loadKeyArt(artName, root), authoredForState: false };
+  }
+
+  stateArtCache.set(cacheKey, art);
+  return art;
+}
+
 const imageCache = new Map<string, string>();
+
+/**
+ * Whether the corner badge is drawn, globally.
+ *
+ * #339 asked to be rid of the dot now that the artwork itself carries the
+ * state. It is opt-out rather than removed: without it `partial` leans
+ * toward `on`, and it is the one cue that survives for someone who cannot
+ * separate the colours.
+ *
+ * Held here rather than read from settings on every render. This module
+ * stays free of the SDK and the settings service — which is what makes it
+ * cheap to test — and the plugin pushes the value in at startup and
+ * whenever global settings change.
+ */
+let badgeVisible = true;
+
+/**
+ * Sets the global badge preference.
+ *
+ * Clears the image cache, because entries rendered under the previous
+ * preference are keyed by it but the *default* argument resolves at call
+ * time — without this, keys already painted would keep their old look until
+ * the plugin restarted.
+ */
+export function setStatusBadgeVisible(visible: boolean): void {
+  if (visible === badgeVisible) return;
+  badgeVisible = visible;
+  imageCache.clear();
+}
+
+/** The current global badge preference. */
+export function isStatusBadgeVisible(): boolean {
+  return badgeVisible;
+}
 
 /** Composited data URI for an action's artwork in a given power state. */
 export function statusKeyImage(
   artName: string,
   status: PowerStatus,
   root: URL | string = defaultArtRoot,
+  showDot = true,
 ): string {
-  const key = `${String(root)}|${artName}|${status}`;
+  // `showDot` is part of the key: the same art and status render two
+  // different images depending on it, and a cache that ignored it would
+  // serve whichever was asked for first until the plugin restarted.
+  const key = `${String(root)}|${artName}|${status}|${showDot ? "dot" : "nodot"}`;
   const cached = imageCache.get(key);
   if (cached !== undefined) return cached;
 
-  const uri = statusKeyDataUri(loadKeyArt(artName, root), status);
+  // One indicator at a time (#339). The corner badge and a glyph drawn
+  // inside the bulb carry the same fact, so showing both states it twice.
+  // The badge wins while it is on and the artwork stays neutral; switch the
+  // badge off and the drawn states take the job over, which is the whole
+  // reason the preference is worth having rather than just losing a dot.
+  const art = showDot
+    ? { svg: loadKeyArt(artName, root), authoredForState: false }
+    : resolveKeyArt(artName, status, root);
+  const uri = statusKeyDataUri(art.svg, status, showDot, art.authoredForState);
   imageCache.set(key, uri);
   return uri;
 }
@@ -271,13 +468,14 @@ export async function applyStatusImage(
   artName: string,
   status: PowerStatus,
   root: URL | string = defaultArtRoot,
+  showDot = badgeVisible,
 ): Promise<void> {
   if (typeof action.setImage !== "function") return;
 
   let image: string | undefined;
   if (status !== "unknown") {
     try {
-      image = statusKeyImage(artName, status, root);
+      image = statusKeyImage(artName, status, root, showDot);
     } catch {
       return;
     }
