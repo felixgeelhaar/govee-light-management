@@ -160,7 +160,7 @@ _(Coming soon)_
    - **Control Mode**: Toggle, On, Off, Brightness, Color, Color Temperature
    - **Brightness**: Set specific brightness level (1-100%)
    - **Color**: Choose RGB color with hex picker
-   - **Color Temperature**: Set warmth (2000K-9000K)
+   - **Color Temperature**: Set warmth, across the range your light supports
 
 3. **Usage**
    - Press button to execute the configured action
@@ -218,8 +218,9 @@ _(Coming soon)_
    - Configure step size (50-500K per tick, default: 100K)
 
 2. **Usage**
-   - **Rotate clockwise**: Cooler white (towards 9000K)
-   - **Rotate counter-clockwise**: Warmer white (towards 2000K)
+   - **Rotate clockwise**: Cooler white, up to your light's coolest setting
+   - **Rotate counter-clockwise**: Warmer white, down to its warmest
+   - **Groups**: the dial spans every member's range, and each light stops at its own limit
    - **Press dial**: Toggle light power on/off
    - **Display**: Shows light name and current temperature in Kelvin
    - **Feedback bar**: Gradient indicator (warm to cool)
@@ -506,7 +507,7 @@ This plugin uses the [@felixgeelhaar/govee-api-client](https://www.npmjs.com/pac
 - Control device power
 - Set brightness (1-100%)
 - Set color (RGB)
-- Set color temperature (2000K-9000K)
+- Set color temperature (within each light's supported range)
 
 **Rate Limiting:**
 

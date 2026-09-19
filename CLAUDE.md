@@ -99,7 +99,7 @@ src/
     - `ToggleAction.ts` - Feature toggles (gradient, nightlight, DreamView - filtered by device capability)
   - **Stream Deck+ Encoder Actions:**
     - `BrightnessDialAction.ts` - Brightness control (0-100%) with dial, push to toggle power
-    - `ColorTempDialAction.ts` - Color temperature (2000K-9000K) with gradient feedback
+    - `ColorTempDialAction.ts` - Color temperature (per-device Kelvin range) with gradient feedback
     - `ColorHueDialAction.ts` - Full-spectrum color (0-360°) with HSV conversion
     - `SegmentColorDialAction.ts` - Per-segment color control with throttled dial rotation
   - **Shared Utilities:**
@@ -174,7 +174,7 @@ export class {Name}DialAction extends SingletonAction<{Name}DialSettings> {
    - **Display:** Light name + brightness percentage
 
 2. **ColorTempDialAction** (`actions/ColorTempDialAction.ts:478`)
-   - **Range:** 2000K-9000K (warm to cool white) with clamping
+   - **Range:** the device's advertised Kelvin window (`resolveKelvinRangeForTarget`); for a group, the union of its members' windows, each light clamped to its own at send time; `SAFE_KELVIN_RANGE` (2700-6500K) when none is advertised
    - **Step Size:** 50-500K per tick (default: 100K)
    - **Visual Feedback:** Gradient bar (subtype: 1) with normalized 0-100 value
    - **Display:** Light name + temperature in Kelvin

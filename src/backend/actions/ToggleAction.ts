@@ -13,7 +13,9 @@ import {
   ActionServices,
   sendPIDatasource,
   type BaseSettings,
+  type DeviceTarget,
 } from "./shared/ActionServices";
+import type { FanOutOutcome } from "../domain/services/group-fan-out";
 import { parseFeatureSetting } from "./shared/validation";
 import {
   applyStatusImage,
@@ -158,62 +160,12 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
       this.featureState.set(ctx, enabled);
 
       const stopSpinner = this.services.showSpinner(ev.action);
-      let anySucceeded = false;
-      let failedCount = 0;
-      let totalCount = 0;
-      let singleLightUnapplied = false;
-      try {
-        if (target.type === "light" && target.light) {
-          await this.services.toggleFeatureRaw(
-            target.light,
-            parsed.instance,
-            enabled,
-          );
-          anySucceeded = true;
-          // Govee occasionally accepts a 200 OK but no-ops the write
-          // (notably `dreamViewToggle` on strips without a paired Sync
-          // Box). Verify the change actually landed so the user gets
-          // an alert instead of a misleading optimistic green check.
-          const verification = await this.services.verifyToggleStateApplied(
-            target.light,
-            parsed.instance,
-            enabled,
-          );
-          if (verification === "mismatched") {
-            singleLightUnapplied = true;
-          }
-        } else if (target.type === "group" && target.group) {
-          // #311: iterate all members; the online flag is unreliable
-          const members = target.group.lights;
-          totalCount = members.length;
-          for (const light of members) {
-            try {
-              await this.services.toggleFeatureRaw(
-                light,
-                parsed.instance,
-                enabled,
-              );
-              anySucceeded = true;
-            } catch (error) {
-              failedCount++;
-              streamDeck.logger.warn(
-                `Toggle ${parsed.instance} failed for group member ${light.name}:`,
-                error,
-              );
-            }
-          }
-        }
-      } finally {
-        stopSpinner();
-      }
-      if (!anySucceeded) {
-        // Revert optimistic state since nothing actually changed
-        this.featureState.set(ctx, originalState);
-        await this.render(ev.action, settings, ctx);
-        await ev.action.showAlert();
-        return;
-      }
-      if (singleLightUnapplied) {
+      const { outcome, verification } = await this.applyToggle(
+        target,
+        parsed.instance,
+        enabled,
+      ).finally(stopSpinner);
+      if (verification === "mismatched") {
         // Govee accepted the write but the device did not reflect it.
         // Revert title and warn so the user knows the press was a no-op
         // (see verifyToggleStateApplied for the DreamView-companion case).
@@ -223,15 +175,12 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
         return;
       }
       await this.render(ev.action, settings, ctx);
-      if (failedCount > 0 && totalCount > 0) {
-        this.services.showPartialFailureBanner(
-          ev.action,
-          ctx,
-          failedCount,
-          totalCount,
-          this.getTitle(settings),
-        );
-      }
+      this.services.reportPartialFailure(
+        ev.action,
+        ctx,
+        outcome,
+        this.getTitle(settings),
+      );
       await ev.action.showOk();
     } catch (error) {
       streamDeck.logger.error("Failed to toggle feature:", error);
@@ -375,6 +324,39 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
         : "unknown";
     await applyStatusImage(action, "toggle", status);
     await action.setTitle(this.getTitle(settings));
+  }
+
+  /**
+   * Write the toggle to every light the target covers.
+   *
+   * Govee occasionally accepts a 200 OK but no-ops the write (notably
+   * `dreamViewToggle` on strips without a paired Sync Box), so a single
+   * light is read back to confirm the change landed — the user gets an
+   * alert instead of a misleading optimistic green check. Groups skip the
+   * read-back: one round of verification per member would stall the key.
+   */
+  private async applyToggle(
+    target: DeviceTarget,
+    instance: string,
+    enabled: boolean,
+  ): Promise<{
+    outcome: FanOutOutcome;
+    verification: "matched" | "mismatched" | "unknown";
+  }> {
+    const outcome = await this.services.applyToTarget(
+      target,
+      `Toggle ${instance}`,
+      (light) => this.services.toggleFeatureRaw(light, instance, enabled),
+    );
+    const verification =
+      target.type === "light" && target.light
+        ? await this.services.verifyToggleStateApplied(
+            target.light,
+            instance,
+            enabled,
+          )
+        : "unknown";
+    return { outcome, verification };
   }
 
   private getTitle(settings: ToggleSettings): string {

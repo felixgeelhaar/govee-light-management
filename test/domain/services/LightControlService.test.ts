@@ -207,6 +207,7 @@ describe('LightControlService', () => {
       const result = await service.controlGroup(mockGroup, 'on');
 
       expect(result.failed).toHaveLength(1);
+      expect(result.failed[0].light).toBe(mockGroup.lights[0]);
       expect(mockLightRepository.setPower).toHaveBeenCalledTimes(2);
     });
 

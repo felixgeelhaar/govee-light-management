@@ -24,9 +24,19 @@ class SequenceServiceImpl {
   private initialized = false;
 
   constructor() {
-    this.executor = new SequenceExecutor((step) => this.executeStep(step), {
-      stopOnError: false,
-    });
+    // The executor swallows step failures so a sequence keeps going; log
+    // them here so a step that did nothing still leaves a trace.
+    this.executor = new SequenceExecutor(
+      (step) =>
+        this.executeStep(step).catch((error) => {
+          streamDeck.logger?.warn(
+            `Sequence ${step.command ?? step.type} step failed:`,
+            error,
+          );
+          throw error;
+        }),
+      { stopOnError: false },
+    );
   }
 
   async initialize(): Promise<void> {
@@ -92,35 +102,29 @@ class SequenceServiceImpl {
 
     if (step.command === "scene" && step.scenePayload) {
       const payload = step.scenePayload;
-      // #311: iterate all members; the online flag is unreliable
-      const lights =
-        target.type === "light" && target.light
-          ? [target.light]
-          : (target.group?.lights ?? []);
-      for (const light of lights) {
-        try {
-          if (payload.kind === "diy") {
-            const scene = DiySceneOption.create(
-              payload.id,
-              payload.paramId,
-              payload.name,
-            );
-            await this.actionServices.applyDiyScene(light, scene);
-          } else {
-            const scene = DynamicSceneOption.create(
-              payload.id,
-              payload.paramId,
-              payload.name,
-            );
-            await this.actionServices.applyDynamicScene(light, scene);
-          }
-        } catch (error) {
-          streamDeck.logger?.warn(
-            `Sequence scene step failed for ${light.name}:`,
-            error,
-          );
-        }
-      }
+      await this.actionServices.applyToTarget(
+        target,
+        "Sequence scene step",
+        payload.kind === "diy"
+          ? (light) =>
+              this.actionServices.applyDiyScene(
+                light,
+                DiySceneOption.create(
+                  payload.id,
+                  payload.paramId,
+                  payload.name,
+                ),
+              )
+          : (light) =>
+              this.actionServices.applyDynamicScene(
+                light,
+                DynamicSceneOption.create(
+                  payload.id,
+                  payload.paramId,
+                  payload.name,
+                ),
+              ),
+      );
       return;
     }
 
@@ -131,21 +135,11 @@ class SequenceServiceImpl {
         payload.paramId,
         payload.name,
       );
-      // #311: iterate all members; the online flag is unreliable
-      const lights =
-        target.type === "light" && target.light
-          ? [target.light]
-          : (target.group?.lights ?? []);
-      for (const light of lights) {
-        try {
-          await this.actionServices.applySnapshot(light, snapshot);
-        } catch (error) {
-          streamDeck.logger?.warn(
-            `Sequence snapshot step failed for ${light.name}:`,
-            error,
-          );
-        }
-      }
+      await this.actionServices.applyToTarget(
+        target,
+        "Sequence snapshot step",
+        (light) => this.actionServices.applySnapshot(light, snapshot),
+      );
       return;
     }
 
@@ -155,45 +149,26 @@ class SequenceServiceImpl {
         payload.modeId,
         payload.sensitivity,
       );
-      // #311: iterate all members; the online flag is unreliable
-      const lights =
-        target.type === "light" && target.light
-          ? [target.light]
-          : (target.group?.lights ?? []);
-      for (const light of lights) {
-        try {
-          await this.actionServices.applyMusicModeRaw(light, musicMode);
-        } catch (error) {
-          streamDeck.logger?.warn(
-            `Sequence music-mode step failed for ${light.name}:`,
-            error,
-          );
-        }
-      }
+      await this.actionServices.applyToTarget(
+        target,
+        "Sequence music-mode step",
+        (light) => this.actionServices.applyMusicModeRaw(light, musicMode),
+      );
       return;
     }
 
     if (step.command === "feature-toggle" && step.togglePayload) {
       const payload = step.togglePayload;
-      // #311: iterate all members; the online flag is unreliable
-      const lights =
-        target.type === "light" && target.light
-          ? [target.light]
-          : (target.group?.lights ?? []);
-      for (const light of lights) {
-        try {
-          await this.actionServices.toggleFeatureRaw(
+      await this.actionServices.applyToTarget(
+        target,
+        "Sequence feature-toggle step",
+        (light) =>
+          this.actionServices.toggleFeatureRaw(
             light,
             payload.instance,
             payload.enabled,
-          );
-        } catch (error) {
-          streamDeck.logger?.warn(
-            `Sequence feature-toggle step failed for ${light.name}:`,
-            error,
-          );
-        }
-      }
+          ),
+      );
       return;
     }
 
@@ -202,21 +177,11 @@ class SequenceServiceImpl {
       const segments: SegmentColor[] = payload.segments.map((seg) =>
         SegmentColor.create(seg.index, ColorRgb.fromHex(seg.hex)),
       );
-      // #311: iterate all members; the online flag is unreliable
-      const lights =
-        target.type === "light" && target.light
-          ? [target.light]
-          : (target.group?.lights ?? []);
-      for (const light of lights) {
-        try {
-          await this.actionServices.setSegmentColors(light, segments);
-        } catch (error) {
-          streamDeck.logger?.warn(
-            `Sequence segment-color step failed for ${light.name}:`,
-            error,
-          );
-        }
-      }
+      await this.actionServices.applyToTarget(
+        target,
+        "Sequence segment-color step",
+        (light) => this.actionServices.setSegmentColors(light, segments),
+      );
       return;
     }
 

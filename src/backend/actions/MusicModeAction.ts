@@ -73,52 +73,17 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
         settings.sensitivity ?? 50,
       );
       const stopSpinner = this.services.showSpinner(ev.action);
-      let anySucceeded = false;
-      let failedCount = 0;
-      let totalCount = 0;
-      try {
-        if (target.type === "light" && target.light) {
-          await this.services.applyMusicModeRaw(target.light, musicMode);
-          anySucceeded = true;
-        } else if (target.type === "group" && target.group) {
-          // Attempt every member regardless of the unreliable online flag
-          // (#311); per-member failures are tolerated below.
-          const members = target.group.lights;
-          totalCount = members.length;
-          for (const light of members) {
-            try {
-              await this.services.applyMusicModeRaw(light, musicMode);
-              anySucceeded = true;
-            } catch (error) {
-              failedCount++;
-              streamDeck.logger.warn(
-                `Music mode apply failed for group member ${light.name}:`,
-                error,
-              );
-            }
-          }
-          if (members.length === 0) {
-            streamDeck.logger.warn(
-              `Music mode: group ${target.group.name} has no controllable lights`,
-            );
-          }
-        }
-      } finally {
-        stopSpinner();
-      }
-      if (!anySucceeded) {
-        await ev.action.showAlert();
-        return;
-      }
-      if (failedCount > 0 && totalCount > 0) {
-        this.services.showPartialFailureBanner(
-          ev.action,
-          ev.action.id,
-          failedCount,
-          totalCount,
-          this.getTitle(settings),
-        );
-      }
+      const outcome = await this.services
+        .applyToTarget(target, "Music mode apply", (light) =>
+          this.services.applyMusicModeRaw(light, musicMode),
+        )
+        .finally(stopSpinner);
+      this.services.reportPartialFailure(
+        ev.action,
+        ev.action.id,
+        outcome,
+        this.getTitle(settings),
+      );
       await ev.action.showOk();
     } catch (error) {
       streamDeck.logger.error("Failed to set music mode:", error);
