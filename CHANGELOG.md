@@ -4,6 +4,33 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
+## [2.8.0] - 2026-09-19
+
+### Added
+
+- **The light key now shows its state in the artwork, not just the dot** ([#339](https://github.com/felixgeelhaar/govee-light-management/issues/339), [#345](https://github.com/felixgeelhaar/govee-light-management/pull/345)). The bulb carries a glyph for each state: ⏻ for on, ◐ for a group that is partly on, and ○ for off. All three are derived from the bulb's existing filament, which was already a power mark. Off keeps full colour, with no grey-out. A new global **Status dot** setting (Show / Hide) picks one indicator at a time. With the dot shown, the bulb stays neutral. With it hidden, the glyph takes over. An action gains drawn states by shipping `state-on.svg`, `state-partial.svg` and `state-off.svg` next to its `key.svg`, with no code change. Actions without them fall back to dimming the off state. The design is @jacqueschampine's.
+
+### Fixed
+
+- **Colour temperature works for groups and on the dial** ([#347](https://github.com/felixgeelhaar/govee-light-management/pull/347), thanks @codyhxyz). Group-bound colour temperature actions and the dial fell back to a hardcoded 2000–9000K window. No device accepts that whole range, so every group command, and any dial turn past a light's real limits, was rejected with `Parameter value out of range`. The range now comes from the devices themselves. For a group, the dial spans every member's range and each light is clamped to its own at send time: a 2200–6500K lamp can reach 2200K while a 2700–6500K lamp beside it stops at 2700K. A light that reports no range gets a safe 2700–6500K. The key and the dial also now share one range; before, they disagreed within the same action.
+- **One unreachable lamp no longer fails a whole group** ([#347](https://github.com/felixgeelhaar/govee-light-management/pull/347), [#352](https://github.com/felixgeelhaar/govee-light-management/pull/352)). A lamp that dropped off Wi-Fi turned an otherwise successful group command into an error, even though the rest of the group had changed. The command now succeeds, and the key shows which part missed with a "⚠ 1/3" banner. Scene, snapshot and toggle keys already showed the banner; brightness, colour, colour temperature and on/off keys now do too. The on/off group count reads "2/3" rather than "3/3" when a lamp is unreachable.
+- The sequence builder no longer suggests a 2000–9000K range for colour temperature steps.
+
+### Changed
+
+- **Lights in a group change together** ([#347](https://github.com/felixgeelhaar/govee-light-management/pull/347), [#352](https://github.com/felixgeelhaar/govee-light-management/pull/352)). Group commands were sent one member at a time, so the last lamp changed visibly after the first. Every group command now goes to all members at once: power, brightness, colour, colour temperature, scenes, snapshots, toggles, music modes, segment colours and sequence steps.
+- A sequence step that reaches no light now fails and is logged, as on/off steps already did, instead of passing silently. Sequences still continue past a failed step.
+
+### Security
+
+- `nanoid` 3.3.17 → 3.3.18 ([#343](https://github.com/felixgeelhaar/govee-light-management/pull/343), GHSA-2v37-7h3g-55p8, high), `fflate` 0.8.2 → 0.8.3 (GHSA-px8p-9vwx-vf98) and `@humanfs/node` 0.16.7 → 0.16.8 (GHSA-p498-v437-472g) ([#353](https://github.com/felixgeelhaar/govee-light-management/pull/353)). All three are build and test tooling only; none reaches the shipped plugin.
+
+### Internal
+
+- Removed about 600 lines of validation and error-boundary code that nothing imported, along with the direct `zod` dependency ([#351](https://github.com/felixgeelhaar/govee-light-management/pull/351)). The built plugin is byte-identical.
+- CodeQL and release actions bumped and SHA-pinned ([#340](https://github.com/felixgeelhaar/govee-light-management/pull/340), [#343](https://github.com/felixgeelhaar/govee-light-management/pull/343), [#353](https://github.com/felixgeelhaar/govee-light-management/pull/353)).
+- Relicta scoped to version inference and changelog drafting, matching the manual release flow ([#338](https://github.com/felixgeelhaar/govee-light-management/pull/338)).
+
 ## [2.7.15] - 2026-08-07
 
 ### Fixed
