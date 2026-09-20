@@ -16,3 +16,12 @@ jobs:
   remediate:
     uses: felixgeelhaar/.github/.github/workflows/nox-remediate.yml@main
     secrets: inherit # passes NOX_TOKEN through when defined (needed to bump action pins)
+    with:
+      # Also upgrade dependencies that are merely out of date, not just the
+      # ones an advisory names. `nox fix --outdated` resolves latest-stable
+      # from the registry and applies it with npm, so a run that only freshens
+      # is titled `chore(deps): dependency currency pass` — never a security
+      # remediation. Majors stay held and are reported in the PR body, which
+      # is what this plugin needs: vitest 5 and jsdom 30 require Node >= 22
+      # while the manifest pins the runtime to Node 20.
+      include-outdated: true
