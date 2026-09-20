@@ -10,14 +10,6 @@
       "created_at": "2026-09-20T07:20:00Z"
     },
     {
-      "fingerprint": "8801dd5343e8d77e755f3fa1d5542ee85a6c1c6c6809021c74e2ae98b593240b",
-      "rule_id": "IAC-155",
-      "file_path": ".github/workflows/deps-freshness.yml",
-      "severity": "medium",
-      "reason": "workflow_dispatch without an environment gate. Reviewed: the job opens a PR, it does not deploy or publish, and what it opens still faces required checks and review.",
-      "created_at": "2026-09-20T09:30:00Z"
-    },
-    {
       "fingerprint": "efffd45e45bdf218052ebd23a0a2fc2295219290f6341d868fed455c871b6993",
       "rule_id": "IAC-155",
       "file_path": ".github/workflows/nox-remediate.yml",
@@ -34,14 +26,6 @@
       "created_at": "2026-09-20T09:30:00Z"
     },
     {
-      "fingerprint": "1d3f89cc36085f6ad298cabe9f79bd2dea3ec7935d18884537f52122819975ee",
-      "rule_id": "IAC-308",
-      "file_path": ".github/workflows/deps-freshness.yml",
-      "severity": "low",
-      "reason": "Manual dispatch enabled, deliberately: a maintainer can refresh dependencies on demand instead of waiting for Monday.",
-      "created_at": "2026-09-20T09:30:00Z"
-    },
-    {
       "fingerprint": "52922952e40b8c5ebd4fef0969dd782d57266e9ecccc4e9bddc9be74f0f6daa2",
       "rule_id": "IAC-308",
       "file_path": ".github/workflows/nox-remediate.yml",
@@ -55,14 +39,6 @@
       "file_path": ".github/workflows/stale-sweep.yml",
       "severity": "low",
       "reason": "Manual dispatch enabled, deliberately: the sweep is re-run by hand after answering the items it flagged.",
-      "created_at": "2026-09-20T09:30:00Z"
-    },
-    {
-      "fingerprint": "6e402c1ea0ea279fdb41ce971f0f24919a1381d8cba398a0b5fb10db563f8b4b",
-      "rule_id": "IAC-314",
-      "file_path": ".github/workflows/deps-freshness.yml",
-      "severity": "medium",
-      "reason": "contents:write is the minimum needed to push the deps/freshness branch. It writes to that branch only, never to main.",
       "created_at": "2026-09-20T09:30:00Z"
     },
     {
@@ -87,14 +63,6 @@
       "file_path": ".github/workflows/ci.yml",
       "severity": "low",
       "reason": "cancel-in-progress on CI: a superseded push's run is not worth the minutes. Verified intent.",
-      "created_at": "2026-09-20T09:30:00Z"
-    },
-    {
-      "fingerprint": "519ec6e0209beb1292eacbdb235b80c217a5d278bffd51aca03be806c1d6e96f",
-      "rule_id": "IAC-309",
-      "file_path": ".github/workflows/deps-freshness.yml",
-      "severity": "low",
-      "reason": "cancel-in-progress: two overlapping runs would race to force-push the same branch, and each run recomputes the update from main, so nothing is lost.",
       "created_at": "2026-09-20T09:30:00Z"
     },
     {
