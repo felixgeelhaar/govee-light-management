@@ -36,8 +36,8 @@ directories:
   implements `ILightRepository` against the Govee client;
   `repositories/StreamDeckLightGroupRepository` implements
   `ILightGroupRepository` against Stream Deck's settings storage; `mappers/`
-  convert between domain types and the client's types; `resilience/` and
-  `SchedulerEngine.ts` sit here too.
+  convert between domain types and the client's types; `SchedulerEngine.ts`
+  sits here too.
 - `src/backend/actions/` — the Stream Deck entry layer. Action classes receive
   SDK events and delegate; they own presentation (titles, badges, dial
   feedback) and little else. `actions/shared/ActionServices.ts` is the seam
@@ -97,17 +97,15 @@ src/
 │   ├── domain/
 │   │   ├── entities/         # Light, LightGroup, RgbEffect, ScheduledAction, Sequence
 │   │   ├── repositories/     # ILightRepository, ILightGroupRepository (interfaces)
-│   │   ├── services/         # LightControlService, SceneService, group-fan-out, …
+│   │   ├── services/         # LightControlService, LightGroupService, group-fan-out, …
 │   │   └── value-objects/    # Brightness, ColorRgb, ColorTemperature, Scene, …
 │   ├── infrastructure/
 │   │   ├── mappers/          # domain ↔ govee-api-client conversion
 │   │   ├── repositories/     # GoveeLightRepository, StreamDeckLightGroupRepository
-│   │   ├── resilience/       # CircuitBreaker (not wired in — see below)
 │   │   └── SchedulerEngine.ts
 │   ├── services/             # SchedulerService, SequenceService, EffectService,
-│   │                         # GlobalSettingsService, TelemetryService
-│   ├── sdpi.ts               # SDPI datasource payload types
-│   └── plugin.ts             # entry point; registers every action
+│   │                         # GlobalSettingsService, TelemetryService, lifecycle
+│   └── plugin.ts             # entry point; registers every action, wires shutdown
 └── shared/types/             # types shared between backend and PI payloads
 
 com.felixgeelhaar.govee-light-management.sdPlugin/
@@ -249,13 +247,7 @@ SDK nor the settings service, which is what keeps it cheap to test.
   `getHealthSnapshot()`. `NoHealthyTransportError` when nothing is usable.
 - `cloud/CloudTransport` — the only transport implemented. Wraps
   `@felixgeelhaar/govee-api-client` and normalizes device capabilities.
-- `TransportHealthService` — caches `getHealthSnapshot()` for 10 s, de-duplicates
-  concurrent refreshes, emits to `on()` listeners, and records to
-  `TelemetryService`. It has **no timer and no start/stop lifecycle**: health is
-  refreshed when something asks for it, and at present nothing in `src/`
-  constructs it. Treat it as available but unwired.
-
-A LAN transport and a WebSocket transport are design intentions, not code.
+  A LAN transport and a WebSocket transport are design intentions, not code.
 
 ### `DeviceService` (`src/backend/application/services/DeviceService.ts`)
 
@@ -264,18 +256,34 @@ handling, capability normalization, and telemetry for discovery and command
 timings. On a discovery failure it serves the previous cache rather than an
 empty list.
 
-### Telemetry and resilience — accuracy note
+**Concurrent callers share one round trip.** Discovery answers a question about
+the account, not about the caller, and every visible key asks it — the dial
+live-sync every 3 s, the keypad tracker every 30 s, `resolveTarget` on each
+cache miss. Without coalescing, the moment the cache lapsed each key issued its
+own request at a rate-limited API. A `forceRefresh` arriving mid-flight joins
+that request rather than starting a second.
 
-- `TelemetryService` is a singleton that accumulates discovery, command, and
-  transport-health counters in memory. `recordCommand` is called from
-  `DeviceService` and from the five hybrid actions. `getSnapshot()` is exercised
-  only by tests — nothing in the plugin reads it back, and there is no
-  diagnostics UI.
-- `infrastructure/resilience/CircuitBreaker.ts` is fully implemented and tested
-  but **constructed by nothing in `src/`**. Retry, backoff and rate limiting in
-  production come from the API client, not from this class.
+**Discovery is bounded** (`discoveryTimeoutMs`, default 15 s). The transport
+issues a plain fetch with no `AbortSignal`, so a hung connection would otherwise
+hold a sync tick open indefinitely. On timeout it takes the same path as a
+transport error: cached lights if there are any, an empty list otherwise.
 
-Neither is a working production feature; do not describe them as one.
+### Shutdown
+
+Stream Deck stops a plugin by signalling its process. `plugin.ts` registers a
+shutdown runner (`services/lifecycle.ts`) on SIGTERM and SIGINT, which stops the
+scheduler's 30 s engine poll and persists the schedule. Handlers run in order
+and are awaited; one failure does not strand the rest, and a second signal is
+ignored. Register anything else that owns a process-wide timer the same way.
+
+### Telemetry — accuracy note
+
+`TelemetryService` is a singleton that accumulates discovery, command, and
+transport-health counters in memory. `recordCommand` is called from
+`DeviceService` and from the five hybrid actions. `getSnapshot()` is exercised
+only by tests — nothing in the plugin reads it back, and there is no diagnostics
+UI. It is instrumentation, not a working production feature; do not describe it
+as one.
 
 ## Domain layer
 
@@ -298,11 +306,9 @@ Entities: `Light` (capability predicates `canBeControlled`, `supportsScenes`,
 `supportsGradient` — actions filter the PI light list with these), `LightGroup`,
 `RgbEffect`, `ScheduledAction`, `Sequence`.
 
-Domain services: `LightControlService`, `LightGroupService`, `SceneService`,
-`ScheduleService`, `SequenceExecutor`, `EffectPlayer`, `EffectPresets`,
-`ColorPaletteService`, `DeviceClassifier` (bulb / strip / bar / floor lamp),
-`CapabilityRegistry` (device-class-specific error hints), and the
-`group-fan-out` helper.
+Domain services: `LightControlService`, `LightGroupService`, `ScheduleService`,
+`SequenceExecutor`, `EffectPlayer`, `EffectPresets`, `ColorPaletteService`, and
+the `group-fan-out` helper.
 
 Repositories: `ILightRepository` and `ILightGroupRepository` under
 `domain/repositories/`, implemented by `GoveeLightRepository` and
@@ -311,9 +317,9 @@ are no stubs.
 
 `SceneMapper` maps the domain `Scene` factories onto the client's `LightScene`.
 `sunrise`, `sunset`, `rainbow`, `aurora` and `nightlight` are supported; `movie`
-and `reading` throw with an explanatory message, and `SceneMapper.isSupported()`
-lets `SceneService` filter them out before the user ever sees them.
-`MusicModeMapper` maps mode names to Govee's official mode ids.
+and `reading` throw with an explanatory message, which `SceneMapper.isSupported()`
+lets a caller check first. `MusicModeMapper` maps mode names to Govee's official
+mode ids.
 
 **Zero-indexed ids.** Govee mode, segment and toggle instance ids can legitimately
 be `0`. Never validate them with `> 0` or `if (!id)`; use
@@ -353,7 +359,7 @@ There is no frontend build step.
 
 Vitest for unit tests, Playwright for the Property Inspector end-to-end suite.
 
-- 734 unit tests across 49 files (`test/**/*.test.ts`), jsdom environment
+- 771 unit tests across 48 files (`test/**/*.test.ts`), jsdom environment
 - 143 E2E tests across 7 files (`test/e2e/*.spec.ts`), excluded from Vitest
 
 ```
@@ -361,7 +367,6 @@ test/
 ├── backend/            # actions/, actions/shared/, connectivity/, services/
 ├── domain/             # entities/, services/, value-objects/
 ├── infrastructure/     # mappers/, repositories/, utils/, SchedulerEngine
-├── integration/        # resilience/CircuitBreaker
 ├── e2e/                # Playwright specs against sdPlugin/ui/*.html
 └── setup.ts
 ```
@@ -373,10 +378,12 @@ before any SDK code is touched.
 Coverage is measured across **all of `src`** (`all: true`,
 `include: ["src/**/*.ts"]`), not just the files a test happened to import.
 Importing-only measurement reported 64.56% when the real figure was 34.75%,
-flattering exactly the untested files — every action class sits at 0%. The
-thresholds in `vitest.config.ts` (34% statements, 28% branches, 53% functions,
-34% lines) are a floor set at the measured value, to be raised as tests are
-added and never lowered to make a change fit.
+flattering exactly the untested files — most action classes still sit at 0%.
+The thresholds in `vitest.config.ts` (37% statements, 30% branches, 56%
+functions, 37% lines) are a floor set at the measured value, to be raised as
+tests are added and never lowered to make a change fit. The floor moved down
+once, deliberately: deleting well-tested but unreachable modules lowered the
+ratio without lowering the behaviour under test.
 
 ## Quality gates
 
