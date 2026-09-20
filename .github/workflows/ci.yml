@@ -167,8 +167,8 @@ jobs:
 
       - name: Install nox (pinned + sha256-verified binary)
         env:
-          NOX_VERSION: "1.39.1"
-          NOX_SHA256: "bc434d49ac567851ee6808d1300040b63c9e6942801a61cab918b3659a2abc0d"
+          NOX_VERSION: "1.39.2"
+          NOX_SHA256: "3e7db37d160c47503cac661bd3236cb16e0e91891f43e3993da481788b6afcb2"
         run: |
           curl -sL -o nox.tar.gz \
             "https://github.com/nox-hq/nox/releases/download/v${NOX_VERSION}/nox_${NOX_VERSION}_linux_amd64.tar.gz"
