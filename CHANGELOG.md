@@ -4,6 +4,26 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
+## [2.8.1] - 2026-09-20
+
+### Fixed
+
+- **A failed settings read could wipe every saved light group** ([#363](https://github.com/felixgeelhaar/govee-light-management/pull/363)). When Stream Deck's settings store could not be read, the group repository returned an empty store instead of reporting the failure — so "the settings API is unavailable" was indistinguishable from "you have no groups". The next save built the record it wrote from that empty read, replacing every group the user had with the one being saved. A single transient failure was enough. The read now reports its failure, and each caller applies the fail-safe it already had: listing returns nothing, a lookup returns null, a name check assumes the name is taken, and a save aborts and says why rather than writing over your groups.
+- **Two groups created in the same moment could overwrite each other** ([#363](https://github.com/felixgeelhaar/govee-light-management/pull/363)). A group's id was built from its name and the clock, and names that differ only in punctuation — "Kitchen 1" and "Kitchen-1" — produce the same text. Created within the same millisecond, the second replaced the first. Ids now carry a random suffix.
+- **Every visible key asked Govee for the device list separately** ([#360](https://github.com/felixgeelhaar/govee-light-management/pull/360)). The moment the 30-second cache lapsed, each key on the deck issued its own request against a rate-limited API — the dials poll every 3 seconds, the keypads every 30. Concurrent requests now share one round trip. Discovery also gives up after 15 seconds instead of waiting on a connection that has stopped answering, which previously held a refresh open indefinitely and left later refreshes queued behind it.
+- **A key reconfigured just after a partial group failure showed the wrong title** ([#359](https://github.com/felixgeelhaar/govee-light-management/pull/359)). The "⚠ 1/3" banner restores the key's title after 30 seconds. Four actions never cancelled that timer when the key went away, so a key pointed at a different light within that window had the previous device's title written over it.
+- **The schedule was not saved when Stream Deck stopped the plugin** ([#366](https://github.com/felixgeelhaar/govee-light-management/pull/366)). Nothing listened for the stop signal: the scheduler's 30-second poll ran until the process was killed, and pending changes to scheduled actions went out unsaved.
+
+### Internal
+
+- Two quality gates were reporting success without doing their work ([#359](https://github.com/felixgeelhaar/govee-light-management/pull/359)). The lint script inspected 4 of 99 TypeScript files, because `src/**/*.ts` collapses to a single directory level in the shell that runs it — the property-inspector JavaScript was never linted at all. Coverage measured only files a test had imported, reporting 64.56% where the real figure was 34.75%. Both are fixed, which exposed 18 real lint errors, including three catch blocks that discarded the original error.
+- First tests for the group service, the group storage layer and the dial lifecycle ([#361](https://github.com/felixgeelhaar/govee-light-management/pull/361)) — 83 tests, which is how the two group defects above were found. They were written to encode the correct behaviour and marked as expected failures until the code was fixed, so nothing asserted the broken behaviour.
+- Removed 16 source files and a script that nothing reached, including an unused circuit breaker and transport health service the documentation described as working features ([#364](https://github.com/felixgeelhaar/govee-light-management/pull/364)). The built plugin is byte-identical.
+- `CLAUDE.md` rewritten against the code ([#362](https://github.com/felixgeelhaar/govee-light-management/pull/362)). It described a Vue frontend that does not exist, counted 14 actions where there are 18, and cited classes and test files that had been renamed or deleted.
+- One HSV colour conversion instead of two ([#365](https://github.com/felixgeelhaar/govee-light-management/pull/365)), and the unused per-action API key path removed — per-action settings travel inside an exported profile.
+- Dependencies updated ([#355](https://github.com/felixgeelhaar/govee-light-management/pull/355), [#358](https://github.com/felixgeelhaar/govee-light-management/pull/358)); `npm audit` reports nothing, dev dependencies included. vitest 5 and jsdom 30 are held back deliberately: both require Node 22, and the plugin runs on the Node 20 that Stream Deck provides.
+- Dependency freshness now runs through nox's currency pass on the shared workflow rather than a local one ([#367](https://github.com/felixgeelhaar/govee-light-management/pull/367)), and the scanner is pinned to 1.39.2 ([#368](https://github.com/felixgeelhaar/govee-light-management/pull/368)).
+
 ## [2.8.0] - 2026-09-19
 
 ### Added
