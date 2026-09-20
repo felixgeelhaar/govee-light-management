@@ -1,12 +1,18 @@
-type RgbLike = {
+/**
+ * HSV <-> RGB conversion, in the domain because both the Stream Deck actions
+ * and `EffectFrame` need it and the domain may not depend on the action
+ * layer. It lived under actions/shared while `EffectFrame` kept a private
+ * second copy of the same maths — two implementations of one colour space,
+ * free to drift.
+ */
+export type RgbLike = {
   r: number;
   g: number;
   b: number;
 };
 
 /**
- * Extract hue (0-360) from an RGB ColorRgb instance.
- * Returns 0 for achromatic colors (grays).
+ * Extract hue (0-360) from an RGB colour. Returns 0 for achromatic colours.
  */
 export function rgbToHue(color: RgbLike): number {
   const r = color.r / 255;

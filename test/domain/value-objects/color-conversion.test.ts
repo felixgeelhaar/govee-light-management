@@ -4,7 +4,7 @@ import {
   hsvToRgb,
   rgbToHue,
   rgbToSaturation,
-} from "../../../../src/backend/actions/shared/color-utils";
+} from "../../../src/backend/domain/value-objects/color-conversion";
 
 const rgb = (r: number, g: number, b: number) => new ColorRgb(r, g, b);
 

@@ -11,12 +11,14 @@ import type { DeviceTarget } from "../../../../src/backend/actions/shared/Action
 import { globalSettingsService } from "../../../../src/backend/services/GlobalSettingsService";
 import { ColorTemperature as DomainColorTemperature } from "../../../../src/backend/domain/value-objects/ColorTemperature";
 
-const makeLight = (opts: {
-  deviceId?: string;
-  model?: string;
-  gradient?: boolean;
-  nightlight?: boolean;
-} = {}) =>
+const makeLight = (
+  opts: {
+    deviceId?: string;
+    model?: string;
+    gradient?: boolean;
+    nightlight?: boolean;
+  } = {},
+) =>
   Light.create(
     opts.deviceId ?? "dev-1",
     opts.model ?? "H6001",
@@ -45,7 +47,9 @@ const mockRepo = () => ({
 
 const installMockRepo = (repo: ReturnType<typeof mockRepo>) => {
   // The _shared field is private; cast to unknown then a minimal interface.
-  const shared = (ActionServices as unknown as { _shared: { lightRepository?: unknown } })._shared;
+  const shared = (
+    ActionServices as unknown as { _shared: { lightRepository?: unknown } }
+  )._shared;
   const original = shared.lightRepository;
   shared.lightRepository = repo;
   return () => {
@@ -92,7 +96,11 @@ describe("ActionServices.isDialInteractionActive", () => {
   });
 
   it("cleanupDialTimers clears the active flag for that context", () => {
-    services.deferDialAction("ctx-1", vi.fn().mockResolvedValue(undefined), 500);
+    services.deferDialAction(
+      "ctx-1",
+      vi.fn().mockResolvedValue(undefined),
+      500,
+    );
     expect(services.isDialInteractionActive("ctx-1")).toBe(true);
 
     services.cleanupDialTimers("ctx-1");
@@ -101,7 +109,11 @@ describe("ActionServices.isDialInteractionActive", () => {
   });
 
   it("tracks interaction state independently per context id", () => {
-    services.deferDialAction("ctx-a", vi.fn().mockResolvedValue(undefined), 500);
+    services.deferDialAction(
+      "ctx-a",
+      vi.fn().mockResolvedValue(undefined),
+      500,
+    );
 
     expect(services.isDialInteractionActive("ctx-a")).toBe(true);
     expect(services.isDialInteractionActive("ctx-b")).toBe(false);
@@ -194,7 +206,9 @@ describe("ActionServices.prepareForSolidColor", () => {
       const services = new ActionServices();
       const light = makeLight({ gradient: true, nightlight: true });
 
-      await expect(services.prepareForSolidColor(light)).resolves.toBeUndefined();
+      await expect(
+        services.prepareForSolidColor(light),
+      ).resolves.toBeUndefined();
       expect(repo.toggleGradient).toHaveBeenCalled();
       expect(repo.toggleNightlight).toHaveBeenCalled();
     } finally {
@@ -622,7 +636,8 @@ describe("ActionServices chokepoint: cancel before user command", () => {
       expect(canceller).toHaveBeenCalledWith("light:ct|H6159");
       expect(controlService.controlLight).toHaveBeenCalled();
       const cancelOrder = canceller.mock.invocationCallOrder[0];
-      const controlOrder = controlService.controlLight.mock.invocationCallOrder[0];
+      const controlOrder =
+        controlService.controlLight.mock.invocationCallOrder[0];
       expect(cancelOrder).toBeLessThan(controlOrder);
     } finally {
       shared.lightControlService = originalControl;
@@ -795,9 +810,13 @@ describe("ActionServices.handleGetDevices — API key cache retry", () => {
   });
 
   it("reads the API key from cache without clearing when available on first read", async () => {
-    vi.spyOn(globalSettingsService, "getApiKey").mockResolvedValue("sk-first-hit");
+    vi.spyOn(globalSettingsService, "getApiKey").mockResolvedValue(
+      "sk-first-hit",
+    );
     const clearSpy = vi.spyOn(globalSettingsService, "clearCache");
-    const ensureSpy = vi.spyOn(ActionServices.prototype, "ensureServices").mockResolvedValue(undefined);
+    const ensureSpy = vi
+      .spyOn(ActionServices.prototype, "ensureServices")
+      .mockResolvedValue(undefined);
 
     await services.handleGetDevices("ctx");
 
@@ -813,7 +832,9 @@ describe("ActionServices.handleGetDevices — API key cache retry", () => {
       return Promise.resolve(callCount === 1 ? undefined : "sk-retry");
     });
     const clearSpy = vi.spyOn(globalSettingsService, "clearCache");
-    const ensureSpy = vi.spyOn(ActionServices.prototype, "ensureServices").mockResolvedValue(undefined);
+    const ensureSpy = vi
+      .spyOn(ActionServices.prototype, "ensureServices")
+      .mockResolvedValue(undefined);
 
     await services.handleGetDevices("ctx");
 
@@ -871,9 +892,9 @@ describe("ActionServices.handleGetDevices — includeGroups filter", () => {
       getCachedUnsupportedDevices: vi.fn().mockReturnValue([]),
     };
     shared.groupService = {
-      getAllGroups: vi.fn().mockResolvedValue([
-        { id: "g1", name: "Office", size: 2 },
-      ]),
+      getAllGroups: vi
+        .fn()
+        .mockResolvedValue([{ id: "g1", name: "Office", size: 2 }]),
     };
     restoreShared = () => {
       shared.deviceService = originalDevice;
@@ -1279,7 +1300,10 @@ describe("ActionServices.controlTarget — per-light colour temperature clamping
     ]);
 
     await services.controlTarget(
-      { type: "group", group: LightGroup.create("g1", "Living room", [wide, narrow]) },
+      {
+        type: "group",
+        group: LightGroup.create("g1", "Living room", [wide, narrow]),
+      },
       "colorTemperature",
       new DomainColorTemperature(2200),
     );
@@ -1506,5 +1530,37 @@ describe("ActionServices.reportPartialFailure", () => {
     );
 
     expect(action.setTitle).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The API key belongs to the account, not to a key on a deck. The Property
+ * Inspector writes it to GLOBAL settings only (ui/js/setup.js), and per-action
+ * settings travel inside an exported or shared Stream Deck profile — so a key
+ * that ever landed there would leave with the profile.
+ */
+describe("ActionServices.getApiKey", () => {
+  const globalKey = "global-account-key";
+
+  beforeEach(() => {
+    vi.spyOn(globalSettingsService, "getApiKey").mockResolvedValue(globalKey);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("reads the key from global settings", async () => {
+    await expect(new ActionServices().getApiKey({})).resolves.toBe(globalKey);
+  });
+
+  it("ignores a key carried in per-action settings", async () => {
+    const settings = { apiKey: "key-from-an-exported-profile" } as Parameters<
+      ActionServices["getApiKey"]
+    >[0];
+
+    await expect(new ActionServices().getApiKey(settings)).resolves.toBe(
+      globalKey,
+    );
   });
 });
