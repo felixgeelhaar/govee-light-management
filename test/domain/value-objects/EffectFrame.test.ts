@@ -82,3 +82,27 @@ describe("EffectFrame", () => {
     });
   });
 });
+
+/**
+ * `EffectFrame.rainbow` converts HSV to hex, and so does the converter the
+ * dial actions use. Two implementations of one colour space is a standing
+ * invitation to drift — CLAUDE.md listed this duplication as resolved while
+ * both copies were still in the tree. This pins them together: if they ever
+ * disagree on any hue, this fails.
+ */
+describe("EffectFrame.rainbow agrees with the shared HSV converter", () => {
+  it("produces the same colour as hsvToRgb across the wheel", async () => {
+    const { hsvToRgb } =
+      await import("../../../src/backend/domain/value-objects/color-conversion");
+    const toHex = (n: number) => n.toString(16).padStart(2, "0").toUpperCase();
+
+    for (let offset = 0; offset < 360; offset += 7) {
+      const frame = EffectFrame.rainbow(100, offset);
+      frame.segmentColors.forEach((hex, index) => {
+        const hue = (offset + (index * 360) / 15) % 360;
+        const { r, g, b } = hsvToRgb(hue, 100, 100);
+        expect(hex).toBe(`#${toHex(r)}${toHex(g)}${toHex(b)}`);
+      });
+    }
+  });
+});

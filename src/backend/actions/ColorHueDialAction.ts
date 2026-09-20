@@ -5,7 +5,7 @@ import {
 } from "@elgato/streamdeck";
 import type { JsonObject } from "@elgato/utils";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
-import { hsvToRgb, rgbToHue } from "./shared/color-utils";
+import { hsvToRgb, rgbToHue } from "../domain/value-objects/color-conversion";
 import { clamp } from "./shared/validation";
 import { valuePrefix } from "./shared/power-state";
 import { ColorRgb } from "../domain/value-objects/ColorRgb";
