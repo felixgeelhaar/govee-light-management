@@ -89,10 +89,13 @@ jobs:
           } > /tmp/updates.md
           cat /tmp/updates.md
 
+      # Records the outcome and exits 0 deliberately: the PR step below must
+      # still run, so a broken update lands on a branch with the failure named
+      # in the body rather than vanishing. The job is failed at the end
+      # instead, which keeps the red Monday signal without suppressing a step.
       - name: Prove the updates against the repo's own gates
         if: env.fresh == 'true'
         id: verify
-        continue-on-error: true
         run: |
           set -o pipefail
           fail=""
@@ -109,9 +112,9 @@ jobs:
           if [ -n "$fail" ]; then
             echo "verified=false" >> "$GITHUB_ENV"
             echo "failed_scripts=$fail" >> "$GITHUB_ENV"
-            exit 1
+          else
+            echo "verified=true" >> "$GITHUB_ENV"
           fi
-          echo "verified=true" >> "$GITHUB_ENV"
 
       - name: Report the majors being held, and why
         if: env.fresh == 'true'
@@ -215,3 +218,11 @@ jobs:
               --subject "chore(deps): in-range dependency updates" || \
               echo "::warning::Auto-merge could not be enabled; merge manually once CI is green."
           fi
+
+      # The red signal, after the PR exists. A gate that broke under the new
+      # versions is the one thing here worth waking someone on a Monday.
+      - name: Fail the run when a gate broke
+        if: env.fresh == 'true' && env.verified != 'true'
+        run: |
+          echo "::error::Dependency update broke:$failed_scripts — see the PR on branch deps/freshness."
+          exit 1
