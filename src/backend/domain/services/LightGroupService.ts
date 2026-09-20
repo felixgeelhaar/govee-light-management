@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Light } from "../entities/Light";
 import { LightGroup } from "../entities/LightGroup";
 import { ILightGroupRepository } from "../repositories/ILightGroupRepository";
@@ -212,11 +213,20 @@ export class LightGroupService {
   }
 
   /**
-   * Generate a unique ID for a new group
+   * Generate a unique ID for a new group.
+   *
+   * The slug and timestamp are for humans reading the store; they do not
+   * make the id unique. Distinct names collapse to the same slug ("Kitchen 1"
+   * and "Kitchen-1" both become "kitchen-1"), and the availability check
+   * compares raw names, so both are allowed. Created in the same millisecond
+   * they shared an id, and saving the second overwrote the first.
+   *
+   * The random suffix is what carries uniqueness.
    */
   private generateGroupId(name: string): string {
     const timestamp = Date.now();
     const sanitizedName = name.toLowerCase().replace(/[^a-z0-9]/g, "-");
-    return `group-${sanitizedName}-${timestamp}`;
+    const suffix = randomUUID().slice(0, 8);
+    return `group-${sanitizedName}-${timestamp}-${suffix}`;
   }
 }

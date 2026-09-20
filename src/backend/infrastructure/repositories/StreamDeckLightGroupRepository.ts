@@ -190,7 +190,17 @@ export class StreamDeckLightGroupRepository implements ILightGroupRepository {
           `Migrating light group storage from v${storage.version} to v${StreamDeckLightGroupRepository.STORAGE_VERSION}`,
         );
         storage.version = StreamDeckLightGroupRepository.STORAGE_VERSION;
-        await this.saveStorage(storage);
+        try {
+          await this.saveStorage(storage);
+        } catch (error) {
+          // The read succeeded; only persisting the bumped version failed.
+          // Returning the migrated groups is still right — the next write
+          // will carry the new version with it.
+          streamDeck.logger.warn(
+            "Migrated light group storage could not be persisted:",
+            error,
+          );
+        }
       }
 
       if (storage.version !== StreamDeckLightGroupRepository.STORAGE_VERSION) {
@@ -203,11 +213,20 @@ export class StreamDeckLightGroupRepository implements ILightGroupRepository {
 
       return storage;
     } catch (error) {
+      // Rethrow. This used to return an empty store, which made "the settings
+      // API is unavailable" indistinguishable from "you have no groups" — and
+      // saveGroup builds the envelope it writes from this result, so one
+      // transient read failure before a save replaced every saved group with
+      // the single new one.
+      //
+      // Every caller already carries the fail-safe it wants: getAllGroups
+      // returns none, findGroupById null, isGroupNameAvailable false ("assume
+      // taken" — a guard that could never run while this swallowed the
+      // error), and the writers abort with the cause attached.
       streamDeck.logger.error("Failed to get storage:", error);
-      return {
-        groups: [],
-        version: StreamDeckLightGroupRepository.STORAGE_VERSION,
-      };
+      throw error instanceof Error
+        ? error
+        : new Error("Failed to read light group storage", { cause: error });
     }
   }
 
