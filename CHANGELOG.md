@@ -4,6 +4,16 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
+## [2.8.2] - 2026-09-20
+
+### Added
+
+- **Releases are now signed and checksummed** ([#371](https://github.com/felixgeelhaar/govee-light-management/pull/371)). The `.streamDeckPlugin` attached to each release shipped with no provenance, no checksum and no signature, while the release notes told you to download it and double-click — and downloading directly is exactly what we ask for whenever a fix is waiting on Marketplace review. GitHub now signs a statement that the published file was built by this repository's release workflow, and a `checksums.txt` is published beside it. Both are computed on the packed bytes before upload, so they describe what actually ships. Release notes and the README carry the verification commands: `gh attestation verify <file> --repo felixgeelhaar/govee-light-management`, or `shasum -a 256 -c checksums.txt` without the GitHub CLI.
+
+### Internal
+
+- The README documented only "install from the Marketplace" and "build from source", while issues routinely pointed people at the release page; the direct-download route is now written down, with the verification step attached to it ([#371](https://github.com/felixgeelhaar/govee-light-management/pull/371)).
+
 ## [2.8.1] - 2026-09-20
 
 ### Fixed
