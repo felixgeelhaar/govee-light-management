@@ -3,10 +3,18 @@
 #
 # Only GENERATED or VENDORED artifacts are excluded here. First-party source
 # (src/, test/, scripts/, ui/js/setup.js, ui/js/range-value.js, .github/) is
-# scanned. Remaining first-party findings are all medium false positives
-# (TypeScript path-alias imports misread as slopsquatting, color/enum hex
-# constants) and are accepted via .nox/baseline.json, never by blinding whole
-# directories.
+# scanned. Remaining first-party findings are reviewed one at a time and
+# accepted in .nox-baseline.json, never by blinding whole directories. The
+# path-alias imports once misread as slopsquatting are fixed upstream in nox
+# 1.39.1, so they need no suppression at all.
+
+# The baseline lives OUTSIDE .nox/, which is gitignored as a scan-artifact
+# directory: a local `nox scan` writes a multi-megabyte .nox/baseline.json
+# covering node_modules, and the reviewed suppressions this repo actually
+# relies on must not share a path with it. Every entry in .nox-baseline.json
+# is a finding someone read and classified, with the reason stored alongside.
+policy:
+  baseline_path: .nox-baseline.json
 
 scan:
   exclude:

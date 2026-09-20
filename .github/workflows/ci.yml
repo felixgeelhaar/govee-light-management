@@ -167,8 +167,8 @@ jobs:
 
       - name: Install nox (pinned + sha256-verified binary)
         env:
-          NOX_VERSION: "1.7.1"
-          NOX_SHA256: "3106ab3ce7197f43a45fc1128ea27112686421e8ec3eac9be356d4ca42ab4c89"
+          NOX_VERSION: "1.39.1"
+          NOX_SHA256: "bc434d49ac567851ee6808d1300040b63c9e6942801a61cab918b3659a2abc0d"
         run: |
           curl -sL -o nox.tar.gz \
             "https://github.com/nox-hq/nox/releases/download/v${NOX_VERSION}/nox_${NOX_VERSION}_linux_amd64.tar.gz"
@@ -187,10 +187,13 @@ jobs:
 
       - name: Gate on critical/high nox findings
         # Enforcing: fails on any critical/high finding not accepted in
-        # .nox/baseline.json. The scan is clean today (generated/vendored code
-        # and markdown prose excluded in .nox.yaml), so this gates real net-new
-        # critical/high in first-party source going forward. To accept a future
-        # reviewed finding, `nox baseline add <fingerprint>` and commit .nox/.
+        # .nox-baseline.json (generated/vendored code and markdown prose are
+        # excluded in .nox.yaml), so this gates real net-new critical/high in
+        # first-party source going forward. To accept a future reviewed
+        # finding: `nox baseline add -fingerprint <fp> -reason "<why>"
+        # -baseline .nox-baseline.json` and commit that file. NOT .nox/, which
+        # is gitignored: a local scan fills it with megabytes of node_modules
+        # findings, and the reviewed suppressions must not share its path.
         if: always() && hashFiles('nox-results/findings.json') != ''
         run: |
           f=nox-results/findings.json

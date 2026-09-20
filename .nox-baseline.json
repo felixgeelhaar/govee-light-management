@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0.0",
+  "entries": [
+    {
+      "fingerprint": "409f3e8a985fa34593ccc97e8ccae018fdebf708d725695f27653bbdf6bb2e48",
+      "rule_id": "TAINT-002",
+      "file_path": "scripts/watch-backend.js",
+      "severity": "high",
+      "reason": "False positive: the command is the fixed 'npm run build' with a literal argument array. process.env is spread into spawn's `env` option — the child's environment, never the command line — so no environment value can reach the command_injection sink the rule reports. Local dev watch script, not shipped code. Reviewed 2026-09-20.",
+      "created_at": "2026-09-20T07:20:00Z"
+    }
+  ]
+}
