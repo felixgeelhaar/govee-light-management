@@ -3,6 +3,17 @@
 import { spawn } from "child_process";
 import { watch } from "chokidar";
 
+// npm and the Stream Deck CLI are installed as `.cmd` shims on Windows, which
+// is the only reason these spawns ever passed `shell: true`. Naming the shim
+// directly keeps both platforms working without handing a command line to a
+// shell: the arguments here are fixed, so a shell adds a parsing step and an
+// injection sink and nothing else.
+//
+// Without a shell, a missing binary arrives as an `error` event rather than
+// exit code 127, so both spawns below handle it — `streamdeck` is genuinely
+// optional, and an unhandled `error` event would take the watcher down.
+const bin = (name) => (process.platform === "win32" ? `${name}.cmd` : name);
+
 const PLUGIN_ID = "com.felixgeelhaar.govee-light-management";
 
 let buildProcess = null;
@@ -16,13 +27,16 @@ function startRollupBuild() {
   console.log("Starting Rollup backend build (dev mode with sourcemaps)...");
 
   // Set ROLLUP_WATCH so dev builds stay unminified with sourcemaps
-  buildProcess = spawn("npm", ["run", "build"], {
+  buildProcess = spawn(bin("npm"), ["run", "build"], {
     stdio: "inherit",
-    shell: true,
     env: {
       ...process.env,
       ROLLUP_WATCH: "1",
     },
+  });
+
+  buildProcess.on("error", (error) => {
+    console.error(`Backend build could not start: ${error.message}`);
   });
 
   buildProcess.on("close", (code) => {
@@ -38,9 +52,12 @@ function startRollupBuild() {
 function restartStreamDeck() {
   console.log("Restarting Stream Deck plugin...");
 
-  const restartProcess = spawn("streamdeck", ["restart", PLUGIN_ID], {
+  const restartProcess = spawn(bin("streamdeck"), ["restart", PLUGIN_ID], {
     stdio: "inherit",
-    shell: true,
+  });
+
+  restartProcess.on("error", () => {
+    console.log("Stream Deck restart skipped (streamdeck CLI is not on PATH)");
   });
 
   restartProcess.on("close", (code) => {

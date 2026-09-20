@@ -25,8 +25,8 @@ This is an enterprise-grade Stream Deck plugin for managing Govee smart lights. 
 ### Build and Development
 
 - `npm run build` - Build backend using Rollup (outputs to sdPlugin/bin/plugin.js)
-- `npm run dev` - Run both backend and frontend in development mode
-- `npm run watch` - Build backend in watch mode with automatic Stream Deck restart
+- `npm run dev` - Watch backend sources, rebuild, and restart the Stream Deck plugin on each change (`scripts/watch-backend.js`)
+- `npm run watch` - Rollup watch mode for the backend bundle only; no plugin restart
 - `npm run type-check` - Run TypeScript type checking for both backend and frontend
 
 ### Testing (Test-Driven Development)

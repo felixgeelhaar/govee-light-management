@@ -38,7 +38,14 @@ jobs:
             const issuesRaw = await github.paginate(github.rest.issues.listForRepo, {
               owner, repo, state: "open", per_page: 100,
             });
-            const issues = issuesRaw.filter(i => !i.pull_request);
+            // The sweep's own tracking issue is not work awaiting a reply: its
+            // last comment is always this workflow's own "re-ran" note, which
+            // is never the maintainer, so once that comment ages past the
+            // cutoff the sweep reports itself as stale forever.
+            const TRACKING_TITLE = "📋 Weekly Stale Review Sweep";
+            const issues = issuesRaw.filter(
+              i => !i.pull_request && i.title !== TRACKING_TITLE
+            );
 
             const stalePrs = [];
             const staleIssues = [];
@@ -137,14 +144,29 @@ jobs:
 
             // If anything is stale, create or update a tracking issue so
             // it surfaces in the maintainer's inbox, not just workflow logs.
-            if (stalePrs.length === 0 && staleIssues.length === 0) return;
-
-            const trackingTitle = "📋 Weekly Stale Review Sweep";
-            const existing = await github.paginate(
+            const openTracking = (await github.paginate(
               github.rest.issues.listForRepo,
               { owner, repo, state: "open", creator: "github-actions[bot]", per_page: 100 }
-            );
-            const tracking = existing.find(i => i.title === trackingTitle);
+            )).find(i => i.title === TRACKING_TITLE);
+
+            // A clean sweep used to return here, leaving the tracking issue
+            // open on a list of items that had all been answered. The issue is
+            // the signal, so a clean sweep has to clear it: it reopens by
+            // itself the next time something really is stale.
+            if (stalePrs.length === 0 && staleIssues.length === 0) {
+              if (openTracking) {
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number: openTracking.number,
+                  body: `✅ Sweep is clean — every PR and issue has had a maintainer response in the last ${STALE_DAYS} days. Closing; the next sweep reopens this if anything goes stale.`,
+                });
+                await github.rest.issues.update({
+                  owner, repo, issue_number: openTracking.number, state: "closed",
+                });
+              }
+              return;
+            }
+
+            const tracking = openTracking;
 
             if (tracking) {
               await github.rest.issues.update({
