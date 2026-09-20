@@ -14,7 +14,11 @@ import type { ILightGroupRepository } from "@/backend/domain/repositories/ILight
 import type { ILightRepository } from "@/backend/domain/repositories/ILightRepository";
 import type { LightState } from "@/backend/domain/value-objects/LightState";
 
-const makeLight = (deviceId: string, model = "H6110", name = deviceId): Light => {
+const makeLight = (
+  deviceId: string,
+  model = "H6110",
+  name = deviceId,
+): Light => {
   const state: LightState = {
     isOn: false,
     isOnline: true,
@@ -55,7 +59,10 @@ class InMemoryGroupRepository implements ILightGroupRepository {
     this.groups.delete(groupId);
   }
 
-  async isGroupNameAvailable(name: string, excludeId?: string): Promise<boolean> {
+  async isGroupNameAvailable(
+    name: string,
+    excludeId?: string,
+  ): Promise<boolean> {
     return !Array.from(this.groups.values()).some(
       (g) => g.name.toLowerCase() === name.toLowerCase() && g.id !== excludeId,
     );
@@ -144,27 +151,24 @@ describe("LightGroupService", () => {
     // group") requires an id that cannot collide: a counter, a random suffix,
     // or a uuid. The frozen clock below only makes the collision deterministic;
     // the same clash happens for real in any loop that creates several groups.
-    it.fails(
-      "gives distinct ids to two groups whose names slug to the same string",
-      async () => {
-        vi.useFakeTimers();
-        try {
-          vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
-          lights.add(makeLight("dev-1"));
+    it("gives distinct ids to two groups whose names slug to the same string", async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+        lights.add(makeLight("dev-1"));
 
-          const first = await service.createGroup("Kitchen 1", [
-            { deviceId: "dev-1", model: "H6110" },
-          ]);
-          const second = await service.createGroup("Kitchen-1", [
-            { deviceId: "dev-1", model: "H6110" },
-          ]);
+        const first = await service.createGroup("Kitchen 1", [
+          { deviceId: "dev-1", model: "H6110" },
+        ]);
+        const second = await service.createGroup("Kitchen-1", [
+          { deviceId: "dev-1", model: "H6110" },
+        ]);
 
-          expect(second.id).not.toBe(first.id);
-        } finally {
-          vi.useRealTimers();
-        }
-      },
-    );
+        expect(second.id).not.toBe(first.id);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
 
     it("accepts a group with no lights at all", async () => {
       const group = await service.createGroup("Empty", []);

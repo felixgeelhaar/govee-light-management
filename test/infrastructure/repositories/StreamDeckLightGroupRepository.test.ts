@@ -27,7 +27,11 @@ const settingsApi = streamDeck.settings as unknown as {
   setGlobalSettings: ReturnType<typeof vi.fn>;
 };
 
-const makeLight = (deviceId: string, model = "H6110", name = deviceId): Light => {
+const makeLight = (
+  deviceId: string,
+  model = "H6110",
+  name = deviceId,
+): Light => {
   const state: LightState = {
     isOn: false,
     isOnline: true,
@@ -48,7 +52,9 @@ describe("StreamDeckLightGroupRepository", () => {
 
   beforeEach(() => {
     globalSettings = {};
-    settingsApi.getGlobalSettings.mockImplementation(async () => globalSettings);
+    settingsApi.getGlobalSettings.mockImplementation(
+      async () => globalSettings,
+    );
     settingsApi.setGlobalSettings.mockImplementation(
       async (next: Record<string, unknown>) => {
         globalSettings = next;
@@ -264,7 +270,9 @@ describe("StreamDeckLightGroupRepository", () => {
 
       await repository.deleteGroup("g1");
 
-      expect((await repository.getAllGroups()).map((g) => g.id)).toEqual(["g2"]);
+      expect((await repository.getAllGroups()).map((g) => g.id)).toEqual([
+        "g2",
+      ]);
     });
 
     it("leaves the store untouched when the group is not there", async () => {
@@ -317,42 +325,35 @@ describe("StreamDeckLightGroupRepository", () => {
   describe("when the Stream Deck settings API fails to read", () => {
     const boom = new Error("settings unavailable");
 
-    // KNOWN DEFECT (not fixable from test/): the private getStorage() swallows
-    // a read failure and returns `{ groups: [], version: CURRENT }`, so a
-    // failed read is indistinguishable from an empty store. The two tests
-    // below are the consequences. The repository's own code shows this is not
-    // the intent: isGroupNameAvailable wraps its work in a try/catch that
-    // returns `false` ("assume the name is taken") on error — a deliberate
-    // fail-safe that can never run, because getStorage never lets an error
-    // escape. getStorage should rethrow, or return a result the callers can
-    // tell apart from an empty store, and let each caller fail safe.
+    // getStorage rethrows, so each caller's own fail-safe applies: a failed
+    // read no longer reads as "you have no groups".
 
-    it.fails(
-      "treats a name as taken while it cannot read the store",
-      async () => {
-        settingsApi.getGlobalSettings.mockRejectedValue(boom);
+    it("treats a name as taken while it cannot read the store", async () => {
+      settingsApi.getGlobalSettings.mockRejectedValue(boom);
 
-        expect(await repository.isGroupNameAvailable("Office")).toBe(false);
-      },
-    );
+      expect(await repository.isGroupNameAvailable("Office")).toBe(false);
+    });
 
-    it.fails(
-      "does not wipe the saved groups when one read fails before a save",
-      async () => {
-        await repository.saveGroup(LightGroup.create("g1", "Office", []));
-        await repository.saveGroup(LightGroup.create("g2", "Studio", []));
+    it("does not wipe the saved groups when one read fails before a save", async () => {
+      await repository.saveGroup(LightGroup.create("g1", "Office", []));
+      await repository.saveGroup(LightGroup.create("g2", "Studio", []));
 
-        // One transient read failure, after which the API recovers.
-        settingsApi.getGlobalSettings.mockRejectedValueOnce(boom);
-        await repository
-          .saveGroup(LightGroup.create("g3", "Hall", []))
-          .catch(() => undefined);
+      // One transient read failure, after which the API recovers.
+      settingsApi.getGlobalSettings.mockRejectedValueOnce(boom);
+      const error = await repository
+        .saveGroup(LightGroup.create("g3", "Hall", []))
+        .catch((e: unknown) => e);
 
-        // g1 and g2 were saved by the user and must survive.
-        expect(
-          (await repository.getAllGroups()).map((g) => g.id).sort(),
-        ).toEqual(["g1", "g2", "g3"]);
-      },
-    );
+      // The save fails and says so, rather than writing an envelope built
+      // from a store it could not read. Retrying is the caller's call: a
+      // repository that silently re-attempted the write would hide exactly
+      // the outage the caller needs to know about.
+      expect((error as Error).message).toContain("Failed to save group");
+
+      // What matters: the groups the user already had are still there.
+      expect((await repository.getAllGroups()).map((g) => g.id).sort()).toEqual(
+        ["g1", "g2"],
+      );
+    });
   });
 });
