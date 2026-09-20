@@ -225,3 +225,158 @@ describe("DeviceService", () => {
     });
   });
 });
+
+/**
+ * Discovery is one shared fact about the account, not a per-caller
+ * question. Every visible key drives it: the dial live-sync runs every 3s,
+ * the keypad tracker every 30s, and `resolveTarget` asks on every cache
+ * miss. Without coalescing, the moment the cache lapses each key issues its
+ * own request against a rate-limited API — the failure mode the 60s
+ * rate-limit backoff in ActionServices exists to absorb.
+ */
+describe("DeviceService.discover — concurrent callers", () => {
+  beforeEach(() => {
+    telemetryService.reset();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-01-01T00:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const lights = [
+    {
+      deviceId: "dev-1",
+      model: "H6001",
+      deviceName: "Lamp",
+      controllable: true,
+      retrievable: true,
+      supportCmds: ["turn"],
+    },
+  ];
+
+  it("serves concurrent callers from a single transport round trip", async () => {
+    const orchestrator = createOrchestratorMock();
+    let release: (value: DeviceDiscoveryResult) => void = () => {};
+    orchestrator.discoverDevices.mockReturnValue(
+      new Promise<DeviceDiscoveryResult>((resolve) => {
+        release = resolve;
+      }),
+    );
+    const service = new DeviceService(
+      orchestrator as unknown as ConstructorParameters<typeof DeviceService>[0],
+    );
+
+    const calls = [service.discover(), service.discover(), service.discover()];
+    release({ lights } as unknown as DeviceDiscoveryResult);
+    const results = await Promise.all(calls);
+
+    expect(orchestrator.discoverDevices).toHaveBeenCalledTimes(1);
+    for (const result of results) {
+      expect(result.map((l) => l.deviceId)).toEqual(["dev-1"]);
+    }
+  });
+
+  it("starts a fresh round trip once the previous one has settled", async () => {
+    const orchestrator = createOrchestratorMock();
+    orchestrator.discoverDevices.mockResolvedValue({
+      lights,
+    } as unknown as DeviceDiscoveryResult);
+    const service = new DeviceService(
+      orchestrator as unknown as ConstructorParameters<typeof DeviceService>[0],
+      { cacheTtlMs: 1000 },
+    );
+
+    await service.discover();
+    vi.advanceTimersByTime(2000);
+    await service.discover();
+
+    expect(orchestrator.discoverDevices).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not let a failed discovery poison the next one", async () => {
+    const orchestrator = createOrchestratorMock();
+    orchestrator.discoverDevices.mockRejectedValueOnce(new Error("rate limit"));
+    orchestrator.discoverDevices.mockResolvedValueOnce({
+      lights,
+    } as unknown as DeviceDiscoveryResult);
+    const service = new DeviceService(
+      orchestrator as unknown as ConstructorParameters<typeof DeviceService>[0],
+    );
+
+    await expect(
+      Promise.all([service.discover(), service.discover()]),
+    ).resolves.toEqual([[], []]);
+    expect(orchestrator.discoverDevices).toHaveBeenCalledTimes(1);
+
+    const recovered = await service.discover();
+    expect(recovered.map((l) => l.deviceId)).toEqual(["dev-1"]);
+  });
+});
+
+/**
+ * A transport that never answers must not stall the caller forever. The PI
+ * handlers already wrap discovery in a 10s timeout; the live-sync path does
+ * not, and `CloudTransport.discoverViaRawFetch` issues a bare fetch with no
+ * AbortSignal. A hung connection there stalls a sync tick indefinitely.
+ */
+describe("DeviceService.discover — a hung transport", () => {
+  beforeEach(() => {
+    telemetryService.reset();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-01-01T00:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("gives up after the timeout and answers like any other failure", async () => {
+    const orchestrator = createOrchestratorMock();
+    orchestrator.discoverDevices.mockReturnValue(
+      new Promise<DeviceDiscoveryResult>(() => {}),
+    );
+    const service = new DeviceService(
+      orchestrator as unknown as ConstructorParameters<typeof DeviceService>[0],
+      { discoveryTimeoutMs: 5000 },
+    );
+
+    const pending = service.discover();
+    await vi.advanceTimersByTimeAsync(5000);
+
+    await expect(pending).resolves.toEqual([]);
+  });
+
+  it("serves the cached lights when a later discovery hangs", async () => {
+    const orchestrator = createOrchestratorMock();
+    orchestrator.discoverDevices.mockResolvedValueOnce({
+      lights: [
+        {
+          deviceId: "cached",
+          model: "H6001",
+          deviceName: "Lamp",
+          controllable: true,
+          retrievable: true,
+          supportCmds: ["turn"],
+        },
+      ],
+    } as unknown as DeviceDiscoveryResult);
+    const service = new DeviceService(
+      orchestrator as unknown as ConstructorParameters<typeof DeviceService>[0],
+      { cacheTtlMs: 1000, discoveryTimeoutMs: 5000 },
+    );
+    await service.discover();
+
+    orchestrator.discoverDevices.mockReturnValue(
+      new Promise<DeviceDiscoveryResult>(() => {}),
+    );
+    vi.advanceTimersByTime(2000);
+    const pending = service.discover();
+    await vi.advanceTimersByTimeAsync(5000);
+
+    await expect(pending).resolves.toEqual([
+      expect.objectContaining({ deviceId: "cached" }),
+    ]);
+  });
+});
