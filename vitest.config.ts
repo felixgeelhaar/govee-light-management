@@ -21,10 +21,15 @@ export default defineConfig({
       // Real numbers at this ratchet: 39.3 statements / 31.13 branches /
       // 57.88 functions / 39.64 lines.
       thresholds: {
-        statements: 39,
-        branches: 31,
-        functions: 57,
-        lines: 39,
+        // Real numbers after removing the unreachable modules: deleting code
+        // that was tested lowers the ratio without lowering the amount of
+        // behaviour under test (CircuitBreaker alone was 98.5% covered and
+        // constructed by nothing). Floor tracks reality; raise it with each
+        // batch of new tests, never lower it to make a change fit.
+        statements: 37,
+        branches: 30,
+        functions: 56,
+        lines: 37,
       },
       exclude: [
         "node_modules/**",
