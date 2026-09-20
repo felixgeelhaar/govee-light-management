@@ -19,6 +19,7 @@ import { SequenceAction } from "./actions/SequenceAction";
 import { CustomEffectAction } from "./actions/CustomEffectAction";
 import { RecallAction } from "./actions/RecallAction";
 import { schedulerService } from "./services/SchedulerService";
+import { createShutdownRunner } from "./services/lifecycle";
 import {
   globalSettingsService,
   isStatusBadgeEnabled,
@@ -55,6 +56,18 @@ streamDeck.connect();
 void schedulerService.initialize().catch((error) => {
   streamDeck.logger.error("Failed to initialize scheduler:", error);
 });
+
+// Stream Deck stops a plugin by signalling its process. Without this the
+// scheduler's 30s engine poll ran until the process was killed, and the
+// schedule it holds was never persisted on the way out — `shutdown()` existed
+// and nothing called it.
+const shutdown = createShutdownRunner(streamDeck.logger);
+shutdown.onShutdown("scheduler", () => schedulerService.shutdown());
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+  process.once(signal, () => {
+    void shutdown.run(signal).finally(() => process.exit(0));
+  });
+}
 
 // The status badge preference is global, so it is pushed into the renderer
 // once rather than read on every repaint — status-badge stays free of the
