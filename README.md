@@ -109,7 +109,28 @@ Check out the **[Stream Deck+ Dials Guide](docs/DIALS_GUIDE.md)** for comprehens
 
 Search for **Govee Light Management** in the [Elgato Marketplace](https://marketplace.elgato.com/search?query=govee%20light%20management) and install it from there. This is the recommended route.
 
-### Option 2: Build and install from source
+### Option 2: Download a released build
+
+Each [release](https://github.com/felixgeelhaar/govee-light-management/releases)
+attaches `com.felixgeelhaar.govee-light-management.streamDeckPlugin`. Download it
+and double-click to install. This is the fastest way to pick up a fix that is
+still waiting on Marketplace review.
+
+Because this route skips that review, every release is attested: GitHub signs a
+statement that the exact file was built by this repository's release workflow.
+Check it before installing:
+
+```bash
+gh attestation verify com.felixgeelhaar.govee-light-management.streamDeckPlugin \
+  --repo felixgeelhaar/govee-light-management
+```
+
+If that reports anything other than a successful verification, the file is not
+what the workflow produced — do not install it. Releases also attach
+`checksums.txt`, so a download can be checked with `shasum -a 256 -c checksums.txt`
+if you do not have the GitHub CLI.
+
+### Option 3: Build and install from source
 
 1. **Download the latest release**
 

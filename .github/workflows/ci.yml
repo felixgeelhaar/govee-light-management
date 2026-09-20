@@ -132,7 +132,7 @@ jobs:
         run: npm run test:e2e
 
       - name: Upload test results
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1 # nox:ignore IAC-153 -- failure-only Playwright report, read by maintainers and expiring in 7 days; nobody installs it. The file users install is the packed plugin, which release.yml now attests.
         if: failure() # ✅ Only upload on failure to save quota
         with:
           name: playwright-report
