@@ -21,7 +21,7 @@ import { ColorRgb } from "../domain/value-objects/ColorRgb";
 import { SegmentColor } from "../domain/value-objects/SegmentColor";
 import type { Light } from "../domain/entities/Light";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
-import { hsvToRgb } from "./shared/color-utils";
+import { hsvToRgb } from "../domain/value-objects/color-conversion";
 import { clamp } from "./shared/validation";
 import { applyStatusImage, powerStatus } from "./shared/status-badge";
 

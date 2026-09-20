@@ -7,7 +7,11 @@ import {
 } from "@elgato/streamdeck";
 import type { JsonObject } from "@elgato/utils";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
-import { hsvToRgb, rgbToHue, rgbToSaturation } from "./shared/color-utils";
+import {
+  hsvToRgb,
+  rgbToHue,
+  rgbToSaturation,
+} from "../domain/value-objects/color-conversion";
 import { clamp } from "./shared/validation";
 import { valuePrefix } from "./shared/power-state";
 import { applyStatusImage, powerStatus } from "./shared/status-badge";

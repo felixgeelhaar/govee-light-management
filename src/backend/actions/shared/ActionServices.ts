@@ -227,7 +227,6 @@ export interface DeviceTarget {
 }
 
 export interface BaseSettings {
-  apiKey?: string;
   selectedDeviceId?: string;
   selectedModel?: string;
   selectedLightName?: string;
@@ -522,8 +521,19 @@ export class ActionServices {
     }
   }
 
-  async getApiKey(settings: BaseSettings): Promise<string | undefined> {
-    return settings.apiKey || (await globalSettingsService.getApiKey());
+  /**
+   * The Govee API key, which belongs to the account rather than to any one
+   * key on a deck.
+   *
+   * Read from global settings only. `BaseSettings.apiKey` used to win here,
+   * but nothing ever wrote it — the Property Inspector saves the key with
+   * `setGlobalSettings` — and per-action settings travel inside an exported
+   * or shared Stream Deck profile, so a key that did land there would leave
+   * with it. The parameter stays for call-site symmetry with the other
+   * settings-taking helpers.
+   */
+  async getApiKey(_settings: BaseSettings): Promise<string | undefined> {
+    return globalSettingsService.getApiKey();
   }
 
   /**
