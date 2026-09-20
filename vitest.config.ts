@@ -18,11 +18,13 @@ export default defineConfig({
       include: ["src/**/*.ts"],
       // A floor at today's real coverage, to ratchet upward. Raise it with
       // each batch of new tests; never lower it to make a change fit.
+      // Real numbers at this ratchet: 39.3 statements / 31.13 branches /
+      // 57.88 functions / 39.64 lines.
       thresholds: {
-        statements: 34,
-        branches: 28,
-        functions: 53,
-        lines: 34,
+        statements: 39,
+        branches: 31,
+        functions: 57,
+        lines: 39,
       },
       exclude: [
         "node_modules/**",
