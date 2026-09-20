@@ -58,7 +58,7 @@ describe('CircuitBreaker Integration Tests', () => {
       for (let i = 0; i < 3; i++) {
         try {
           await circuitBreaker.execute(mockOperation);
-        } catch (error) {
+        } catch {
           // Expected to fail
         }
       }
@@ -74,7 +74,7 @@ describe('CircuitBreaker Integration Tests', () => {
       for (let i = 0; i < 3; i++) {
         try {
           await circuitBreaker.execute(failingOperation);
-        } catch (error) {
+        } catch {
           // Expected
         }
       }
@@ -95,7 +95,7 @@ describe('CircuitBreaker Integration Tests', () => {
       for (let i = 0; i < 3; i++) {
         try {
           await circuitBreaker.execute(failingOperation);
-        } catch (error) {
+        } catch {
           // Expected
         }
       }
@@ -172,7 +172,7 @@ describe('CircuitBreaker Integration Tests', () => {
       
       try {
         await circuitBreaker.execute(failOperation);
-      } catch (error) {
+      } catch {
         // Expected
       }
 
@@ -192,7 +192,7 @@ describe('CircuitBreaker Integration Tests', () => {
       
       try {
         await circuitBreaker.execute(failOperation);
-      } catch (error) {
+      } catch {
         // Expected
       }
 
@@ -298,7 +298,7 @@ describe('CircuitBreaker Integration Tests', () => {
     for (let i = 0; i < 3; i++) {
       try {
         await breaker.execute(failingOperation);
-      } catch (error) {
+      } catch {
         // Expected to fail
       }
     }

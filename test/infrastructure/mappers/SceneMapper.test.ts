@@ -5,7 +5,6 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { LightScene } from '@felixgeelhaar/govee-api-client';
 import { Scene } from '@/backend/domain/value-objects/Scene';
 import { SceneMapper } from '@/backend/infrastructure/mappers/SceneMapper';
 
