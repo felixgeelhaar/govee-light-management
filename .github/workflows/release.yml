@@ -11,6 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # attest-build-provenance needs both of these: `attestations: write` to
+      # record the attestation against this repository, and the OIDC token to
+      # mint the short-lived certificate it signs with. With only
+      # `contents: write` the attest step fails rather than quietly producing
+      # an unattested release.
+      attestations: write
+      id-token: write # nox:ignore IAC-306 -- OIDC is the keyless-signing mechanism for the attestation; removing it ships the download unsigned
 
     steps:
       - name: Checkout code
@@ -41,6 +48,16 @@ jobs:
 
       - name: Pack plugin
         run: npx streamdeck pack com.felixgeelhaar.govee-light-management.sdPlugin --force
+
+      # Everything below runs on the packed file, before it is uploaded, so
+      # the checksum and the attestation describe the exact bytes released.
+      - name: Checksum the packed plugin
+        run: sha256sum com.felixgeelhaar.govee-light-management.streamDeckPlugin | tee checksums.txt
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: com.felixgeelhaar.govee-light-management.streamDeckPlugin
 
       - name: Extract version
         id: version
@@ -77,6 +94,25 @@ jobs:
             echo "1. Download \`com.felixgeelhaar.govee-light-management.streamDeckPlugin\` below"
             echo "2. Double-click to install in Stream Deck"
             echo ""
+            echo "## Verifying your download"
+            echo ""
+            echo "Installing from this page bypasses the Marketplace's review, so the"
+            echo "download is attested: GitHub signs a statement that this exact file was"
+            echo "built by this repository's release workflow. To check it before installing:"
+            echo ""
+            echo '```bash'
+            echo "gh attestation verify com.felixgeelhaar.govee-light-management.streamDeckPlugin --repo felixgeelhaar/govee-light-management"
+            echo '```'
+            echo ""
+            echo "A mismatch means the file is not what this workflow produced — do not install it."
+            echo ""
+            echo "\`checksums.txt\` below carries the same file's SHA-256, for checking a"
+            echo "download against a second copy without the GitHub CLI:"
+            echo ""
+            echo '```bash'
+            echo "shasum -a 256 -c checksums.txt"
+            echo '```'
+            echo ""
             echo "## Requirements"
             echo ""
             echo "- Stream Deck software 6.9 or later"
@@ -89,7 +125,9 @@ jobs:
         with:
           name: "v${{ steps.version.outputs.VERSION }}"
           body_path: release_notes.md
-          files: com.felixgeelhaar.govee-light-management.streamDeckPlugin
+          files: |
+            com.felixgeelhaar.govee-light-management.streamDeckPlugin
+            checksums.txt
           draft: false
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
           generate_release_notes: true
