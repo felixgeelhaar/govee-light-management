@@ -4,7 +4,6 @@ import { Brightness } from "../../../src/backend/domain/value-objects/Brightness
 import { ColorRgb } from "../../../src/backend/domain/value-objects/ColorRgb";
 import { ColorTemperature } from "../../../src/backend/domain/value-objects/ColorTemperature";
 import { SegmentColor } from "../../../src/backend/domain/value-objects/SegmentColor";
-import { MusicModeConfig } from "../../../src/backend/domain/value-objects/MusicModeConfig";
 import { DynamicSceneOption } from "../../../src/backend/domain/value-objects/DynamicSceneOption";
 import { DiySceneOption } from "../../../src/backend/domain/value-objects/DiySceneOption";
 import { SnapshotOption } from "../../../src/backend/domain/value-objects/SnapshotOption";

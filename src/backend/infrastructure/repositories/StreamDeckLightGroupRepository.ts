@@ -112,6 +112,7 @@ export class StreamDeckLightGroupRepository implements ILightGroupRepository {
       streamDeck.logger.error(`Failed to save group ${group.name}:`, error);
       throw new Error(
         `Failed to save group: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -137,6 +138,7 @@ export class StreamDeckLightGroupRepository implements ILightGroupRepository {
       streamDeck.logger.error(`Failed to delete group ${groupId}:`, error);
       throw new Error(
         `Failed to delete group: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { cause: error },
       );
     }
   }
@@ -220,7 +222,7 @@ export class StreamDeckLightGroupRepository implements ILightGroupRepository {
       await streamDeck.settings.setGlobalSettings(settings);
     } catch (error) {
       streamDeck.logger.error("Failed to save storage:", error);
-      throw new Error("Failed to save group storage");
+      throw new Error("Failed to save group storage", { cause: error });
     }
   }
 

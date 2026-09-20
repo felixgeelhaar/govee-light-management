@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ColorPaletteService } from '../../../src/backend/domain/services/ColorPaletteService';
-import { ColorPalette, ColorPreset } from '../../../src/backend/domain/value-objects/ColorPalette';
 
 describe('ColorPaletteService', () => {
   let service: ColorPaletteService;

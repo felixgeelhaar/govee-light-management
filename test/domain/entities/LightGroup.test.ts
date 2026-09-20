@@ -8,7 +8,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { LightGroup } from '@/backend/domain/entities/LightGroup';
 import { Light } from '@/backend/domain/entities/Light';
 import { LightState } from '@/backend/domain/value-objects/LightState';
-import { Brightness } from '@/backend/domain/value-objects/Brightness';
 
 describe('LightGroup Entity', () => {
   let lightGroup: LightGroup;

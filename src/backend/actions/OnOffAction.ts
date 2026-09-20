@@ -90,6 +90,9 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
     this.visibleActions.delete(ctx);
     this.settingsMap.delete(ctx);
     this.stopLiveSync(ctx);
+    // See BaseDialAction.onWillDisappear: an armed partial-failure banner
+    // restores a stale title 30s later, onto whatever the key shows then.
+    this.services.clearPartialFailureBanner(ctx);
   }
 
   private startLiveSync(contextId: string): void {

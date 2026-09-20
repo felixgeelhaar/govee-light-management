@@ -79,7 +79,7 @@ function setupWatcher() {
       "com.felixgeelhaar.govee-light-management.sdPlugin/manifest.json",
     ],
     {
-      ignored: /(^|[\/\\])\../, // ignore dotfiles
+      ignored: /(^|[/\\])\../, // ignore dotfiles
       persistent: true,
     },
   );

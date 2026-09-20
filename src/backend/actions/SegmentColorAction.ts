@@ -14,7 +14,6 @@ import {
   type DialRotateEvent,
   type KeyDownEvent,
   type SendToPluginEvent,
-  type WillDisappearEvent,
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonObject, JsonValue } from "@elgato/utils";
@@ -54,13 +53,6 @@ export class SegmentColorAction extends BaseDialAction<SegmentColorSettings> {
 
   protected cleanupValueMaps(ctx: string): void {
     this.hueMap.delete(ctx);
-  }
-
-  override async onWillDisappear(
-    ev: WillDisappearEvent<SegmentColorSettings>,
-  ): Promise<void> {
-    await super.onWillDisappear(ev);
-    this.services.clearPartialFailureBanner(ev.action.id);
   }
 
   // ── Keypad ─────────────────────────────────────────────────────

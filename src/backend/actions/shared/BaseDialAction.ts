@@ -111,6 +111,10 @@ export abstract class BaseDialAction<
     this.liveSyncInFlight.delete(ctx);
     this.liveSyncSuppressedUntil.delete(ctx);
     this.services.cleanupDialTimers(ctx);
+    // A partial-failure banner restores the previous title after 30s. Left
+    // armed, that timer fires against a key this context no longer owns and
+    // overwrites whatever the next configuration rendered.
+    this.services.clearPartialFailureBanner(ctx);
     // Force the next rotation to re-issue overlay-clearing toggles
     // (see ActionServices.ensurePreparedForSolidColor / issue #170).
     this.services.clearPreparedForContext(ctx);
