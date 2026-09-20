@@ -1,695 +1,414 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code (claude.ai/code) when working in this repository.
+
+This file describes the code that exists today. It is an operating manual, not
+a changelog — release history lives in `CHANGELOG.md`, working style and
+constraints live in `AGENTS.md`.
 
 ## Project Overview
 
-This is an enterprise-grade Stream Deck plugin for managing Govee smart lights. It provides Stream Deck actions to control Govee lights via the Govee API, including displaying device information and controlling light states. The project demonstrates exceptional software engineering practices with comprehensive testing, modern development workflows, and production-ready architecture.
+A Stream Deck plugin for controlling Govee smart lights. It registers 18
+actions (13 keypad classes + 5 encoder classes) that talk to the Govee Cloud
+API through `@felixgeelhaar/govee-api-client` (`^3.3.10`). Published on the
+Elgato Marketplace; current version is 2.8.0 (`package.json` `version` and the
+manifest's `Version` field — `2.8.0.0` — must be bumped together).
 
-### Technical Excellence Score: 10/10
+Runtime target: Node 20 (the version Elgato's CLI validator pins in the
+manifest), TypeScript, ESM.
 
-- **Architecture**: Domain-Driven Design with SOLID principles ✅
-- **Type Safety**: Complete TypeScript type safety across entire codebase ✅
-- **Testing**: TDD approach with 492 unit tests + 118 E2E tests, 80%+ coverage ✅
-- **Build System**: Rollup backend + Vite frontend/tests ✅
-- **Developer Experience**: Hot reload, automated quality gates, comprehensive test suite ✅
-- **Code Quality**: Zero TypeScript errors, zero linting errors, all tests passing ✅
-- **Phase 1 Enhancement**: ✅ **COMPLETED** - API response validation and circuit breaker patterns (both provided by govee-api-client)
-- **Stream Deck+ Support**: ✅ **COMPLETED** - Four production-ready encoder actions with HSV color space conversion
-- **v2.1.0 Features**: ✅ **COMPLETED** - Scene, music mode, feature toggle actions; all repository methods implemented
-- **v2.3.x PI Datasource Guardrails**: ✅ **COMPLETED** — Typed `sendPIDatasource` response contract (status: ok|empty|error) and `attachFieldStatus` PI helper so empty/error states are always surfaced to users; E2E invariant tests across all 17 PIs
-- **Dependency Management**: ✅ **UP-TO-DATE** - govee-api-client v3.3.0 (as of April 2026, DIY-endpoint fix + online capability parsing)
+## How to work in this repo
 
-## Development Commands
+**Tests first.** The project is test-driven: write the failing test, make it
+pass, then refactor. When fixing a bug, add the regression test — or the E2E
+invariant — that locks the fix before changing the code.
 
-### Build and Development
+**Respect the layering.** The backend is domain-driven, and the layers are real
+directories:
 
-- `npm run build` - Build backend using Rollup (outputs to sdPlugin/bin/plugin.js)
-- `npm run dev` - Watch backend sources, rebuild, and restart the Stream Deck plugin on each change (`scripts/watch-backend.js`)
-- `npm run watch` - Rollup watch mode for the backend bundle only; no plugin restart
-- `npm run type-check` - Run TypeScript type checking for both backend and frontend
+- `src/backend/domain/` — entities, value objects, repository _interfaces_, and
+  pure domain services. No SDK imports, no HTTP, no Stream Deck. This is where
+  business rules live and where they are cheapest to test.
+- `src/backend/application/` — orchestration over the domain. Today that is
+  `services/DeviceService.ts`: discovery caching, capability normalization,
+  telemetry.
+- `src/backend/infrastructure/` — the adapters. `repositories/GoveeLightRepository`
+  implements `ILightRepository` against the Govee client;
+  `repositories/StreamDeckLightGroupRepository` implements
+  `ILightGroupRepository` against Stream Deck's settings storage; `mappers/`
+  convert between domain types and the client's types; `resilience/` and
+  `SchedulerEngine.ts` sit here too.
+- `src/backend/actions/` — the Stream Deck entry layer. Action classes receive
+  SDK events and delegate; they own presentation (titles, badges, dial
+  feedback) and little else. `actions/shared/ActionServices.ts` is the seam
+  they all go through.
 
-### Testing (Test-Driven Development)
+Dependencies point inward. An action reaches infrastructure through
+`ActionServices`; the domain never reaches outward.
 
-- `npm run test` - Run unit tests with Vitest
-- `npm run test:coverage` - Run tests with coverage reporting (target: >80%)
-- `npm run test:ui` - Run tests with Vitest UI for interactive development
-- `npm run test:e2e` - Run end-to-end tests with Playwright
+**Filter by capability.** Actions ask `Light` what it supports before offering
+it in a Property Inspector dropdown — never present a light whose command would
+be rejected.
 
-### Code Quality
+## Commands
 
-- `npm run lint` - Lint TypeScript files with ESLint
-- `npm run lint:fix` - Fix linting issues automatically
-- `npm run format` - Format code with Prettier
-- `npm run format:check` - Check code formatting
+Every script below exists in `package.json`. Nothing else does — in particular
+there is no `test:ui` and no `test:server`.
 
-### Stream Deck Integration
+### Build and development
 
-- Built plugin files are output to `com.felixgeelhaar.govee-light-management.sdPlugin/bin/`
-- The watch command automatically restarts the Stream Deck plugin when changes are detected
-- Uses `@elgato/cli` for Stream Deck development tools
+- `npm run build` — Rollup bundle to `com.felixgeelhaar.govee-light-management.sdPlugin/bin/plugin.js`
+- `npm run watch` — Rollup in watch mode
+- `npm run dev` — `scripts/watch-backend.js`: rebuilds and restarts the plugin on change
+- `npm run type-check` — `tsc --noEmit`
 
-## Architecture
+### Test
 
-### Domain-Driven Design Structure
+- `npm run test` — Vitest (`vitest`; runs once in CI, watches in a TTY)
+- `npm run test:coverage` — Vitest with v8 coverage and the thresholds in `vitest.config.ts`
+- `npm run test:e2e` — Playwright against the Property Inspector HTML
+
+### Quality
+
+- `npm run lint` / `npm run lint:fix` — `eslint .` over the whole repo
+- `npm run format` / `npm run format:check` — Prettier over `src/**/*.{ts,js,json}`
+
+### Stream Deck
+
+- `npm run streamdeck:validate` / `:pack` / `:link` / `:restart` / `:dev`
+- `npm run dev:build` — builds, then `scripts/patch-dev-build.mjs` copies the
+  bundle into `com.felixgeelhaar.govee-light-management.dev.sdPlugin` with a
+  `.dev` UUID so a development copy can run beside the installed release
+- `npm run dev:link` / `dev:restart` / `dev:unlink`
+- `npm run prod:pack` — build + `streamdeck pack` into `dist/`
+
+There is no `streamdeck install` command; installation is `streamdeck link`
+during development, or opening the packed `.streamDeckPlugin` file.
+
+## Repository layout
 
 ```
 src/
 ├── backend/
-│   ├── connectivity/          # Transport layer for device communication
-│   │   ├── ITransport.ts     # Transport interface
-│   │   ├── TransportOrchestrator.ts  # Multi-transport coordinator
-│   │   ├── TransportHealthService.ts # Health monitoring
-│   │   ├── cloud/            # Cloud transport implementation
-│   │   └── types.ts          # Transport types
+│   ├── actions/              # entry layer: 18 Stream Deck action classes
+│   │   └── shared/           # ActionServices, BaseDialAction, status badge, utils
+│   ├── application/services/ # DeviceService (discovery cache + normalization)
+│   ├── connectivity/         # ITransport, TransportOrchestrator, cloud/CloudTransport
 │   ├── domain/
-│   │   ├── entities/         # Business entities (Light, LightGroup)
-│   │   ├── repositories/     # Repository interfaces
-│   │   ├── services/         # Domain services (LightControlService, DeviceService)
-│   │   └── value-objects/    # LightState and other value objects
+│   │   ├── entities/         # Light, LightGroup, RgbEffect, ScheduledAction, Sequence
+│   │   ├── repositories/     # ILightRepository, ILightGroupRepository (interfaces)
+│   │   ├── services/         # LightControlService, SceneService, group-fan-out, …
+│   │   └── value-objects/    # Brightness, ColorRgb, ColorTemperature, Scene, …
 │   ├── infrastructure/
-│   │   ├── mappers/          # Domain to API mappers (SceneMapper, MusicModeMapper, SegmentColorMapper)
-│   │   └── repositories/     # Repository implementations
-│   ├── services/             # Backend services (TelemetryService, GlobalSettingsService)
-│   ├── actions/              # Stream Deck action implementations
-│   └── plugin.ts            # Entry point
-├── frontend/
-│   ├── components/           # Vue components (FeedbackSystem, DiagnosticsPanel, etc.)
-│   ├── composables/          # Vue composables for state management
-│   ├── machines/             # XState machines for complex workflows
-│   ├── services/             # Frontend services (WebSocket, monitoring, etc.)
-│   ├── views/                # Property inspector views
-│   └── utils/                # Error handling and utilities
-└── shared/
-    └── types/                # Shared TypeScript types
+│   │   ├── mappers/          # domain ↔ govee-api-client conversion
+│   │   ├── repositories/     # GoveeLightRepository, StreamDeckLightGroupRepository
+│   │   ├── resilience/       # CircuitBreaker (not wired in — see below)
+│   │   └── SchedulerEngine.ts
+│   ├── services/             # SchedulerService, SequenceService, EffectService,
+│   │                         # GlobalSettingsService, TelemetryService
+│   ├── sdpi.ts               # SDPI datasource payload types
+│   └── plugin.ts             # entry point; registers every action
+└── shared/types/             # types shared between backend and PI payloads
+
+com.felixgeelhaar.govee-light-management.sdPlugin/
+├── manifest.json
+├── bin/plugin.js             # build output
+├── imgs/actions/<name>/      # icon.svg (mono) + key.svg (gradient) per action
+└── ui/                       # Property Inspectors: hand-written HTML
+    ├── *.html                # one per action
+    ├── css/main.css
+    └── js/setup.js           # shared PI logic
+        js/sdpi-components.js # vendored Elgato component bundle
+        js/range-value.js
 ```
 
-### Core Components
-
-- **Entry point**: `src/backend/plugin.ts` - Registers 14 actions (9 keypad + 5 encoder)
-- **Actions**: Located in `src/backend/actions/` directory
-  - **Keypad Actions:**
-    - `OnOffAction.ts` - Power toggle/on/off with state sync on appear
-    - `BrightnessAction.ts` - Set brightness (0-100%, treats 0 as off)
-    - `ColorAction.ts` - Set color via hex picker
-    - `ColorTemperatureAction.ts` - Set color temperature (warm to cool)
-    - `SegmentColorAction.ts` - Segment color presets (rainbow/solid/gradient) with configurable start/end range
-    - `SceneAction.ts` - Dynamic scene picker (fetches available scenes per device from API)
-    - `MusicModeAction.ts` - Music-reactive lighting (device-specific modes queried from API)
-    - `ToggleAction.ts` - Feature toggles (gradient, nightlight, DreamView - filtered by device capability)
-  - **Stream Deck+ Encoder Actions:**
-    - `BrightnessDialAction.ts` - Brightness control (0-100%) with dial, push to toggle power
-    - `ColorTempDialAction.ts` - Color temperature (per-device Kelvin range) with gradient feedback
-    - `ColorHueDialAction.ts` - Full-spectrum color (0-360°) with HSV conversion
-    - `SegmentColorDialAction.ts` - Per-segment color control with throttled dial rotation
-  - **Shared Utilities:**
-    - `shared/ActionServices.ts` - Device resolution, throttling, scene/music/toggle helpers
-    - `shared/color-utils.ts` - Shared HSV→RGB conversion
-- **Domain Layer**: Pure business logic with no external dependencies
-  - **Value Objects:** `Scene`, `SegmentColor`, `MusicModeConfig`
-  - **Services:** `SceneService`, `LightControlService`, `DeviceService`
-- **Infrastructure**: External integrations (Govee API, Stream Deck storage)
-  - All repository methods fully implemented (no stubs)
-  - Dynamic capability querying for music modes and toggle features
-- **Frontend**: Vue 3 with Composition API, XState for state management
-- **Property Inspectors**: SDPI component-based UI with dynamic datasources
-
-### Stream Deck Plugin Architecture
-
-- Uses `@elgato/streamdeck` SDK with TypeScript decorators
-- Actions extend `SingletonAction` class with typed settings
-- Property Inspectors use SDPI Components for UI (HTML files in `ui/` directory)
-- Plugin manifest at `com.felixgeelhaar.govee-light-management.sdPlugin/manifest.json`
-
-### Stream Deck+ Encoder Architecture
-
-**Encoder Action Pattern:**
-All encoder actions follow a consistent architecture pattern leveraging Stream Deck+ dial controls:
-
-**Event Handlers:**
-
-- `onWillAppear(ev)` - Initialize services and load current light state
-- `onDialRotate(ev)` - Handle dial rotation with tick-based adjustments
-- `onDialDown(ev)` - Handle dial press (power toggle)
-- `onDialUp(ev)` - Provide visual feedback on dial release
-- `onSendToPlugin(ev)` - Handle Property Inspector communication
-
-**Common Implementation Pattern:**
-
-```typescript
-@action({ UUID: "com.felixgeelhaar.govee-light-management.{name}-dial" })
-export class {Name}DialAction extends SingletonAction<{Name}DialSettings> {
-  private currentValue: number;  // Track current state
-
-  // Initialize and load current state
-  override async onWillAppear(ev) {
-    await this.ensureServices(settings.apiKey);
-    await this.loadCurrentState();
-    await this.updateDisplay(ev.action, settings);
-  }
-
-  // Handle dial rotation with configurable step size
-  override async onDialRotate(ev) {
-    const change = ev.payload.ticks * (settings.stepSize || DEFAULT_STEP);
-    this.currentValue = this.clampOrWrap(this.currentValue + change);
-    await this.lightControlService.controlLight(light, command, value);
-    await this.updateDisplay(ev.action, settings);
-  }
-
-  // Toggle power on dial press
-  override async onDialDown(ev) {
-    const nextState = this.currentLight.isOn ? "off" : "on";
-    await this.lightControlService.controlLight(light, nextState);
-    await this.updateDisplay(ev.action, settings);
-  }
-}
-```
-
-**Implemented Encoder Actions:**
-
-1. **BrightnessDialAction** (`actions/BrightnessDialAction.ts:400`)
-   - **Range:** 1-100% with clamping
-   - **Step Size:** 1-25% per tick (default: 5%)
-   - **Visual Feedback:** Bar indicator (subtype: 0) with opacity based on power state
-   - **Display:** Light name + brightness percentage
-
-2. **ColorTempDialAction** (`actions/ColorTempDialAction.ts:478`)
-   - **Range:** the device's advertised Kelvin window (`resolveKelvinRangeForTarget`); for a group, the union of its members' windows, each light clamped to its own at send time; `SAFE_KELVIN_RANGE` (2700-6500K) when none is advertised
-   - **Step Size:** 50-500K per tick (default: 100K)
-   - **Visual Feedback:** Gradient bar (subtype: 1) with normalized 0-100 value
-   - **Display:** Light name + temperature in Kelvin
-   - **Color Space:** Normalized temperature range for visual feedback
-
-3. **ColorHueDialAction** (`actions/ColorHueDialAction.ts:552`)
-   - **Range:** 0-360° (full color wheel) with wrapping
-   - **Step Size:** 1-90° per tick (default: 15°)
-   - **Saturation:** Configurable 0-100% (default: 100%)
-   - **Visual Feedback:** Rainbow gradient bar (subtype: 2) with current color
-   - **Display:** Light name + hue in degrees
-   - **Color Space:** HSV to RGB conversion using standard formulas
-   - **RGB to Hue:** Reverse conversion for current state detection
-
-**Feedback Bar Subtypes:**
-
-- `subtype: 0` - Simple bar (brightness)
-- `subtype: 1` - Gradient bar warm→cool (color temperature)
-- `subtype: 2` - Rainbow gradient (color hue)
-
-**Property Inspector Integration:**
-
-- Vue 3 Composition API components
-- Shared composables: `useApiConnection`, `useLightDiscovery`
-- Light filtering by capability (brightness, colorTemperature, color)
-- Real-time settings persistence via Stream Deck WebSocket
-- Step size configuration with helpful range validation
-
-**Testing Strategy:**
-
-- TDD approach with Red-Green-Refactor cycle
-- 31 total tests (10 + 10 + 11) covering:
-  - Value adjustment and clamping/wrapping
-  - Power toggle functionality
-  - Configuration validation
-  - Step size customization
-- All tests leverage mock action objects for Stream Deck SDK simulation
-
-### v1.1.0 Advanced Features
-
-This release adds comprehensive support for advanced Govee light features through new domain value objects, services, and Stream Deck actions. All features follow strict TDD methodology with 100% test coverage.
-
-#### Domain Layer Enhancements
-
-**Value Objects** (`src/backend/domain/value-objects/`):
-
-1. **Scene** (`Scene.ts:8-79`) - Immutable scene configuration:
-   - **Types**: `dynamic` (preset), `diy` (custom), `preset` (predefined)
-   - **Factory Methods**: `Scene.sunrise()`, `Scene.sunset()`, `Scene.rainbow()`, `Scene.aurora()`, `Scene.movie()`, `Scene.reading()`, `Scene.nightlight()`
-   - **Custom Scenes**: `Scene.create(code, name, type)` for user-defined scenes
-   - **Test Coverage**: 27 tests covering all scene types and validation
-
-2. **SegmentColor** (`SegmentColor.ts:6-42`) - RGB IC light segment configuration:
-   - **Range**: Segments 0-14 (15-segment lights)
-   - **Color**: Full RGB support via `ColorRgb` from govee-api-client
-   - **Factory**: `SegmentColor.create(segmentIndex, color)`
-   - **Validation**: Ensures segment index within valid range
-   - **Test Coverage**: 26 tests covering segment ranges and color validation
-
-3. **MusicModeConfig** (`MusicModeConfig.ts:16-72`) - Music mode configuration:
-   - **Modes**: `rhythm`, `energic`, `spectrum`, `rolling`
-   - **Sensitivity**: 0-100% audio sensitivity
-   - **Auto-Color**: Boolean flag for automatic color changes
-   - **Factory**: `MusicModeConfig.create(sensitivity, mode, autoColor)`
-   - **Test Coverage**: 32 tests covering all modes and parameter ranges
-
-**Domain Services** (`src/backend/domain/services/`):
-
-4. **SceneService** (`SceneService.ts:1-72`) - Scene application logic:
-   - `applySceneToLight(light, scene)` - Apply scene to single light with capability checking
-   - `applySceneToGroup(group, scene)` - Batch apply to all capable lights in group
-   - `getAvailableScenes(light)` - List all predefined scenes for a light
-   - `canApplyScene(light)` - Check if light supports scene control
-   - **Test Coverage**: 15 tests covering single/group application and capability checking
-
-**Infrastructure Mappers** (`src/backend/infrastructure/mappers/`):
-
-5. **SceneMapper** (`SceneMapper.ts:57-102`) - Domain Scene to API LightScene conversion:
-   - `toApiLightScene(scene)` - Maps domain Scene to govee-api-client LightScene
-   - `isSupported(scene)` - Validates scene support by Govee API
-   - `getAllApiScenes()` - Returns all 8 available API scenes
-   - `getSupportedSceneCodes()` - Lists supported scene IDs
-   - **Supported Scenes**: sunrise, sunset, rainbow, aurora, nightlight (5 total)
-   - **Unsupported Scenes**: movie, reading (with helpful error messages)
-   - **NOTE**: Uses placeholder LightScene class until govee-api-client v3.1.0+ release
-   - **Test Coverage**: 21 tests covering mapping, validation, and error handling
-
-6. **MusicModeMapper** (`MusicModeMapper.ts:48-105`) - Domain MusicModeConfig to API MusicMode conversion:
-   - `toApiMusicMode(config)` - Maps MusicModeConfig to API MusicMode with official Govee IDs
-   - `getModeId(mode)` - Returns official Govee API mode ID for a given mode type
-   - `toApiAutoColor(autoColor)` - Converts boolean to API format (0/1)
-   - `getAllModeIds()` - Returns all 4 valid mode IDs
-   - `getModeFromId(modeId)` - Reverse mapping from ID to mode name
-   - **Official Govee API Mode IDs**: Rhythm(3), Energic(5), Spectrum(4), Rolling(6)
-   - **Source**: developer.govee.com/reference/control-you-devices
-   - **NOTE**: Uses placeholder MusicMode class until govee-api-client v3.1.0+ release
-   - **Test Coverage**: 23 tests covering mode mapping, ID validation, and official API compliance
-
-7. **SegmentColorMapper** (`SegmentColorMapper.ts:33-72`) - Bidirectional domain/API SegmentColor mapping:
-   - `toApiSegmentColor(segment)` - Converts domain SegmentColor to API SegmentColor
-   - `toApiSegmentColors(segments)` - Batch converts segment array
-   - `toDomainSegmentColor(apiSegment)` - Reverse mapping from API to domain
-   - `toDomainSegmentColors(apiSegments)` - Batch reverse conversion
-   - **Property Mapping**: `segmentIndex` (domain) ↔ `index` (API)
-   - **Color Sharing**: ColorRgb type shared between domain and API layers
-   - **NOTE**: Uses placeholder ApiSegmentColor class until govee-api-client v3.1.0+ release
-   - **Test Coverage**: 12 tests covering bidirectional mapping and round-trip conversions
-
-**Mapper Architecture Notes**:
-
-- **Purpose**: Clean separation between domain layer (business logic) and API client (external dependency)
-- **Placeholder Classes**: Temporary implementations matching expected v3.1.0+ API structure
-- **Future Migration**: When govee-api-client v3.1.0+ is released, simply replace placeholder classes with actual imports
-- **Repository Integration**: Mappers are wired into `GoveeLightRepository` (scene/music/segment methods)
-- **Scene Filtering**: SceneService uses SceneMapper.isSupported() to filter available scenes, preventing users from seeing unsupported options (movie, reading)
-
-#### Stream Deck Actions (v1.1.0)
-
-**SceneControlAction** (`actions/SceneControlAction.ts:1-400`):
-
-- **UUID**: `com.felixgeelhaar.govee-light-management.scene-control`
-- **Functionality**: Apply predefined or custom scenes to lights
-- **Scenes Supported**: 7 predefined + custom scene support
-- **Title Format**: `{LightName}\n{SceneName}`
-- **Capability Filtering**: Only shows lights with scene support
-- **Property Inspector Events**: `validateApiKey`, `getLights`, `getScenes`
-- **Test Coverage**: 13 tests
-
-**MusicModeAction** (`actions/MusicModeAction.ts:1-330`):
-
-- **UUID**: `com.felixgeelhaar.govee-light-management.music-mode`
-- **Functionality**: Configure music reactive lighting modes
-- **Modes**: 4 music modes (rhythm, energic, spectrum, rolling)
-- **Settings**: Sensitivity (0-100%), auto-color toggle
-- **Title Format**: `{LightName}\n{ModeName}`
-- **Capability Filtering**: Only shows lights with music mode support
-- **Property Inspector Events**: `validateApiKey`, `getLights`, `getMusicModes`
-- **Test Coverage**: 16 tests
-
-**SegmentColorDialAction** (`actions/SegmentColorDialAction.ts:1-396`):
-
-- **UUID**: `com.felixgeelhaar.govee-light-management.segment-color-dial`
-- **Functionality**: Control individual RGB IC light segments via dial
-- **Segment Range**: 0-14 (15-segment lights)
-- **Color Control**: HSV color space (hue: 0-360°, saturation: 0-100%, brightness: 0-100%)
-- **Dial Rotation**: Adjusts hue with configurable step size (1-90° per tick, default: 15°)
-- **Dial Press**: Applies current color to selected segment
-- **Feedback**: Rainbow gradient bar (subtype: 2) showing current color
-- **Title Format**: `{LightName}\nSeg {N}` (e.g., "RGB Strip\nSeg 1")
-- **HSV to RGB Conversion**: Standard color space conversion for accurate colors
-- **Capability Filtering**: Only shows lights with segment color support
-- **Test Coverage**: 18 tests
-
-**LightControlAction Enhancements** (`actions/LightControlAction.ts:28-47,302-324,401-408`):
-
-- **New Control Modes**: Added 4 modes to existing 6 modes (total: 10 modes)
-  - `nightlight-on` / `nightlight-off` - Toggle nightlight feature
-  - `gradient-on` / `gradient-off` - Toggle gradient lighting effect
-- **Title Generation**: "Night On", "Night Off", "Grad On", "Grad Off"
-- **Repository Integration**: Uses `toggleNightlight()` and `toggleGradient()` methods
-- **Test Coverage**: 25 tests (added tests for new modes)
-
-#### Property Inspectors (v1.1.0)
-
-**SceneControlView** (`views/SceneControlView.vue`):
-
-- **Sections**: API Configuration, Light Selection, Scene Selection, Help
-- **Scene Categories**: Dynamic Scenes (sunrise, sunset), Color Scenes (rainbow, aurora), Activity Scenes (movie, reading, nightlight)
-- **UI Components**: Scene dropdown with grouped options, emoji-enhanced scene names
-- **Filtering**: Only displays scene-capable lights
-- **Entry Points**: `scene-control.html` + `scene-control.ts`
-
-**MusicModeView** (`views/MusicModeView.vue`):
-
-- **Sections**: API Configuration, Light Selection, Music Mode Configuration, Help
-- **Mode Selection**: Dropdown with 4 music modes (rhythm, energic, spectrum, rolling)
-- **Sensitivity Control**: Range slider (0-100%) with real-time value display
-- **Auto Color Toggle**: Checkbox for automatic color cycling
-- **UI Enhancements**: Emoji-enhanced mode descriptions, detailed help text
-- **Entry Points**: `music-mode.html` + `music-mode.ts`
-
-**SegmentColorDialView** (`views/SegmentColorDialView.vue`):
-
-- **Sections**: API Configuration, Light Selection, Segment Configuration, Color Configuration, Help
-- **Segment Selection**: Dropdown for segments 1-15 (0-14 indexed)
-- **Color Controls**:
-  - Hue slider (0-360°) with live color preview
-  - Saturation slider (0-100%)
-  - Brightness slider (0-100%)
-  - Step size input (1-90° per tick)
-- **Visual Feedback**: Color preview box showing current HSV combination
-- **HSV Conversion**: Client-side HSV→RGB→Hex conversion for preview
-- **Entry Points**: `segment-color-dial.html` + `segment-color-dial.ts`
-
-**Build System Integration**:
-
-- All three Property Inspectors added to `vite.config.ts` input configuration
-- Compiled to `ui/dist/` directory with separate HTML, CSS, and JS bundles
-- Vue 3 Composition API with TypeScript support
-- Shared composables: `useApiConnection`, `useLightDiscovery`
-- Consistent SDPI styling across all Property Inspectors
-
-**manifest.json Updates**:
-
-- Plugin version updated to `1.1.0.0`
-- Three new action entries with Property Inspector paths
-- Scene Control: `ui/dist/src/frontend/scene-control.html` (Keypad controller)
-- Music Mode: `ui/dist/src/frontend/music-mode.html` (Keypad controller)
-- Segment Color Dial: `ui/dist/src/frontend/segment-color-dial.html` (Encoder controller)
-
-#### Repository Interface Extensions
-
-**ILightRepository** (`domain/repositories/ILightRepository.ts`):
-
-- `applyScene(light: Light, scene: Scene): Promise<void>`
-- `setSegmentColors(light: Light, segments: SegmentColor[]): Promise<void>`
-- `setMusicMode(light: Light, config: MusicModeConfig): Promise<void>`
-- `toggleNightlight(light: Light, enabled: boolean): Promise<void>`
-- `toggleGradient(light: Light, enabled: boolean): Promise<void>`
-- `getDynamicScenes(light: Light): Promise<LightScene[]>`
-- `setLightScene(light: Light, scene: LightScene): Promise<void>`
-
-**Implementation Status**: ✅ All methods fully implemented using govee-api-client v3.1.13.
-Additional methods on `GoveeLightRepository`:
-
-- `setMusicModeRaw(light, musicMode)` - Direct MusicMode API call
-- `toggleRaw(light, instance, enabled)` - Generic toggle for any capability instance
-- `getMusicModes(deviceId)` - Query device-specific music mode options
-- `getToggleFeatures(deviceId)` - Query device-specific toggle capabilities
-
-#### Light Entity Capability Methods
-
-**Light.ts** - Added capability checking methods:
-
-- `supportsScenes()` - Returns true if light supports scene application
-- `supportsMusicMode()` - Returns true if light supports music reactive modes
-- `supportsNightlight()` - Returns true if light supports nightlight feature
-- `supportsGradient()` - Returns true if light supports gradient effects
-- `supportsSegmentedColor()` - Returns true if light is RGB IC with segment control
-
-These methods enable action-level filtering to only show appropriate lights in Property Inspectors.
-
-#### Test Statistics (v1.1.0)
-
-**Added Tests**: 172 new tests (160 → 332)
-
-- Domain value objects: 85 tests (Scene: 27, SegmentColor: 26, MusicModeConfig: 32)
-- Domain services: 15 tests (SceneService)
-- Stream Deck actions: 72 tests (Scene: 13, Music: 16, SegmentDial: 18, LightControl: 25)
-
-**All Quality Checks Passing**:
-
-- ✅ TypeScript: Zero type errors
-- ✅ ESLint: All linting rules satisfied
-- ✅ Test Suite: 492 unit tests + 118 E2E tests passing (see Testing section)
-- ✅ TDD Approach: RED → GREEN → REFACTOR cycle followed for all features
-
-#### Architecture Patterns
-
-**Consistent Action Pattern**:
-All v1.1.0 actions follow the established singleton action pattern:
-
-- Extend `SingletonAction<{Name}Settings>`
-- Implement `onWillAppear`, `onKeyDown`/`onDialDown`, `onSendToPlugin`
-- Use composable `ensureServices` for API key management
-- Filter lights by capability before presenting to user
-- Provide clear user feedback via action titles and alerts
-- Integrate with `globalSettingsService` for API key persistence
-
-**Value Object Immutability**:
-All value objects are immutable with:
-
-- Private constructors
-- Public static factory methods (`create()` or named factories)
-- Readonly properties
-- Comprehensive validation in factory methods
-- No setter methods (create new instances for changes)
-
-**Error Handling Strategy**:
-
-- All actions validate settings and show alerts for missing configuration
-- `showOk()` visual feedback on successful keypad actions
-- `onWillDisappear` cleanup prevents memory leaks in dial actions
-- Error logging with descriptive messages for debugging
-- Capability checking prevents operations on unsupported devices
-
-### Enterprise Govee API Integration
-
-- **Client Library**: Uses `@felixgeelhaar/govee-api-client` v3.1.13 for enterprise-grade API access
-- **Features**: Rate limiting, retry logic with exponential backoff, circuit breaker pattern
-- **Error Handling**: Comprehensive error hierarchy with Zod validation error handling
-- **Dynamic Capabilities**: Queries device-specific music modes and toggle features from API
-- **Scene Management**: Fetches dynamic scenes per device via `getDynamicScenes()`
-- **Type Safety**: Full TypeScript support with domain-driven value objects
-
-### Transport Layer Architecture
-
-The plugin implements a pluggable transport abstraction layer that enables multiple connectivity methods with intelligent routing:
-
-**Core Components:**
-
-- **ITransport Interface** (`connectivity/ITransport.ts`) - Abstract transport protocol defining:
-  - Device discovery with staleness indicators
-  - Device state retrieval
-  - Command execution
-  - Health checking and capability queries
-
-- **TransportOrchestrator** (`connectivity/TransportOrchestrator.ts`) - Coordinates multiple transports:
-  - Health-based transport selection using latency scoring
-  - Automatic failover between transports
-  - Aggregated device discovery from all transports
-  - Event-driven health status updates
-
-- **CloudTransport** (`connectivity/cloud/CloudTransport.ts`) - Production Govee Cloud API implementation:
-  - Integrates with `@felixgeelhaar/govee-api-client`
-  - Health monitoring with latency tracking
-  - Device capability normalization
-  - Secure API key management via GlobalSettingsService
-
-- **TransportHealthService** (`connectivity/TransportHealthService.ts`) - Periodic health monitoring:
-  - Configurable health check intervals (default: 5 minutes)
-  - Automatic start/stop lifecycle management
-  - Health snapshot retrieval for diagnostics
-
-**Device Management:**
-
-- **DeviceService** (`domain/services/DeviceService.ts`) - High-level device operations:
-  - Intelligent caching with configurable TTL (default: 15s)
-  - Stale data detection and handling
-  - Device capability normalization (power, brightness, color, temperature, scenes)
-  - Integrated telemetry tracking for all operations
-
-**Observability:**
-
-- **TelemetryService** (`services/TelemetryService.ts`) - In-memory metrics collection:
-  - Discovery performance tracking (duration, count, stale responses)
-  - Command execution metrics (success/failure rates, per-command breakdown)
-  - Transport health monitoring (checks, latency, last failures)
-  - Snapshot capability for real-time diagnostics
-
-- **DiagnosticsPanel** (`frontend/components/DiagnosticsPanel.vue`) - Real-time telemetry visualization:
-  - Discovery average latency and stale response counts
-  - Command success rates with total execution counts
-  - Transport health checks and error details
-  - User-initiated refresh and reset capabilities
-
-**Future Enhancements:**
-
-- LAN transport for local network connectivity (lower latency)
-- WebSocket transport for real-time device state updates
-- Advanced failover strategies with priority-based routing
-- Transport-specific configuration and optimization
-
-### Build System
-
-- **Backend**: Rollup (`rollup.config.mjs`) — matches Elgato's official plugin template. Bundles everything (no externals except Node builtins), resolves Node.js exports correctly (browser: false), outputs single `plugin.js` to sdPlugin/bin/
-- **Frontend**: Vite with Vue 3 support (`vite.config.ts`) for Property Inspectors
-- TypeScript compilation with ES2022 modules targeting Stream Deck's Chromium environment
-- Source maps in development mode
-- Automatic plugin file emission and manifest watching
-- Hot module replacement for rapid development
-
-### Testing Commands Integration
-
-- Run tests before building: `npm run test && npm run build`
-- Pre-commit hooks ensure tests pass and code quality standards are met
-- CI/CD pipeline integration ready with comprehensive test suite
-
-### Build System Evolution
-
-- **Previous**: Vite-based backend build (caused `ws` browser export resolution issue, breaking packaged plugins)
-- **Current**: Rollup backend build matching Elgato's official template
-  - Correct Node.js module resolution (`browser: false`, `exportConditions: ["node"]`)
-  - Packaged `.streamDeckPlugin` files work correctly (no crash-loop)
-  - Single bundled output with no external dependencies
-  - ESM output with `{ "type": "module" }` package.json emitted to bin/
-
-### UI Components
-
-- **Vue 3 Property Inspectors**: Modern component-based UI with Composition API
-- **State Management**: XState machines for complex workflows (`machines/` directory)
-- **Real-time Updates**: WebSocket integration and live data synchronization
-- **Component Library**: Modular components (FeedbackSystem, LoadingSpinner, HealthDashboard, DiagnosticsPanel)
-- **Diagnostics Dashboard**: Real-time telemetry visualization with discovery metrics, command success rates, and transport health
-- **Error Handling**: Comprehensive user feedback and error recovery systems
-- **Responsive Design**: Stream Deck optimized with SDPI component integration
-
-## Test-Driven Development Approach
-
-### TDD Workflow
-
-This project follows a strict Test-Driven Development approach:
-
-1. **Red**: Write a failing test that describes the desired functionality
-2. **Green**: Write the minimal code needed to make the test pass
-3. **Refactor**: Improve the code while keeping tests green
-4. **Repeat**: Continue the cycle for each new feature or bug fix
-
-### Testing Strategy
-
-- **Unit Tests**: Test individual domain entities, value objects, and services in isolation
-- **Integration Tests**: Test repository implementations with mocked external dependencies
-- **End-to-End Tests**: Test complete user workflows using Playwright
-- **Coverage Target**: Maintain >80% test coverage across all modules
-
-### Test Structure
+There is no frontend framework in this repository. The Property Inspectors are
+plain HTML plus `ui/js/setup.js` and the vendored SDPI web components. There is
+no Vue, no Vite, no `src/frontend/`, no `ui/dist/`.
+
+## Actions
+
+Registered in `src/backend/plugin.ts`. UUIDs are prefixed
+`com.felixgeelhaar.govee-light-management.`.
+
+### Keypad-first actions
+
+| UUID suffix     | Class                    | Notes                                                            |
+| --------------- | ------------------------ | ---------------------------------------------------------------- |
+| `lights`        | `OnOffAction`            | On / Off / Toggle, with live state sync and a press epoch guard  |
+| `brightness`    | `BrightnessAction`       | Also an encoder (see hybrid actions)                             |
+| `color`         | `ColorAction`            | Also an encoder                                                  |
+| `colortemp`     | `ColorTemperatureAction` | Also an encoder                                                  |
+| `segment-color` | `SegmentColorAction`     | Also an encoder; presets rainbow / solid / gradient over a range |
+| `recall`        | `RecallAction`           | Dynamic scenes + DIY scenes + snapshots in one "look" picker     |
+| `scene`         | `SceneAction`            | The device's dynamic scenes, fetched per device                  |
+| `snapshot`      | `SnapshotAction`         | Govee snapshots saved in the Govee app                           |
+| `music-mode`    | `MusicModeAction`        | Device-specific music modes, queried from the API                |
+| `toggle`        | `ToggleAction`           | Device toggle capabilities (gradient, nightlight, …) by instance |
+| `schedule`      | `ScheduleAction`         | Daily / weekly / delay triggers via `SchedulerService`           |
+| `sequence`      | `SequenceAction`         | Multi-step command chains via `SequenceService`                  |
+| `custom-effect` | `CustomEffectAction`     | RGB animations driven by `EffectService` / `EffectPlayer`        |
+
+### Encoder actions
+
+`saturation-dial` (`SaturationDialAction`) is a hybrid like the five above it.
+The remaining four are the pre-2.7.0 standalone dials, kept registered and
+labelled _(legacy)_ in the manifest so existing user bindings keep working:
+`brightness-dial`, `colortemp-dial`, `colorhue-dial`, `segment-color-dial`.
+
+### Hybrid keypad + encoder
+
+`brightness`, `color`, `colortemp`, `segment-color` and `saturation-dial`
+declare `Controllers: ["Keypad", "Encoder"]`. One UUID serves both: `onKeyDown`
+applies a fixed configured value, `onDialRotate` adjusts by a step, `onDialDown`
+toggles power.
+
+### Dial step sizes
+
+Read from `settings.stepSize`, clamped in the rotate handler:
+
+| Action                              | Range    | Default |
+| ----------------------------------- | -------- | ------- |
+| Brightness / Brightness Dial        | 1–25 %   | 5 %     |
+| Saturation                          | 1–25 %   | 5 %     |
+| Color Temperature / Color Temp Dial | 50–500 K | 100 K   |
+| Color / Color Hue Dial              | 1–90°    | 15°     |
+| Segment Color / Segment Color Dial  | 1–90°    | 15°     |
+
+## Backend architecture
+
+### `ActionServices` (`actions/shared/ActionServices.ts`)
+
+The largest single file in the backend and the seam every action goes through.
+It owns API-key resolution and client construction (`ensureServices`), target
+resolution for a light or a group (`parseTarget`, `resolveTarget`), the PI
+request handlers (`handleGetDevices`, `handleGetGroups`, `handleSaveGroup`,
+`handleDeleteGroup`, `handleRefreshState`, `handleGetDeviceDebug`), command
+dispatch (`controlTarget`, `applyToTarget`), dial throttling and deferral
+(`deferDialAction`, `cleanupDialTimers`), light-state snapshots and live-state
+reads, and the scene / snapshot / music-mode / toggle helpers that wrap the
+repository.
+
+### `BaseDialAction` (`actions/shared/BaseDialAction.ts`)
+
+Abstract base for every encoder-capable action. Handles per-context state maps,
+a 3 s live-sync interval that is suppressed for 8 s after an interaction,
+offline cache-busting with a 30 s minimum gap, power toggling with an epoch
+guard against interleaved presses, and `onWillDisappear` cleanup. Subclasses
+implement `initValueMaps`, `cleanupValueMaps`, `syncLiveState`, `updateDisplay`,
+and optionally `handleCustomPIEvent`.
+
+### Group fan-out and partial failure
+
+`domain/services/group-fan-out.ts` exports `fanOutToLights(lights, apply)`. It
+issues every request before awaiting any, settles them all, and returns
+`{ total, failed }`. A partial failure resolves — one unreachable lamp must not
+discard work that succeeded elsewhere. Only a total failure (or an empty light
+list) rejects, and it rejects with the first member's error so callers can still
+classify it as validation / rate limit / out of range.
+
+`ActionServices.applyToTarget` runs an operation over a resolved target through
+that helper; `reportPartialFailure` and `showPartialFailureBanner` then put a
+persistent `⚠ N/M` line under the key title, reverting after 30 s.
+`clearPartialFailureBanner(contextId)` must be called from `onWillDisappear`, or
+the timer outlives the key.
+
+### Status badge (`actions/shared/status-badge.ts`)
+
+Renders the ●/◐/○ power indicator into the shipped key artwork at runtime.
+`KEY_ART_NAMES` lists the `imgs/actions/<name>/` folders wired into the badge,
+and a test asserts each one ships a `key.svg`. Visibility is a global
+preference: `plugin.ts` reads it once at start-up via `GlobalSettingsService`
+and pushes it into `setStatusBadgeVisible`, then re-pushes on
+`onDidReceiveGlobalSettings`. The badge module deliberately imports neither the
+SDK nor the settings service, which is what keeps it cheap to test.
+
+### Colour temperature and Kelvin (`actions/shared/kelvin-utils.ts`)
+
+- `SAFE_KELVIN_RANGE` is **2700–6500 K**, precision 100. Used only when no
+  device has advertised a range. The previous 2000–9000 K default was a guess no
+  real device honoured; values outside a device's true range come back as
+  "parameter value out of range" (#167).
+- `unionKelvinRanges(ranges)` widens a group's dial to the **union** of its
+  members' ranges — lowest min to highest max — because a group is applied by
+  fanning out one command per light, and each light is clamped to its own range
+  at send time in `ActionServices.controlTarget`. A 2200–6500 K lamp grouped
+  with a 2700–6500 K lamp gives a 2200–6500 K dial. Precision is the coarsest of
+  the members, so every step the dial produces is one each member can land on.
+- `normalizeKelvin(k, range)` clamps and snaps to the device's precision step,
+  since some devices only accept multiples of 50 or 100 K.
+- `kelvinToBarValue` / `kelvinFromPercent` convert between Kelvin and the 0–100
+  values the dial feedback bar and the PI slider use.
+
+### Transport layer (`src/backend/connectivity/`)
+
+- `ITransport` — discovery (with a staleness flag), state retrieval, command
+  execution, health check, capability query.
+- `TransportOrchestrator` — picks a transport by health and latency, aggregates
+  discovery across transports, exposes `refreshHealth()` and
+  `getHealthSnapshot()`. `NoHealthyTransportError` when nothing is usable.
+- `cloud/CloudTransport` — the only transport implemented. Wraps
+  `@felixgeelhaar/govee-api-client` and normalizes device capabilities.
+- `TransportHealthService` — caches `getHealthSnapshot()` for 10 s, de-duplicates
+  concurrent refreshes, emits to `on()` listeners, and records to
+  `TelemetryService`. It has **no timer and no start/stop lifecycle**: health is
+  refreshed when something asks for it, and at present nothing in `src/`
+  constructs it. Treat it as available but unwired.
+
+A LAN transport and a WebSocket transport are design intentions, not code.
+
+### `DeviceService` (`src/backend/application/services/DeviceService.ts`)
+
+Discovery cache (default TTL **30 s**, overridable via `cacheTtlMs`), stale-data
+handling, capability normalization, and telemetry for discovery and command
+timings. On a discovery failure it serves the previous cache rather than an
+empty list.
+
+### Telemetry and resilience — accuracy note
+
+- `TelemetryService` is a singleton that accumulates discovery, command, and
+  transport-health counters in memory. `recordCommand` is called from
+  `DeviceService` and from the five hybrid actions. `getSnapshot()` is exercised
+  only by tests — nothing in the plugin reads it back, and there is no
+  diagnostics UI.
+- `infrastructure/resilience/CircuitBreaker.ts` is fully implemented and tested
+  but **constructed by nothing in `src/`**. Retry, backoff and rate limiting in
+  production come from the API client, not from this class.
+
+Neither is a working production feature; do not describe them as one.
+
+## Domain layer
+
+`Brightness`, `ColorRgb` and `ColorTemperature` are **local classes** in
+`src/backend/domain/value-objects/`, not re-exports of the API client's types.
+`infrastructure/mappers/LightValueMapper` converts between them and the client's
+equivalents at the boundary. Only six files import from
+`@felixgeelhaar/govee-api-client` at all: `CloudTransport`,
+`GoveeLightRepository`, the three mappers, and `deviceStateUtils`. That is the
+entire outward dependency surface — keep it that way.
+
+Other value objects: `Scene` (with `sunrise`/`sunset`/`rainbow`/`aurora`/
+`movie`/`reading`/`nightlight` factories), `SegmentColor`, `MusicModeConfig`,
+`MusicModeOption`, `DynamicSceneOption`, `DiySceneOption`, `SnapshotOption`,
+`Schedule`, `SequenceStep`, `EffectFrame`, `ColorPalette`, `LightState`. All are
+immutable: private state, static factories that validate, no setters.
+
+Entities: `Light` (capability predicates `canBeControlled`, `supportsScenes`,
+`supportsSegmentedColor`, `supportsMusicMode`, `supportsNightlight`,
+`supportsGradient` — actions filter the PI light list with these), `LightGroup`,
+`RgbEffect`, `ScheduledAction`, `Sequence`.
+
+Domain services: `LightControlService`, `LightGroupService`, `SceneService`,
+`ScheduleService`, `SequenceExecutor`, `EffectPlayer`, `EffectPresets`,
+`ColorPaletteService`, `DeviceClassifier` (bulb / strip / bar / floor lamp),
+`CapabilityRegistry` (device-class-specific error hints), and the
+`group-fan-out` helper.
+
+Repositories: `ILightRepository` and `ILightGroupRepository` under
+`domain/repositories/`, implemented by `GoveeLightRepository` and
+`StreamDeckLightGroupRepository`. Every interface method is implemented; there
+are no stubs.
+
+`SceneMapper` maps the domain `Scene` factories onto the client's `LightScene`.
+`sunrise`, `sunset`, `rainbow`, `aurora` and `nightlight` are supported; `movie`
+and `reading` throw with an explanatory message, and `SceneMapper.isSupported()`
+lets `SceneService` filter them out before the user ever sees them.
+`MusicModeMapper` maps mode names to Govee's official mode ids.
+
+**Zero-indexed ids.** Govee mode, segment and toggle instance ids can legitimately
+be `0`. Never validate them with `> 0` or `if (!id)`; use
+`Number.isInteger(x) && x >= 0`.
+
+## Property Inspectors
+
+One HTML file per action under `sdPlugin/ui/`, sharing `ui/js/setup.js` for the
+API-key flow, conditional field visibility, group create/edit/delete, and
+datasource status hints. `ui/js/sdpi-components.js` is Elgato's vendored bundle —
+third-party, minified, excluded from lint and from security scanning.
+
+### Datasource contract
+
+Plugin → PI dropdown payloads go through `sendPIDatasource` in `ActionServices`,
+typed as `PIDatasourceResponse` with a `status` of `ok | empty | error`. On the
+PI side `attachFieldStatus` (in `setup.js`) reads that status and surfaces an
+inline hint, so an empty or failed fetch never looks like an
+unpopulated-but-fine dropdown. `test/e2e/sdpi-invariants.spec.ts` asserts the
+structural rule across every PI: an `sdpi-select` with a `datasource` must also
+carry a `setting` attribute.
+
+## Build system
+
+The backend builds with **Rollup** (`rollup.config.mjs`), matching Elgato's
+official template. This is deliberate and should not be changed back to Vite:
+Vite resolved `ws` to its browser export, which crash-looped the packaged
+`.streamDeckPlugin`. The Rollup config pins `browser: false` and
+`exportConditions: ["node"]`, bundles everything with no externals, minifies
+unless `ROLLUP_WATCH` is set, and emits both a `{ "type": "module" }`
+`package.json` and a copy of `manifest.json` into `bin/` (the SDK resolves the
+manifest relative to `process.cwd()`, which is `bin/` at runtime).
+
+There is no frontend build step.
+
+## Testing
+
+Vitest for unit tests, Playwright for the Property Inspector end-to-end suite.
+
+- 734 unit tests across 49 files (`test/**/*.test.ts`), jsdom environment
+- 143 E2E tests across 7 files (`test/e2e/*.spec.ts`), excluded from Vitest
 
 ```
 test/
-├── domain/
-│   ├── entities/              # Light.test.ts, LightGroup.test.ts
-│   └── services/              # LightControlService.test.ts
-├── frontend/
-│   ├── machines/              # XState machine tests
-│   └── __tests__/             # Vue component tests
-├── infrastructure/
-│   └── repositories/          # Repository implementation tests
-├── e2e/                       # Playwright end-to-end tests
-│   ├── property-inspector.spec.ts
-│   └── mcp-*.spec.ts
-└── setup.ts                   # Test configuration
+├── backend/            # actions/, actions/shared/, connectivity/, services/
+├── domain/             # entities/, services/, value-objects/
+├── infrastructure/     # mappers/, repositories/, utils/, SchedulerEngine
+├── integration/        # resilience/CircuitBreaker
+├── e2e/                # Playwright specs against sdPlugin/ui/*.html
+└── setup.ts
 ```
 
-### Testing Tools
+The domain layer is the best-covered part of the codebase precisely because it
+has no external dependencies. New business rules belong there, with their tests,
+before any SDK code is touched.
 
-- **Vitest**: Fast unit testing framework with TypeScript support and jsdom environment
-- **Playwright**: E2E testing for Stream Deck property inspectors with UI mode
-- **Coverage**: v8 coverage reporting with 80% threshold enforcement
-- **Vue Test Utils**: Vue component testing with Composition API support
-- **XState Test**: State machine testing for complex workflows
+Coverage is measured across **all of `src`** (`all: true`,
+`include: ["src/**/*.ts"]`), not just the files a test happened to import.
+Importing-only measurement reported 64.56% when the real figure was 34.75%,
+flattering exactly the untested files — every action class sits at 0%. The
+thresholds in `vitest.config.ts` (34% statements, 28% branches, 53% functions,
+34% lines) are a floor set at the measured value, to be raised as tests are
+added and never lowered to make a change fit.
 
-## Key Patterns
+## Quality gates
 
-### Domain-Driven Design Implementation
+- **Lint**: `npm run lint` is `eslint .` — the whole repository, not just
+  `src/`. ESLint 10 flat config with `@typescript-eslint`; no Vue plugin. It
+  ignores build output, the dev-link plugin copy, the vendored
+  `sdpi-components.js`, Playwright reports, and `*.config.*`. PI scripts get a
+  browser-globals block; `scripts/` gets a Node-globals block.
+- **Format**: `npm run format:check` (Prettier, `src/**/*.{ts,js,json}`).
+- **Tests and build**: Node 20 on Linux, plus Windows and macOS for PRs
+  targeting `main`. E2E runs on Linux only.
+- **nox 1.39.1** replaces Dependabot as the dependency and security gate. The CI
+  job downloads a pinned, SHA256-verified binary, uploads SARIF to code
+  scanning, and fails on any critical/high finding not accepted in
+  **`.nox-baseline.json`**. That file — not `.nox/`, which is gitignored as a
+  scan-artifact directory — holds the reviewed suppressions, each with the
+  reason it was accepted. `.nox.yaml` excludes only generated or vendored
+  artifacts (the Rollup bundle, `sdpi-components.js`, `package-lock.json`,
+  markdown prose), never first-party source.
+- **CodeQL** runs on JavaScript with `.github/codeql-config.yml`.
+- `npm audit --audit-level high` and `coverctl check` run but do not gate.
 
-- **Entities**: `Light`, `LightGroup` with business logic and invariants
-- **Value Objects**: Leverage @felixgeelhaar/govee-api-client's `Brightness`, `ColorRgb`, `ColorTemperature`
-- **Repositories**: Interface-based data access with concrete implementations
-- **Services**: Domain and application services for complex operations
+There is no Dependabot config and no husky or lint-staged pre-commit hook in
+use; `.husky/_` is a leftover of the removed setup. Quality is enforced in CI.
 
-### Action Registration
+## Release
 
-Actions are registered in `src/backend/plugin.ts` using the Stream Deck SDK:
+Releases are tag-triggered GitHub Actions — never `npm publish` by hand. Bump
+`package.json` `version` **and** the manifest `Version` (four-part, e.g.
+`2.8.0.0`) in the same commit; a manifest-less bump ships a stale build to the
+store.
 
-```typescript
-streamDeck.actions.registerAction(new LightControlAction());
-streamDeck.actions.registerAction(new GroupControlAction());
-```
-
-### Settings Management
-
-Actions use typed settings interfaces and persist data via Stream Deck's settings system.
-
-### API Communication
-
-Property inspectors communicate with plugin actions via `onSendToPlugin` events for dynamic data loading.
-
-### Logging
-
-Uses Stream Deck logger with INFO level for production, comprehensive error handling and debugging.
-
-## Code Quality & Maintenance
-
-### Current Status
-
-- **ESLint 9**: Modern flat config with TypeScript and Vue support
-- **Prettier**: Consistent code formatting with pre-commit hooks
-- **Husky**: Git hooks for automated quality checks
-- **Type Coverage**: Comprehensive TypeScript usage throughout codebase
-- **Dependency Management**: Up-to-date dependencies with Dependabot automation
-
-### Known Technical Debt
-
-- **Repository Stubs**: ✅ Resolved - All repository methods fully implemented in v2.1.0
-- **Build Migration**: ✅ Completed - Migrated backend from Vite back to Rollup (fixes packaged plugin crash-loop)
-- **Dead Code**: ✅ Resolved - Removed legacy template files (govee-api.ts, increment-counter.ts, open-product-page.ts)
-- **HSV Duplication**: ✅ Resolved - Extracted shared `color-utils.ts` utility
-- **Memory Leaks**: ✅ Resolved - Added `onWillDisappear` cleanup to all dial actions
-
-### Security & Performance
-
-- **API Security**: Secure API key handling with validation
-- **Error Boundaries**: Comprehensive error handling and recovery
-- **Performance Monitoring**: Built-in metrics and health monitoring
-- **Type Safety**: Strong TypeScript implementation prevents runtime errors
-
-### CI/CD Integration
-
-- **GitHub Actions**: Automated testing and release workflows
-- **CodeQL**: Security analysis and vulnerability scanning
-- **Dependabot**: Automated dependency updates with auto-merge
-- **Quality Gates**: Pre-commit hooks ensure code quality standards
-
-## Architectural Strengths
-
-### Backend Excellence
-
-- **Domain-Driven Design**: Clean separation of concerns with entities (`Light.ts:8-89`), repositories, and services
-- **Transport Layer Architecture**: Pluggable transport abstraction with health-based routing and automatic failover
-- **Enterprise API Integration**: Robust Govee API client with rate limiting and circuit breaker patterns
-- **Device Management**: Intelligent caching (15s TTL), capability normalization, and telemetry tracking
-- **Type Safety**: Comprehensive TypeScript implementation with domain value objects
-- **Error Handling**: Robust error handling throughout action implementations
-- **Observability**: In-memory telemetry service with real-time diagnostics panel
-
-### Frontend Innovation
-
-- **Modern Vue 3**: Composition API with TypeScript for maintainable UI components
-- **State Management**: XState machines for complex workflow management
-- **Real-time Features**: WebSocket integration for live data updates
-- **Component Architecture**: Modular, reusable components with proper separation
-
-### Development Experience
-
-- **Hot Reload**: Fast development cycles with Rollup watch + Stream Deck restart
-- **Testing**: Comprehensive test suite with 80% coverage target
-- **Type Checking**: Full TypeScript coverage with strict mode
-- **Developer Tools**: Integrated debugging, linting, and formatting
+Every new action needs its own `imgs/actions/<name>/icon.svg` (mono) and
+`key.svg` (gradient + glow). Never point a new action at another action's
+artwork as a placeholder.

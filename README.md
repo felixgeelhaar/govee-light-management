@@ -3,9 +3,9 @@
 <div align="center">
 
 ![Stream Deck Plugin](https://img.shields.io/badge/Stream%20Deck-Plugin-blue?style=flat-square&logo=elgato)
-![Version](https://img.shields.io/badge/version-2.2.0-green?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.8.0-green?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-blue?style=flat-square&logo=typescript)
+![TypeScript](https://img.shields.io/badge/TypeScript-6.0+-blue?style=flat-square&logo=typescript)
 ![Node.js](https://img.shields.io/badge/Node.js-20+-green?style=flat-square&logo=node.js)
 
 **Control your room's Govee lighting without ever leaving what you're working on.**
@@ -21,16 +21,18 @@ One press for a saved look. One rotation for the perfect brightness. Status visi
 ### 🎛️ **Individual Light Control**
 
 - Toggle lights on/off with visual state indicators
-- Adjust brightness, color, and color temperature
+- Adjust brightness, color, color temperature, and saturation
 - Real-time state synchronization with your lights
-- Support for all Govee light models
+- Every Govee device the Cloud API exposes; each action only offers the lights
+  that support it
 
-### 👥 **Advanced Group Management**
+### 👥 **Group Management**
 
-- **Create** custom light groups with intuitive interface
-- **Edit** group names and modify included lights
-- **Delete** groups with confirmation prompts
+- **Create** groups from a light checklist, in any light-control Property Inspector
+- **Delete** groups with a confirmation prompt
+- **Shared** across every action — create a group once and it appears in every device dropdown
 - **Visual indicators** for group states (●/○/◐)
+- To change a group's membership, delete it and create it again
 
 ### 🎛️ **Hybrid Keypad + Stream Deck+ Encoder Actions**
 
@@ -103,11 +105,11 @@ Check out the **[Stream Deck+ Dials Guide](docs/DIALS_GUIDE.md)** for comprehens
 - [Node.js](https://nodejs.org/) (v20.0 or later)
 - Govee API Key (obtainable from [Govee Developer API](https://developer.govee.com/))
 
-### Option 1: Install from Stream Deck Store
+### Option 1: Install from the Elgato Marketplace
 
-_(Coming soon)_
+Search for **Govee Light Management** in the [Elgato Marketplace](https://marketplace.elgato.com/search?query=govee%20light%20management) and install it from there. This is the recommended route.
 
-### Option 2: Manual Installation
+### Option 2: Build and install from source
 
 1. **Download the latest release**
 
@@ -124,12 +126,17 @@ _(Coming soon)_
    npm run build
    ```
 
-3. **Install the plugin**
+3. **Pack it, then open the result**
 
    ```bash
-   # Install using Stream Deck CLI
-   streamdeck install com.felixgeelhaar.govee-light-management.sdPlugin
+   npm run streamdeck:pack
    ```
+
+   Double-click `dist/com.felixgeelhaar.govee-light-management.streamDeckPlugin`
+   and Stream Deck will install it.
+
+   To work on the plugin instead of installing a release copy, link the source
+   folder directly — see [Separate DEV Plugin Workflow](#separate-dev-plugin-workflow).
 
 4. **Restart Stream Deck**
    - Quit Stream Deck completely
@@ -145,102 +152,82 @@ _(Coming soon)_
    - Sign up and create an API key
    - Save your API key securely
 
-2. **Add Actions to Stream Deck**
-   - Drag "Govee Light Control" or "Govee Group Control" to a button
-   - Configure with your API key in the Property Inspector
+2. **Add an action to a key or a dial**
+   - Drag the action for the job you want onto a Stream Deck key, or onto a
+     Stream Deck+ dial
+   - Enter your Govee API key in the Property Inspector. It is stored once and
+     shared by every action, so you only do this on the first one.
 
-### Individual Light Control
+### Choosing an action
 
-1. **Setup**
-   - Add "Govee Light Control" action to a Stream Deck button
-   - Enter your Govee API key
-   - Select a light from the dropdown
+There is no single "light control" action with a mode dropdown. Each job has
+its own action, so a key does one thing and its icon says which:
 
-2. **Configuration Options**
-   - **Control Mode**: Toggle, On, Off, Brightness, Color, Color Temperature
-   - **Brightness**: Set specific brightness level (1-100%)
-   - **Color**: Choose RGB color with hex picker
-   - **Color Temperature**: Set warmth, across the range your light supports
+| Action                | What a key press does                                             |
+| --------------------- | ----------------------------------------------------------------- |
+| **On / Off**          | Turn on, turn off, or toggle                                      |
+| **Brightness**        | Set a fixed brightness (1–100%)                                   |
+| **Color**             | Set a fixed colour from the hex picker                            |
+| **Color Temperature** | Set a fixed warmth, within the range your light reports           |
+| **Saturation**        | Set a fixed colour intensity                                      |
+| **Segment Color**     | Apply a rainbow / solid / gradient preset across a segment range  |
+| **Recall**            | Apply one saved look: a dynamic scene, a DIY scene, or a snapshot |
+| **Scene**             | Apply one of the device's dynamic scenes                          |
+| **Snapshot**          | Apply a snapshot you saved in the Govee app                       |
+| **Music Mode**        | Switch the light into one of its music-reactive modes             |
+| **Feature Toggle**    | Flip a device feature (gradient, nightlight, …) on or off         |
+| **Schedule**          | Run a command on a daily, weekly, or delay trigger                |
+| **Sequence**          | Run a chain of commands with configurable delays                  |
+| **Custom Effect**     | Play an RGB animation on an IC strip                              |
 
-3. **Usage**
-   - Press button to execute the configured action
-   - Button shows real-time state: ● (on), ○ (off), ◐ (mixed)
+Keys show live state in the title and as a badge on the artwork: ● on, ○ off,
+◐ some members on.
 
-### Group Management
+### Selecting lights and groups
 
-1. **Create Groups**
-   - Add "Govee Group Control" action
-   - Enter API key and click "Create New Group"
-   - Name your group and select lights to include
-   - Click "Create Group" to save
+Every action's Property Inspector lists your individual lights and any groups
+you have made in the same dropdown, and only offers lights that support what
+the action does — a light with no segments never appears under Segment Color.
 
-2. **Edit Groups**
-   - Select existing group from dropdown
-   - Click "✏️ Edit" button
-   - Modify name or change included lights
-   - Click "Update Group" to save changes
+Groups are plugin-wide: create one in any light-control Property Inspector
+under **Manage groups…** and it shows up in every action's dropdown.
 
-3. **Delete Groups**
-   - Select group from dropdown
-   - Click "🗑️ Delete" button
-   - Confirm deletion in popup dialog
+- **Create** — expand **Manage groups…**, click **+ New Group**, name it, tick
+  the lights, click **Create**
+- **Delete** — click **✕** on the group row and confirm
+- To change a group's membership, delete it and create it again
 
-4. **Control Groups**
-   - Configure control mode (same options as individual lights)
-   - Press button to control all lights in group simultaneously
-   - Visual feedback shows combined group state
+Applying an action to a group sends one command per light, all at once. If some
+lights fail, the ones that succeeded keep their change and the key shows a
+persistent `⚠ N/M` banner for 30 seconds.
 
-### Stream Deck+ Encoder Controls
+### Stream Deck+ dials
 
-**Note:** Requires Stream Deck+ device with dial/encoder support.
+**Note:** requires a Stream Deck+ or another device with encoders.
 
-#### Brightness Dial
+Drag **Brightness**, **Color**, **Color Temperature**, **Saturation**, or
+**Segment Color** onto a dial — the same actions you would use on a key. On a
+dial they behave as:
 
-1. **Setup**
-   - Add "Brightness Dial" action to an encoder slot
-   - Enter API key and discover lights
-   - Select a light with brightness capability
-   - Configure step size (1-25% per tick, default: 5%)
+- **Rotate** — adjust the value by one step per tick
+- **Press** — toggle the light's power
+- **Display** — the light or group name and the current value
+- **Feedback bar** — a plain bar for brightness and saturation, a warm→cool
+  gradient for colour temperature, a rainbow for colour
 
-2. **Usage**
-   - **Rotate clockwise**: Increase brightness
-   - **Rotate counter-clockwise**: Decrease brightness
-   - **Press dial**: Toggle light power on/off
-   - **Display**: Shows light name and current brightness percentage
-   - **Feedback bar**: Visual brightness indicator (dimmed when off)
+Step size per tick is configurable in the Property Inspector:
 
-#### Color Temperature Dial
+| Dial              | Range   | Default |
+| ----------------- | ------- | ------- |
+| Brightness        | 1–25%   | 5%      |
+| Saturation        | 1–25%   | 5%      |
+| Color Temperature | 50–500K | 100K    |
+| Color             | 1–90°   | 15°     |
+| Segment Color     | 1–90°   | 15°     |
 
-1. **Setup**
-   - Add "Color Temperature Dial" action to an encoder slot
-   - Enter API key and discover lights
-   - Select a light with color temperature capability
-   - Configure step size (50-500K per tick, default: 100K)
-
-2. **Usage**
-   - **Rotate clockwise**: Cooler white, up to your light's coolest setting
-   - **Rotate counter-clockwise**: Warmer white, down to its warmest
-   - **Groups**: the dial spans every member's range, and each light stops at its own limit
-   - **Press dial**: Toggle light power on/off
-   - **Display**: Shows light name and current temperature in Kelvin
-   - **Feedback bar**: Gradient indicator (warm to cool)
-
-#### Color Hue Dial
-
-1. **Setup**
-   - Add "Color Hue Dial" action to an encoder slot
-   - Enter API key and discover lights
-   - Select a light with color control capability
-   - Configure step size (1-90° per tick, default: 15°)
-   - Configure saturation (0-100%, default: 100%)
-
-2. **Usage**
-   - **Rotate clockwise**: Cycle through color spectrum
-   - **Rotate counter-clockwise**: Cycle backward through spectrum
-   - **Press dial**: Toggle light power on/off
-   - **Display**: Shows light name and current hue in degrees
-   - **Feedback bar**: Rainbow gradient indicator
-   - **Color wheel**: 0° Red → 120° Green → 240° Blue → 360° Red
+For a group, a colour-temperature dial spans the union of every member's
+range, and each light stops at its own limit rather than the whole group being
+capped by the narrowest one.
 
 ### Advanced Features
 
@@ -252,15 +239,9 @@ _(Coming soon)_
 
 #### API Key Management
 
-- API keys are securely stored in Stream Deck settings
-- Validation occurs before attempting API calls
+- API keys are stored once in Stream Deck's global settings and shared by every action
+- The key is format-checked before any API call is attempted
 - Clear error messages for authentication issues
-
-#### Testing Groups
-
-- Use "Test Group" button to verify group functionality
-- Performs quick blink test on all group lights
-- Confirms connectivity and group integrity
 
 ## Development
 
@@ -455,28 +436,47 @@ npm run streamdeck:pack
 
 ```
 govee-light-management/
-├── src/                          # Source code
-│   ├── actions/                  # Stream Deck action handlers
-│   ├── domain/                   # Domain layer (DDD)
-│   │   ├── entities/            # Business entities
-│   │   ├── repositories/        # Repository interfaces
-│   │   └── services/            # Domain services
-│   └── infrastructure/          # Infrastructure layer
-│       └── repositories/        # Repository implementations
+├── src/
+│   ├── backend/                  # everything that runs in the plugin process
+│   │   ├── actions/              # Stream Deck action classes (+ shared/)
+│   │   ├── application/          # DeviceService and orchestration
+│   │   ├── connectivity/         # transport abstraction + cloud transport
+│   │   ├── domain/               # entities, value objects, repository interfaces,
+│   │   │                         # domain services — no external dependencies
+│   │   ├── infrastructure/       # Govee client + Stream Deck storage adapters
+│   │   ├── services/             # scheduler, sequences, effects, settings, telemetry
+│   │   └── plugin.ts             # entry point
+│   └── shared/types/             # types shared with Property Inspector payloads
 ├── com.felixgeelhaar.govee-light-management.sdPlugin/
-│   ├── ui/                      # Property Inspector UI
-│   └── bin/                     # Built plugin files
-├── test/                        # Test files
-└── docs/                        # Documentation
+│   ├── manifest.json
+│   ├── ui/                       # Property Inspectors: hand-written HTML + js/setup.js
+│   ├── imgs/                     # per-action artwork
+│   └── bin/                      # build output
+├── test/                         # Vitest unit tests + test/e2e Playwright specs
+└── docs/
 ```
 
 ### Architecture
 
-This plugin follows **Domain-Driven Design (DDD)** principles:
+This plugin follows **Domain-Driven Design (DDD)**, with the layers as real
+directories under `src/backend/`:
 
-- **Domain Layer**: Core business logic and entities
-- **Infrastructure Layer**: External API integrations and data persistence
-- **Application Layer**: Stream Deck action handlers and UI coordination
+- **Domain** (`domain/`): entities, value objects, repository interfaces, and
+  pure domain services. No SDK, no HTTP.
+- **Application** (`application/`): orchestration over the domain — device
+  discovery, caching, capability normalization.
+- **Infrastructure** (`infrastructure/`): the adapters that implement the
+  domain's repository interfaces against the Govee API client and Stream Deck's
+  settings storage.
+- **Actions** (`actions/`): the Stream Deck entry layer. Receives SDK events,
+  delegates, and owns presentation.
+
+Dependencies point inward: an action may reach infrastructure, the domain never
+reaches outward.
+
+The Property Inspectors are plain HTML with a shared `ui/js/setup.js` and
+Elgato's SDPI web components — there is no frontend framework and no frontend
+build step.
 
 ### Testing
 
@@ -487,11 +487,8 @@ npm test
 # Coverage report
 npm run test:coverage
 
-# E2E tests (requires Stream Deck)
+# E2E tests (Playwright, against the Property Inspector HTML)
 npm run test:e2e
-
-# Start test server for manual testing
-npm run test:server
 ```
 
 ## API Reference
@@ -575,27 +572,19 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## Roadmap
 
-### v2.2.0 (Current - Released)
+### v2.8.0 (Current)
 
-- [x] Enhanced color picker with preset palettes (Warm/Cool/Pastel/Vivid) and recent colors history
-- [x] Schedule action — time-based automation with Daily/Weekly/Delay triggers
-- [x] Sequence action — chain multi-step light commands with configurable delays
-- [x] Custom Effect action — 4 RGB animations (Rainbow Wave, Pulse, Fade, Strobe) on IC strips
-- [x] Device Classifier — automatic Bulb/LED Strip/Light Bar/Floor Lamp detection
-- [x] Capability Registry — helpful error messages with device-class-specific hints
-- [x] Expanded device cache TTL (15s → 30s) for reduced API calls
-- [x] 17 total actions (12 keypad + 5 dial)
+- [x] 18 actions — 13 keypad, 5 encoder
+- [x] Five hybrid actions (Brightness, Color, Color Temperature, Saturation, Segment Color) that work on a key or a dial from one UUID
+- [x] Recall — dynamic scenes, DIY scenes, and snapshots behind one picker
+- [x] Schedule, Sequence, and Custom Effect actions
+- [x] Group support across every action, with per-light fan-out and a `⚠ N/M` partial-failure banner
+- [x] Per-device Kelvin ranges, with a group dial spanning the union of its members' ranges
+- [x] Live state sync and the ●/◐/○ status badge on key artwork
+- [x] Device Classifier and Capability Registry for device-specific error hints
+- [x] Colour palettes (Warm/Cool/Pastel/Vivid) and recent-colour history
 
-### v2.1.4 (Released)
-
-- [x] Individual light control with 8 modes
-- [x] Advanced group management with full dial support
-- [x] Stream Deck+ encoder support (5 dials)
-- [x] Real-time state synchronization with live state sync on appear
-- [x] Scene, Music, Feature Toggle actions
-- [x] Full group support across all actions and dials
-- [x] Visual feedback system with green/red flash indicators
-- [x] Saturation dial, overlay mode clearing, dial state sync fixes
+Full release history is in [CHANGELOG.md](CHANGELOG.md).
 
 ### v3.0.0 (Long-term Vision)
 
