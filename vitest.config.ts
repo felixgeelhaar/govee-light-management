@@ -9,12 +9,16 @@ export default defineConfig({
       enforce: "pre",
       transform(code, id) {
         if (!id.endsWith(".ts") || !code.includes("@action(")) return;
-        return ts.transpileModule(code, {
+        const result = ts.transpileModule(code, {
+          fileName: id,
           compilerOptions: {
             target: ts.ScriptTarget.ES2022,
             module: ts.ModuleKind.ESNext,
+            sourceMap: true,
+            inlineSources: true,
           },
-        }).outputText;
+        });
+        return { code: result.outputText, map: result.sourceMapText };
       },
     },
   ],
