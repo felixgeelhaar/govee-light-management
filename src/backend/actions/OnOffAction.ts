@@ -1,3 +1,4 @@
+import { powerLifecycleController } from "../services/PowerLifecycleController";
 import {
   action,
   KeyDownEvent,
@@ -305,8 +306,13 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
       return;
 
     switch (ev.payload.event) {
+      case "getPowerLifecycleRule":
+      case "savePowerLifecycleRule":
+      case "deletePowerLifecycleRule":
+        await powerLifecycleController.handlePI(ev.action.id, ev.payload);
+        break;
       case "getDevices":
-        await this.services.handleGetDevices(ev.action.id);
+        await this.services.handleGetDevices(ev.action.id, { powerOnly: true });
         break;
       case "getDeviceDebug":
         await this.services.handleGetDeviceDebug(

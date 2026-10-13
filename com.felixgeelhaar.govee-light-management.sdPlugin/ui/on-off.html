@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="./css/main.css" />
     <script src="./js/sdpi-components.js"></script>
     <script src="./js/setup.js"></script>
+    <script src="./js/power-lifecycle.js"></script>
   </head>
   <body>
     <div id="settings" class="hidden">
@@ -28,6 +29,26 @@
       </sdpi-item>
 
       <div id="groupManager"></div>
+
+      <sdpi-item label="PC power">
+        <details id="powerLifecyclePanel" class="power-lifecycle-panel">
+          <summary>Light automation</summary>
+          <p>Rules are saved for your account and continue when this key is hidden or removed.</p>
+          <label for="powerRuleTarget">Rule target</label>
+          <select id="powerRuleTarget" aria-label="Power rule target"></select>
+          <label><input id="powerEnabled" type="checkbox" /> Enable this rule</label>
+          <label><input id="powerStartup" type="checkbox" /> On when the plugin starts</label>
+          <label><input id="powerWake" type="checkbox" /> On when the PC wakes</label>
+          <label><input id="powerSleep" type="checkbox" /> Off before sleep (OS event helper)</label>
+          <label><input id="powerShutdown" type="checkbox" /> Off before shutdown/logout (best effort)</label>
+          <p>Sleep/shutdown options start an OS event observer while Stream Deck runs. Power-off delivery is best effort; network loss or forced shutdown can prevent it.</p>
+          <p>Manual commands override pending automation until the next power event. Changing these controls does not send light commands.</p>
+          <button id="powerSave" type="button">Save rule</button>
+          <button id="powerDelete" type="button">Delete rule</button>
+          <button id="powerRefresh" type="button">Refresh status</button>
+          <p id="powerLifecycleStatus" role="status" aria-live="polite"></p>
+        </details>
+      </sdpi-item>
 
       <sdpi-item label="Status dot">
         <sdpi-select global setting="showStatusBadge" default="true">

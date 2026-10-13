@@ -276,6 +276,18 @@ scheduler's 30 s engine poll and persists the schedule. Handlers run in order
 and are awaited; one failure does not strand the rest, and a second signal is
 ignored. Register anything else that owns a process-wide timer the same way.
 
+### PC power automation
+
+`PowerLifecycleController` binds SDK startup/wake and optional native sleep/session
+notifications to `PowerLifecycleService`. Rules live in global `powerLifecycleRules`
+and are edited explicitly in the On/Off PI. The observer runs only for enabled
+sleep/shutdown rules, uses packaged OS scripts with no credentials, and exits on
+parent pipe closure. Lifecycle POSTs use the cancellable `BoundedPowerClient`
+rather than the installed client's retry middleware; ordinary commands are unchanged.
+Saved references/local groups avoid cloud discovery during suspension. Manual
+input/commands, settings changes, wake and unload cancel obsolete work. See
+`docs/verification/377-power-lifecycle.md` for budgets and unsupported cases.
+
 ### Telemetry — accuracy note
 
 `TelemetryService` is a singleton that accumulates discovery, command, and

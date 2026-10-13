@@ -1,3 +1,4 @@
+import { powerLifecycleController } from "./services/PowerLifecycleController";
 import streamDeck from "@elgato/streamdeck";
 
 import { OnOffAction } from "./actions/OnOffAction";
@@ -27,6 +28,7 @@ import {
 import { setStatusBadgeVisible } from "./actions/shared/status-badge";
 
 streamDeck.logger.setLevel("info");
+powerLifecycleController.attach();
 
 // Keypad actions
 streamDeck.actions.registerAction(new OnOffAction());
@@ -50,7 +52,12 @@ streamDeck.actions.registerAction(new ColorHueDialAction());
 streamDeck.actions.registerAction(new SaturationDialAction());
 streamDeck.actions.registerAction(new SegmentColorDialAction());
 
-streamDeck.connect();
+void streamDeck
+  .connect()
+  .then(() => powerLifecycleController.initialize())
+  .catch(() => {
+    streamDeck.logger.error("power.lifecycle initialization failed");
+  });
 
 // Initialize background services after connection
 void schedulerService.initialize().catch((error) => {
@@ -62,6 +69,9 @@ void schedulerService.initialize().catch((error) => {
 // schedule it holds was never persisted on the way out — `shutdown()` existed
 // and nothing called it.
 const shutdown = createShutdownRunner(streamDeck.logger);
+shutdown.onShutdown("power-lifecycle", () =>
+  powerLifecycleController.shutdown(),
+);
 shutdown.onShutdown("scheduler", () => schedulerService.shutdown());
 for (const signal of ["SIGTERM", "SIGINT"] as const) {
   process.once(signal, () => {

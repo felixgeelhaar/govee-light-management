@@ -647,3 +647,10 @@ If you find this plugin useful, consider:
 [Website](https://geelhaar.dev) • [GitHub](https://github.com/felixgeelhaar) • [Twitter](https://twitter.com/felixgeelhaar)
 
 </div>
+
+### PC power automation
+
+In an On / Off inspector, open **PC power → Light automation** to save an optional
+light/group rule for plugin startup, PC wake, or best-effort sleep/shutdown Off.
+Rules are disabled by default and remain active when the key is hidden/removed.
+See [configuration, limitations and verification](docs/verification/377-power-lifecycle.md).

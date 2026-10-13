@@ -1,3 +1,4 @@
+import { BoundedPowerClient } from "../../infrastructure/BoundedPowerClient";
 /**
  * Shared services and utilities for all light actions.
  * Handles device/group resolution, service initialization, and
@@ -218,6 +219,14 @@ type EffectCanceller = (targetId: string) => Promise<boolean>;
 let effectCanceller: EffectCanceller | null = null;
 export function registerEffectCanceller(fn: EffectCanceller | null): void {
   effectCanceller = fn;
+}
+
+type PowerLifecycleOverride = (target: DeviceTarget) => void;
+let powerLifecycleOverride: PowerLifecycleOverride | null = null;
+export function registerPowerLifecycleOverride(
+  hook: PowerLifecycleOverride | null,
+): void {
+  powerLifecycleOverride = hook;
 }
 
 export interface DeviceTarget {
@@ -774,7 +783,7 @@ export class ActionServices {
    */
   async handleGetDevices(
     actionId: string,
-    options?: { includeGroups?: boolean },
+    options?: { includeGroups?: boolean; powerOnly?: boolean },
   ): Promise<void> {
     const includeGroups = options?.includeGroups !== false;
     streamDeck.logger.info(`handleGetDevices called (context: ${actionId})`);
@@ -819,10 +828,15 @@ export class ActionServices {
             PI_HANDLER_TIMEOUT_MS,
             "Device discovery",
           );
-          const lightItems: PIDatasourceItem[] = lights.map((light) => ({
-            label: `${light.label ?? light.name} (${light.model})`,
-            value: `light:${light.deviceId}|${light.model}`,
-          }));
+          const lightItems: PIDatasourceItem[] = lights
+            .filter(
+              (light) =>
+                !options?.powerOnly || light.capabilities?.power !== false,
+            )
+            .map((light) => ({
+              label: `${light.label ?? light.name} (${light.model})`,
+              value: `light:${light.deviceId}|${light.model}`,
+            }));
 
           if (lightItems.length > 0) {
             items.push({
@@ -1358,7 +1372,11 @@ export class ActionServices {
    * Both keys are also tried directly in case an effect was addressed by the
    * group's composite id (future-proofing).
    */
-  async cancelActiveEffectForTarget(target: DeviceTarget): Promise<void> {
+  async cancelActiveEffectForTarget(
+    target: DeviceTarget,
+    manual = true,
+  ): Promise<void> {
+    if (manual) powerLifecycleOverride?.(target);
     if (!effectCanceller) return;
     const cancel = effectCanceller;
     const targetIds: string[] = [];
@@ -1392,6 +1410,7 @@ export class ActionServices {
    * which doesn't have a DeviceTarget — just a Light.
    */
   private async cancelActiveEffectForLight(light: Light): Promise<void> {
+    powerLifecycleOverride?.({ type: "light", light });
     if (!effectCanceller) return;
     try {
       await effectCanceller(`light:${light.deviceId}|${light.model}`);
@@ -1412,6 +1431,64 @@ export class ActionServices {
    * `reportPartialFailure` so the key says so — and rejects only when no
    * member could be controlled.
    */
+  /** Explicit lifecycle power with transport cancellation, no nested retries. */
+  /** Saved references are authoritative for explicit lifecycle commands.
+   * Never wait for cloud inventory while the OS is suspending. The power API
+   * validates reachability/ownership; no fabricated inventory entry is exposed.
+   */
+  async resolveLifecycleTarget(
+    selectedDeviceId: string,
+  ): Promise<DeviceTarget | null> {
+    const parsed = this.parseTarget({ selectedDeviceId });
+    if (parsed?.type === "light" && parsed.deviceId && parsed.model) {
+      const item = this.deviceService
+        ?.getCachedLights()
+        ?.find(
+          (light) =>
+            light.deviceId === parsed.deviceId && light.model === parsed.model,
+        );
+      const light = Light.create(
+        parsed.deviceId,
+        parsed.model,
+        item?.name ?? parsed.deviceId,
+        { isOn: false, isOnline: item?.controllable ?? true },
+      );
+      this.hydrateFromSnapshot(light);
+      return { type: "light", light };
+    }
+    if (parsed?.type === "group" && parsed.groupId) {
+      const repository =
+        ActionServices._shared.groupRepository ??
+        new StreamDeckLightGroupRepository();
+      const group = await repository.findGroupById(parsed.groupId);
+      if (!group) return null;
+      for (const light of group.lights) this.hydrateFromSnapshot(light);
+      return { type: "group", group };
+    }
+    return null;
+  }
+
+  async controlLifecyclePower(
+    target: DeviceTarget,
+    isOn: boolean,
+    signal: AbortSignal,
+    apiKey: string,
+  ): Promise<FanOutOutcome> {
+    signal.throwIfAborted();
+    await this.cancelActiveEffectForTarget(target, false);
+    signal.throwIfAborted();
+    const lights = target.light ? [target.light] : (target.group?.lights ?? []);
+    const client = new BoundedPowerClient();
+    const outcome = await fanOutToLights(lights, async (light) => {
+      signal.throwIfAborted();
+      await client.setPower(light, isOn, apiKey, signal);
+      signal.throwIfAborted();
+      light.updateState({ isOn });
+      this.rememberLightState(light);
+    });
+    return outcome;
+  }
+
   async controlTarget(
     target: DeviceTarget,
     command: "on" | "off" | "brightness" | "color" | "colorTemperature",
@@ -1500,6 +1577,7 @@ export class ActionServices {
     label: string,
     apply: (light: Light) => Promise<unknown>,
   ): Promise<FanOutOutcome> {
+    powerLifecycleOverride?.(target);
     if (target.type === "light" && target.light) {
       await apply(target.light);
       return { total: 1, failed: [] };

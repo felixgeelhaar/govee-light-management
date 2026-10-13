@@ -390,3 +390,11 @@
 	border-color: rgba(255, 255, 255, 0.3);
 	background: rgba(255, 255, 255, 0.08);
 }
+
+.power-lifecycle-panel { width: 100%; }
+.power-lifecycle-panel summary { cursor: pointer; padding: 6px 0; }
+.power-lifecycle-panel label { display: block; margin: 8px 0; }
+.power-lifecycle-panel input[type="checkbox"] { margin-right: 6px; }
+.power-lifecycle-panel select { width: 100%; max-width: 100%; }
+.power-lifecycle-panel button { margin: 4px 4px 4px 0; }
+.power-lifecycle-panel p { font-size: 12px; line-height: 1.4; }
