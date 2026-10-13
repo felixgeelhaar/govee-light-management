@@ -21,6 +21,7 @@ import { telemetryService } from "../services/TelemetryService";
 
 type OnOffSettings = BaseSettings & {
   operation?: "toggle" | "on" | "off";
+  separatePowerIcons?: boolean | string;
 };
 
 @action({ UUID: "com.felixgeelhaar.govee-light-management.lights" })
@@ -365,7 +366,12 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
       operation === "off" || (operation === "toggle" && status === "off")
         ? 1
         : 0;
-    await action.setState?.(state);
+    const separate =
+      settings.separatePowerIcons === true ||
+      settings.separatePowerIcons === "true";
+    // Old profiles have one custom icon in state 0. Keep displaying it until
+    // the user explicitly opts into independent state artwork.
+    await action.setState?.(separate ? state : 0);
     await applyStatusImage(action, "light", status);
     await action.setTitle(this.getTitle(settings, contextId));
   }

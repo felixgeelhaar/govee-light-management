@@ -1,24 +1,27 @@
 # Separate On/Off artwork (#375)
 
 The On / Off action supports Stream Deck's native two-state icon editor.
-No custom image setting, remote URL, image reader, or migration of plugin settings
-is needed. The host validates and persists selected images, including profile
+The optional Separate icons setting enables state switching; it defaults to
+“Use existing icon” so existing profiles keep displaying their state-0 custom
+artwork. No custom image storage, remote URL or image reader is added. The host validates and persists selected images, including profile
 export/import. Each manifest state retains the original default artwork.
 
 ## Set your icons
 
 1. Select an On / Off key in Stream Deck and choose **Toggle** in its Operation
    setting to follow live power state.
-2. In Stream Deck's key artwork editor, select the **On** state (state 0).
+2. Change **Separate icons** to **Use On/Off state icons**.
+3. In Stream Deck's key artwork editor, select the **On** state (state 0).
    Open its image menu and choose **Set from File**, or drag your artwork onto
    that state's image preview.
-3. Select **Off** (state 1) and set the second image the same way.
-4. Press the key: all-off uses Off; any-on (including a mixed group) uses On.
+4. Select **Off** (state 1) and set the second image the same way.
+5. Press the key: all-off uses Off; any-on (including a mixed group) uses On.
    To restore a state's shipped artwork, use the host's **Reset to Default**.
 
 The plugin disables automatic host toggling and selects states from live power
 rather than the number of key presses. A failed command retains the previous
-state and shows the existing alert. Before a live sample is available, the existing off fallback selects state 1.
+state and shows the existing alert. With Separate icons enabled, before a live sample is available, the existing
+off fallback selects state 1.
 A failed refresh retains the last known state. Fixed On and Off operations use their corresponding
 artwork state and keep their existing command semantics. The Operation setting
 remains authoritative in Multi Actions; adding icon states does not reinterpret
@@ -28,7 +31,8 @@ Native custom icons take precedence over plugin-rendered artwork. A custom icon
 therefore hides the plugin's image badge for that state; group counts and failure
 banners still use the existing title (which a native custom title can override).
 If only one icon is customized, the other state uses the original artwork and
-badge. No icons configured means the same default appearance as before.
+badge. No icons configured means the same default appearance as before. Disabling
+Separate icons restores state 0 without deleting either custom image.
 
 Source: [Elgato multi-state keys and image precedence](https://docs.elgato.com/streamdeck/sdk/guides/keys/)
 and installed SDK 2.1.0 `plugin/actions/key.d.ts` / manifest schema.
@@ -36,8 +40,8 @@ and installed SDK 2.1.0 `plugin/actions/key.d.ts` / manifest schema.
 ## Manual verification (macOS and Windows)
 
 - Start with an existing single-state key/profile containing custom artwork;
-  upgrade to this build. Verify the original state-0 artwork persists and check
-  the newly added state-1 default. Save distinct artwork in both states.
+  upgrade to this build. Verify its custom artwork remains displayed even when off before enabling
+  Separate icons; then check the newly added state-1 default. Save distinct artwork in both states.
 - Test neither / On only / Off only / both custom images. Cycle On→Off→On;
   refresh state, restart Stream Deck, export/import the profile. Check persistence.
 - Try unsupported or unavailable image files in the host editor; confirm rejection

@@ -16,7 +16,13 @@ const key = () => ({
 const event = (action: ReturnType<typeof key>, operation = "toggle") =>
   ({
     action,
-    payload: { settings: { selectedDeviceId: "dev-1|H619A", operation } },
+    payload: {
+      settings: {
+        selectedDeviceId: "dev-1|H619A",
+        separatePowerIcons: true,
+        operation,
+      },
+    },
   }) as unknown as WillAppearEvent;
 const light = (id = "dev-1") =>
   Light.create(id, "H619A", "Desk", { isOn: true, isOnline: true });
@@ -48,6 +54,59 @@ describe("OnOff native artwork states (#375)", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
+  });
+
+  it("preserves state 0 for old settings even when the light is off", async () => {
+    vi.mocked(ActionServices.prototype.getLivePowerState).mockResolvedValue(
+      false,
+    );
+    const action = key();
+    const oldEvent = {
+      action,
+      payload: { settings: { selectedDeviceId: "dev-1|H619A" } },
+    };
+    await new OnOffAction().onWillAppear(oldEvent as never);
+    expect(action.setState).toHaveBeenLastCalledWith(0);
+  });
+
+  it.each([
+    ["true", 1],
+    ["false", 0],
+  ])("honors the PI string preference %s", async (preference, state) => {
+    vi.mocked(ActionServices.prototype.getLivePowerState).mockResolvedValue(
+      false,
+    );
+    const action = key();
+    await new OnOffAction().onWillAppear({
+      action,
+      payload: {
+        settings: {
+          selectedDeviceId: "dev-1|H619A",
+          separatePowerIcons: preference,
+        },
+      },
+    } as never);
+    expect(action.setState).toHaveBeenLastCalledWith(state);
+  });
+
+  it("returns to state 0 when separate icons are disabled", async () => {
+    vi.mocked(ActionServices.prototype.getLivePowerState).mockResolvedValue(
+      false,
+    );
+    const subject = new OnOffAction();
+    const action = key();
+    await subject.onWillAppear(event(action));
+    expect(action.setState).toHaveBeenLastCalledWith(1);
+    await subject.onDidReceiveSettings({
+      action,
+      payload: {
+        settings: {
+          selectedDeviceId: "dev-1|H619A",
+          separatePowerIcons: false,
+        },
+      },
+    } as never);
+    expect(action.setState).toHaveBeenLastCalledWith(0);
   });
 
   it("selects On→Off→On without changing settings or loading user artwork", async () => {
