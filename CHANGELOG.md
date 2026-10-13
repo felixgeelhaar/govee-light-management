@@ -4,15 +4,6 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
-## [Unreleased]
-
-### Fixed
-
-- Unreliable offline hints no longer exclude group members from power/state
-  sampling, make Toggle choose On repeatedly, or show wrong group counts/dial
-  values (#311). Saved model mismatches now have a distinct target diagnostic.
-  Reporter confirmation of the remaining individual-light problem is pending.
-
 ## [2.8.2] - 2026-09-20
 
 ### Added
