@@ -207,8 +207,11 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
         }
       } else if (target?.type === "group" && target.group) {
         const allMembers = target.group.lights;
-        const lights = target.group.getControllableLights();
-        this.hasOfflineMember.set(ctx, lights.length < allMembers.length);
+        const lights = target.group.lights;
+        this.hasOfflineMember.set(
+          ctx,
+          allMembers.some((light) => !light.isOnline),
+        );
         const saturationValues: number[] = [];
         const hueValues: number[] = [];
         let onCount = 0;

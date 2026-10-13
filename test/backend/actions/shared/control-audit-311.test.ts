@@ -112,19 +112,17 @@ describe("#311 current control invariants (no speculative production change)", (
     expect(apply).toHaveBeenCalledTimes(2);
   });
   it("resolves the saved selection using stale discovery data after a cloud failure", async () => {
-    const discoverDevices = vi
-      .fn()
-      .mockResolvedValue({
-        lights: [
-          {
-            deviceId: "dev-1",
-            model: "H619A",
-            name: "Desk",
-            controllable: true,
-            supportedCommands: ["Power", "Brightness"],
-          },
-        ],
-      });
+    const discoverDevices = vi.fn().mockResolvedValue({
+      lights: [
+        {
+          deviceId: "dev-1",
+          model: "H619A",
+          name: "Desk",
+          controllable: true,
+          supportedCommands: ["Power", "Brightness"],
+        },
+      ],
+    });
     const service = new DeviceService({
       discoverDevices,
     } as unknown as TransportOrchestrator);
@@ -140,16 +138,14 @@ describe("#311 current control invariants (no speculative production change)", (
   });
   it("diagnoses a model mismatch using allowlisted fields without serializing secret settings", async () => {
     install("deviceService", {
-      discover: vi
-        .fn()
-        .mockResolvedValue([
-          {
-            deviceId: "dev-1",
-            model: "H607C",
-            name: "Desk",
-            controllable: true,
-          },
-        ]),
+      discover: vi.fn().mockResolvedValue([
+        {
+          deviceId: "dev-1",
+          model: "H607C",
+          name: "Desk",
+          controllable: true,
+        },
+      ]),
     });
     expect(
       await new ActionServices().resolveTarget({
@@ -159,11 +155,11 @@ describe("#311 current control invariants (no speculative production change)", (
       }),
     ).toBeNull();
     expect(streamDeck.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining("selected device not present"),
+      expect.stringContaining("selected device model differs from discovery"),
       expect.objectContaining({
         wantDeviceId: "dev-1",
         wantModel: "H619A",
-        discoveredModels: ["H607C"],
+        matchingDeviceModels: ["H607C"],
       }),
     );
     const logs = JSON.stringify(vi.mocked(streamDeck.logger.warn).mock.calls);

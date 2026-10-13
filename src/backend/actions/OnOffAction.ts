@@ -193,20 +193,17 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
             originalState = liveState;
           }
         } else if (target.type === "group" && target.group) {
-          // Sample full group power so we can render mixed state and
-          // pick the right toggle direction. "Any on" → toggle off
-          // (matches user intent: "make this off"). totalCount is
-          // the FULL member count (not just controllable) so that an
-          // offline member doesn't shrink the denominator and confuse
-          // the user — they see `0/2` while a light is unreachable,
-          // not `0/1`.
+          // Sample the full group independently of unreliable online hints.
+          // Any on -> toggle off, using cached power when a read is unavailable.
+          // Keep the full denominator even if a member cannot be reached.
           const allMembers = target.group.lights;
-          const controllable = target.group.getControllableLights();
+          const members = target.group.lights;
           let onCount = 0;
-          for (const light of controllable) {
+          for (const light of members) {
             try {
               const live = await this.services.getLivePowerState(light);
-              if (live === true) onCount++;
+              if (live === true || (live === undefined && light.isOn))
+                onCount++;
             } catch {
               // Best effort per member.
             }
@@ -241,6 +238,7 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
           name: target.group.name,
           memberCount: target.group.lights.length,
           controllableCount: target.group.getControllableLights().length,
+          attemptedCount: target.group.lights.length,
           operation,
           originalState,
           command,
@@ -394,17 +392,16 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
             this.powerState.set(contextId, isOn);
           }
         } else if (target?.type === "group" && target.group) {
-          // Sample every controllable member; offline members are
-          // excluded from the per-light state query but still counted
-          // in the title denominator so the group size stays stable
-          // across reachability changes.
+          // Sample every member: the cloud online hint is unreliable.
+          // Keep the full denominator and cached state on failed reads.
           const allMembers = target.group.lights;
-          const controllable = target.group.getControllableLights();
+          const members = target.group.lights;
           let onCount = 0;
-          for (const light of controllable) {
+          for (const light of members) {
             try {
               const live = await this.services.getLivePowerState(light);
-              if (live === true) onCount++;
+              if (live === true || (live === undefined && light.isOn))
+                onCount++;
             } catch {
               // Best effort per member.
             }
@@ -414,12 +411,11 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
             totalCount: allMembers.length,
           });
           this.powerState.set(contextId, onCount > 0);
-          // Flag for the periodic timer: if any member was filtered
-          // out as offline, next tick should bust the device cache so
-          // the recovery is detected promptly.
+          // Online hints still inform cache refresh; they never exclude a
+          // member from state sampling or shrink the count denominator.
           this.hasOfflineMember.set(
             contextId,
-            controllable.length < allMembers.length,
+            allMembers.some((light) => !light.isOnline),
           );
         }
       } catch {

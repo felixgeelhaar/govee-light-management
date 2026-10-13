@@ -156,8 +156,11 @@ export class SegmentColorAction extends BaseDialAction<SegmentColorSettings> {
         }
       } else if (target?.type === "group" && target.group) {
         const allMembers = target.group.lights;
-        const members = target.group.getControllableLights();
-        this.hasOfflineMember.set(ctx, members.length < allMembers.length);
+        const members = target.group.lights;
+        this.hasOfflineMember.set(
+          ctx,
+          allMembers.some((light) => !light.isOnline),
+        );
         let onCount = 0;
         for (const light of members) {
           try {

@@ -3,7 +3,10 @@
 Baseline: `origin/main` 1c9fdbb, package/manifest 2.8.2 / 2.8.2.0,
 installed API client 3.3.10. Read issue body and all comments, and merged PR #331.
 No fresh reporter logs or confirmation of resolution were present. No remaining
-control defect was reproduced; this branch adds regression audit tests only.
+reporter individual-light defect was reproduced. A diagnostic defect was reproduced: the
+same device ID with a different discovered model was reported as absent. The
+lookup now logs model mismatch distinctly and suggests reselecting the light;
+no saved settings or command targets are silently changed.
 **Keep #311 open.**
 
 ## Current path and evidence
@@ -27,16 +30,22 @@ control defect was reproduced; this branch adds regression audit tests only.
 5. `fanOutToLights` settles all requests. Partial success returns failed members;
    successful state updates/snapshots survive. Total failure propagates a real
    error. Key actions report existing `⚠ N/M` feedback.
-6. `getControllableLights` still filters state sampling and presentation. This can
-   make an offline-flagged member's *display* incomplete; it does not suppress
-   the group command. Without current logs, do not confuse this with a reproduced
-   remaining reporter defect or change group semantics speculatively.
+6. A remaining gate was reproduced with failing action tests: offline-flagged
+   group members were excluded from power sampling. An already-on group could
+   therefore Toggle On repeatedly instead of Off, and group counts/dial values
+   showed Off. Key/dial samplers now read all members, retain known power when a
+   read is unavailable, and keep full denominators. Online hints still trigger
+   cache refresh; they never decide sampling eligibility. Recall's optimistic
+   count likewise includes the members actually attempted. This is a reproduced
+   group defect, not confirmation of the reporter's individual-light issue.
 
 Existing tests already cover offline power requests, API rejection, all-member
 preparation, partial group success and null-path diagnostics. Added audit tests
 cover all five basic commands for single/group offline flags, advanced group
 operations, successful state retention, stale discovery after failure, and a
-same-ID/different-model mismatch with allowlisted diagnostic fields.
+same-ID/different-model mismatch with allowlisted diagnostic fields. Fifteen
+additional actual-action regressions cover group Toggle direction, live display,
+shared keypad sampling, nine hybrid/legacy dials and Recall with zero snapshot ID.
 
 ## Logs and redaction limits
 
@@ -76,6 +85,7 @@ grep -hE 'resolveTarget|onoff\.toggle|device\.discover|group\.apply|Command fail
 ```
 
 No hardware or Windows/macOS cloud-control reproduction was performed. Tests use
-mock API boundaries. No production change or user-facing release claim is warranted;
-release-note summary, if needed: expanded regression coverage of existing control
-and diagnostics, with #311 still awaiting current reporter evidence.
+mock API boundaries. Release-note summary: offline cloud hints no longer hide group power/state or
+make Toggle choose On repeatedly; target diagnostics distinguish a saved model
+mismatch from a missing device. #311 still awaits current reporter evidence.
+This diagnostic fix does not establish resolution of the reporter’s control problem.

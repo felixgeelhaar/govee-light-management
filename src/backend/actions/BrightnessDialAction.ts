@@ -111,11 +111,14 @@ export class BrightnessDialAction extends BaseDialAction<BrightnessDialSettings>
         }
       } else if (target?.type === "group" && target.group) {
         const allMembers = target.group.lights;
-        const lights = target.group.getControllableLights();
+        const lights = target.group.lights;
         // Flag for the live-sync loop: if any member is offline, the
         // next tick should bust the discover cache so recovery is
         // detected within the throttle window.
-        this.hasOfflineMember.set(ctx, lights.length < allMembers.length);
+        this.hasOfflineMember.set(
+          ctx,
+          allMembers.some((light) => !light.isOnline),
+        );
         const brightnessValues: number[] = [];
         let anyOn = false;
         let anyOff = false;
