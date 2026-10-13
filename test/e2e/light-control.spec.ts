@@ -82,5 +82,7 @@ test('separate power icons are opt-in for existing profiles (#375)', async ({ pa
   await page.goto('/ui/on-off.html');
   const setting = page.locator('sdpi-select[setting="separatePowerIcons"]');
   await expect(setting).toHaveAttribute('default', 'false');
-  await expect(setting.locator('option[value="true"]')).toHaveText('Use On/Off state icons');
+  expect(await setting.evaluate(element =>
+    element.querySelector('option[value="true"]')?.textContent?.trim(),
+  )).toBe('Use On/Off state icons');
 });
