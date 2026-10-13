@@ -1,7 +1,23 @@
 import { defineConfig } from "vitest/config";
 import path from "node:path";
+import ts from "typescript";
 
 export default defineConfig({
+  plugins: [
+    {
+      name: "test-action-decorators",
+      enforce: "pre",
+      transform(code, id) {
+        if (!id.endsWith(".ts") || !code.includes("@action(")) return;
+        return ts.transpileModule(code, {
+          compilerOptions: {
+            target: ts.ScriptTarget.ES2022,
+            module: ts.ModuleKind.ESNext,
+          },
+        }).outputText;
+      },
+    },
+  ],
   test: {
     globals: true,
     environment: "jsdom",

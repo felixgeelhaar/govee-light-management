@@ -21,6 +21,7 @@ import {
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonObject, JsonValue } from "@elgato/utils";
+import { BrightnessFeedback } from "./shared/brightness-feedback";
 import { Brightness } from "../domain/value-objects/Brightness";
 import type { FanOutOutcome } from "../domain/services/group-fan-out";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
@@ -38,15 +39,18 @@ const DEFAULT_BAR_BG = "#1F2937";
 
 @action({ UUID: "com.felixgeelhaar.govee-light-management.brightness" })
 export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
+  private feedback = new BrightnessFeedback();
   private brightnessMap = new Map<string, number>();
   private displayModeMap = new Map<string, "single" | "group" | "mixed">();
 
   protected initValueMaps(ctx: string): void {
+    this.feedback.reset(ctx);
     if (!this.brightnessMap.has(ctx)) this.brightnessMap.set(ctx, 50);
     if (!this.displayModeMap.has(ctx)) this.displayModeMap.set(ctx, "single");
   }
 
   protected cleanupValueMaps(ctx: string): void {
+    this.feedback.reset(ctx);
     this.brightnessMap.delete(ctx);
     this.displayModeMap.delete(ctx);
   }
@@ -162,12 +166,14 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
     ctx: string,
     settings: BrightnessSettings,
   ): Promise<void> {
+    this.feedback.beginSync(ctx, settings);
     const apiKey = await this.services.getApiKey(settings);
     if (!apiKey || !settings.selectedDeviceId) return;
 
     try {
       await this.services.ensureServices(apiKey);
       const target = await this.services.resolveTarget(settings);
+      this.feedback.setTarget(ctx, settings, target);
       if (target?.type === "light" && target.light) {
         this.displayModeMap.set(ctx, "single");
         this.groupSummaryMap.delete(ctx);
@@ -251,7 +257,7 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
   protected async updateDisplay(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     action: DialAction<BrightnessSettings & JsonObject> | any,
-    _settings: BrightnessSettings,
+    settings: BrightnessSettings,
   ): Promise<void> {
     const ctx = action.id || "default";
     const brightness = this.brightnessMap.get(ctx) ?? 50;
@@ -264,11 +270,12 @@ export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
     // can serve both controller types.
     if (typeof action.setFeedback === "function") {
       try {
-        await action.setFeedback({
-          label: "Brightness",
+        await this.feedback.render(
+          action,
+          settings,
           value,
-          bar: { value: isOn ? brightness : 0 },
-        });
+          isOn ? brightness : 0,
+        );
       } catch {
         // No-op if action disappeared mid-render.
       }

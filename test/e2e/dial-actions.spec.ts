@@ -46,3 +46,15 @@ for (const { name, url, settings } of DIAL_PIS) {
     });
   });
 }
+
+test('brightness dials expose a host-editable title alongside value and bar (#378)', async ({ request }) => {
+  const manifest = await (await request.get('/manifest.json')).json();
+  const actions = manifest.Actions.filter((action: { UUID: string }) =>
+    ['brightness', 'brightness-dial'].some(suffix => action.UUID.endsWith(`.${suffix}`)));
+  expect(actions).toHaveLength(2);
+  for (const action of actions) {
+    const layout = await (await request.get(`/${action.Encoder.layout}`)).json();
+    expect(layout.items.map((item: { key: string }) => item.key)).toEqual(['title', 'value', 'bar']);
+    expect(layout.items[0].type).toBe('text');
+  }
+});

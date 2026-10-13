@@ -4,6 +4,7 @@ import {
   type DialRotateEvent,
 } from "@elgato/streamdeck";
 import type { JsonObject } from "@elgato/utils";
+import { BrightnessFeedback } from "./shared/brightness-feedback";
 import { Brightness } from "../domain/value-objects/Brightness";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { clamp } from "./shared/validation";
@@ -17,15 +18,18 @@ const DEFAULT_BAR_BG = "#1F2937"; // dark gray
 
 @action({ UUID: "com.felixgeelhaar.govee-light-management.brightness-dial" })
 export class BrightnessDialAction extends BaseDialAction<BrightnessDialSettings> {
+  private feedback = new BrightnessFeedback();
   private brightnessMap = new Map<string, number>();
   private displayModeMap = new Map<string, "single" | "group" | "mixed">();
 
   protected initValueMaps(ctx: string): void {
+    this.feedback.reset(ctx);
     if (!this.brightnessMap.has(ctx)) this.brightnessMap.set(ctx, 50);
     if (!this.displayModeMap.has(ctx)) this.displayModeMap.set(ctx, "single");
   }
 
   protected cleanupValueMaps(ctx: string): void {
+    this.feedback.reset(ctx);
     this.brightnessMap.delete(ctx);
     this.displayModeMap.delete(ctx);
   }
@@ -79,12 +83,14 @@ export class BrightnessDialAction extends BaseDialAction<BrightnessDialSettings>
     ctx: string,
     settings: BrightnessDialSettings,
   ): Promise<void> {
+    this.feedback.beginSync(ctx, settings);
     const apiKey = await this.services.getApiKey(settings);
     if (!apiKey || !settings.selectedDeviceId) return;
 
     try {
       await this.services.ensureServices(apiKey);
       const target = await this.services.resolveTarget(settings);
+      this.feedback.setTarget(ctx, settings, target);
       if (target?.type === "light" && target.light) {
         this.displayModeMap.set(ctx, "single");
         if (target.light.brightness) {
@@ -155,7 +161,7 @@ export class BrightnessDialAction extends BaseDialAction<BrightnessDialSettings>
 
   protected async updateDisplay(
     action: DialAction<BrightnessDialSettings & JsonObject>,
-    _settings: BrightnessDialSettings,
+    settings: BrightnessDialSettings,
   ): Promise<void> {
     const ctx = action.id || "default";
     const brightness = this.brightnessMap.get(ctx) ?? 50;
@@ -163,10 +169,6 @@ export class BrightnessDialAction extends BaseDialAction<BrightnessDialSettings>
     const displayMode = this.displayModeMap.get(ctx) ?? "single";
     const title = !isOn ? "Off" : `${valuePrefix(displayMode)}${brightness}%`;
 
-    await action.setFeedback({
-      label: "Brightness",
-      value: title,
-      bar: { value: isOn ? brightness : 0 },
-    });
+    await this.feedback.render(action, settings, title, isOn ? brightness : 0);
   }
 }
