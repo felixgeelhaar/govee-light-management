@@ -66,3 +66,14 @@ test.describe('Color Temperature specific', () => {
     await expect(page.locator('sdpi-range[setting="colorTempValue"]')).toBeAttached();
   });
 });
+
+test('On/Off exposes native per-state artwork without automatic host toggling (#375)', async ({ request }) => {
+  const manifest = await (await request.get('/manifest.json')).json();
+  const action = manifest.Actions.find((item: { UUID: string }) => item.UUID.endsWith('.lights'));
+  expect(action.DisableAutomaticStates).toBe(true);
+  expect(action.States.map((state: { Name: string }) => state.Name)).toEqual(['On', 'Off']);
+  // Both defaults retain the original artwork; custom images belong to the host.
+  expect(action.States.map((state: { Image: string }) => state.Image)).toEqual([
+    'imgs/actions/light/key', 'imgs/actions/light/key',
+  ]);
+});

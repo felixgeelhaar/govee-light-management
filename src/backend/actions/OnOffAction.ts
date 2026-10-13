@@ -341,7 +341,10 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
    * where losing the on/off state was not.
    */
   private async render(
-    action: ImageCapableAction & { setTitle(title: string): Promise<void> },
+    action: ImageCapableAction & {
+      setTitle(title: string): Promise<void>;
+      setState?(state: 0 | 1): Promise<void>;
+    },
     settings: OnOffSettings,
     contextId: string,
   ): Promise<void> {
@@ -354,6 +357,15 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
             this.powerState.get(contextId),
           )
         : "unknown";
+    // Native per-state artwork takes precedence over plugin images. Keep the
+    // original artwork in both manifest states; use live power to select the
+    // user's optional icon without storing or reading image files ourselves.
+    const operation = settings.operation || "toggle";
+    const state =
+      operation === "off" || (operation === "toggle" && status === "off")
+        ? 1
+        : 0;
+    await action.setState?.(state);
     await applyStatusImage(action, "light", status);
     await action.setTitle(this.getTitle(settings, contextId));
   }

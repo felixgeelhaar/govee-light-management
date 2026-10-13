@@ -647,3 +647,8 @@ If you find this plugin useful, consider:
 [Website](https://geelhaar.dev) • [GitHub](https://github.com/felixgeelhaar) • [Twitter](https://twitter.com/felixgeelhaar)
 
 </div>
+
+### Custom power icons
+
+On / Off keys support separate native On and Off artwork. See the
+[setup steps and state behavior](docs/verification/375-power-artwork.md).
