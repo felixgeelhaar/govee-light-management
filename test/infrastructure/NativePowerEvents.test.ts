@@ -71,7 +71,7 @@ describe("native power event adapter", () => {
     });
     const ready = source.start(vi.fn(), vi.fn());
     const rejected = expect(ready).rejects.toBeDefined();
-    await vi.advanceTimersByTimeAsync(10001);
+    await vi.advanceTimersByTimeAsync(30001);
     await rejected;
     source.stop();
   });

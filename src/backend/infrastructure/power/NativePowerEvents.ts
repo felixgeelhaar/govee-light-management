@@ -52,7 +52,7 @@ export class NativePowerEvents implements PowerEventSource {
         onFailure();
         this.stop();
       };
-      const startup = setTimeout(fail, 10000);
+      const startup = setTimeout(fail, 30000);
       this.finishStart = () => {
         if (!ready) {
           clearTimeout(startup);

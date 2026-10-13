@@ -14,9 +14,16 @@ describe("real packaged native observer runtime", () => {
     "starts and exits on pipe closure without orphaning a process",
     async () => {
       let child!: ChildProcess;
+      let diagnostics = "";
       const source = new NativePowerEvents({
         spawn: ((command, args, options) => {
           child = spawn(command, args, options);
+          child.stdout?.on("data", (data) => {
+            diagnostics = (diagnostics + String(data)).slice(-4000);
+          });
+          child.stderr?.on("data", (data) => {
+            diagnostics = (diagnostics + String(data)).slice(-4000);
+          });
           return child;
         }) as typeof spawn,
       });
@@ -30,11 +37,16 @@ describe("real packaged native observer runtime", () => {
         );
         source.stop();
         expect(await exited).toBe(0);
+      } catch (error) {
+        throw new Error(
+          `Observer startup/cleanup failed on ${process.platform}: ${diagnostics || "no output"}`,
+          { cause: error },
+        );
       } finally {
         source.stop();
       }
     },
-    15000,
+    40000,
   );
 
   it.skipIf(process.platform !== "darwin")(
