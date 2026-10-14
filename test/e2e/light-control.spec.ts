@@ -84,5 +84,5 @@ test('separate power icons are opt-in for existing profiles (#375)', async ({ pa
   await expect(setting).toHaveAttribute('default', 'false');
   expect(await setting.evaluate(element =>
     element.querySelector('option[value="true"]')?.textContent?.trim(),
-  )).toBe('Use On/Off state icons');
+  )).toBe('Switch On/Off icons');
 });

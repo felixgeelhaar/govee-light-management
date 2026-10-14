@@ -85,3 +85,26 @@ test("status-dot control follows separate artwork without changing its global pr
     ),
   ).toEqual([]);
 });
+
+test("artwork choices explain state switching and native image reset", async ({
+  page,
+}) => {
+  await page.goto("/ui/on-off.html");
+  const icons = page.locator('sdpi-select[setting="separatePowerIcons"]');
+  expect(
+    await icons.evaluate((element) =>
+      element.querySelector('option[value="false"]')?.textContent?.trim(),
+    ),
+  ).toBe("Use On icon for both states");
+  expect(
+    await icons.evaluate((element) =>
+      element.querySelector('option[value="true"]')?.textContent?.trim(),
+    ),
+  ).toBe("Switch On/Off icons");
+  await expect(page.locator("#nativeArtworkHint")).toContainText(
+    "Reset to Default",
+  );
+  await expect(page.locator("#nativeArtworkHint")).toContainText(
+    "does not remove",
+  );
+});

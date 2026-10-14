@@ -27,11 +27,16 @@
         </sdpi-select>
       </sdpi-item>
 
-      <sdpi-item label="Separate icons">
+      <sdpi-item label="Icon switching">
         <sdpi-select setting="separatePowerIcons" default="false">
-          <option value="false">Use existing icon</option>
-          <option value="true">Use On/Off state icons</option>
+          <option value="false">Use On icon for both states</option>
+          <option value="true">Switch On/Off icons</option>
         </sdpi-select>
+        <p id="nativeArtworkHint">
+          This changes state switching; it does not remove custom artwork.
+          Stream Deck custom images hide the status dot. Use Reset to Default
+          on each state to restore plugin artwork.
+        </p>
       </sdpi-item>
 
       <div id="groupManager"></div>
@@ -42,8 +47,8 @@
           <option value="false">Hide</option>
         </sdpi-select>
         <p id="statusDotArtworkHint" class="hidden">
-          Custom state artwork hides the status dot. Choose “Use existing icon”
-          to change the status-dot preference.
+          Choose “Use On icon for both states” to change the global status-dot
+          preference. Custom images still hide the dot in either mode.
         </p>
       </sdpi-item>
     </div>

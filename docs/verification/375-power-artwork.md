@@ -1,8 +1,8 @@
 # Separate On/Off artwork (#375)
 
 The On / Off action supports Stream Deck's native two-state icon editor.
-The optional Separate icons setting enables state switching; it defaults to
-“Use existing icon” so existing profiles keep displaying their state-0 custom
+The optional Icon switching setting enables state switching; it defaults to
+“Use On icon for both states” so existing profiles keep displaying their state-0 custom
 artwork. No custom image storage, remote URL or image reader is added. The host validates and persists selected images, including profile
 export/import. Each manifest state retains the original default artwork.
 
@@ -10,7 +10,7 @@ export/import. Each manifest state retains the original default artwork.
 
 1. Select an On / Off key in Stream Deck and choose **Toggle** in its Operation
    setting to follow live power state.
-2. Change **Separate icons** to **Use On/Off state icons**.
+2. Change **Icon switching** to **Switch On/Off icons**.
 3. In Stream Deck's key artwork editor, select the **On** state (state 0).
    Open its image menu and choose **Set from File**, or drag your artwork onto
    that state's image preview.
@@ -20,7 +20,7 @@ export/import. Each manifest state retains the original default artwork.
 
 The plugin disables automatic host toggling and selects states from live power
 rather than the number of key presses. A failed command retains the previous
-state and shows the existing alert. With Separate icons enabled, before a live sample is available, the existing
+state and shows the existing alert. With Icon switching enabled, before a live sample is available, the existing
 off fallback selects state 1.
 A failed refresh retains the last known state. Fixed On and Off operations use their corresponding
 artwork state and keep their existing command semantics. The Operation setting
@@ -32,9 +32,9 @@ therefore hides the plugin's image badge for that state; group counts and failur
 banners still use the existing title (which a native custom title can override).
 If only one icon is customized, the other state uses the original artwork and
 badge. No icons configured means the same default appearance as before. Disabling
-Separate icons restores state 0 without deleting either custom image. The Status dot
-selector is disabled while Separate icons is enabled and explains native artwork
-precedence. Switching back to Use existing icon re-enables it without changing the
+Icon switching restores state 0 without deleting either custom image. The Status dot
+selector is disabled while Icon switching is enabled and explains native artwork
+precedence. Switching back to Use On icon for both states re-enables it without changing the
 saved global status-dot preference.
 
 Source: [Elgato multi-state keys and image precedence](https://docs.elgato.com/streamdeck/sdk/guides/keys/)
@@ -44,7 +44,7 @@ and installed SDK 2.1.0 `plugin/actions/key.d.ts` / manifest schema.
 
 - Start with an existing single-state key/profile containing custom artwork;
   upgrade to this build. Verify its custom artwork remains displayed even when off before enabling
-  Separate icons; then check the newly added state-1 default. Save distinct artwork in both states.
+  Icon switching; then check the newly added state-1 default. Save distinct artwork in both states.
 - Test neither / On only / Off only / both custom images. Cycle On→Off→On;
   refresh state, restart Stream Deck, export/import the profile. Check persistence.
 - Try unsupported or unavailable image files in the host editor; confirm rejection
@@ -62,3 +62,17 @@ Stream Deck hardware was tested here.
 
 Release note: Choose separate On and Off icons for power keys using Stream Deck's
 native state artwork editor. Default icons and existing light commands are retained.
+
+## Native artwork detection and resetting
+
+Installed SDK 2.1.0 exposes no documented native-icon change event, custom-image
+flag, or getter for images selected via Set from File / the icon library.
+Embedded resources are plugin-associated files, not a native artwork override
+indicator. The inspector cannot infer whether a state has a host custom image.
+
+Icon switching only chooses state 0 versus the live On/Off state. Use On icon for
+both states keeps state 0, including its native custom image; it never removes
+custom images. Use Stream Deck's Reset to Default on **each** state to restore
+plugin artwork and its status dot. This native artwork limitation is explained
+in the inspector in both modes. The disabled field is tied to switching mode,
+not automatic detection of custom artwork.
