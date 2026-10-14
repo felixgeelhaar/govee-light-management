@@ -32,10 +32,12 @@ signed binary, execution-policy change or new action UUID is required.
   global fields. Global rule/group/key changes cancel obsolete work.
 - `NativePowerEvents` + packaged scripts: bounded private event protocol and process
   lifetime. Failure is reported in the PI; SDK startup/wake remains available.
-- `BoundedPowerClient`: fixed documented power POST with AbortSignal, safe error
-  categories and no hidden retry middleware. Installed govee-api-client 3.3.10
-  was inspected: it supports timeouts but no per-command signal. Existing manual
-  command transport remains unchanged.
+- `BoundedPowerClient`: lifecycle deadlines and sanitized error categories around
+  the shared API client's cancellable power commands. Client retry middleware is
+  disabled; the lifecycle service owns its bounded retry policy. The five-second
+  AbortSignal covers transport, queue and retry waits. The plugin requires
+  govee-api-client 3.4.0 or later for per-command cancellation.
+  Existing manual command transport remains unchanged.
 - `ActionServices`: resolves actual saved references/local groups without cloud
   discovery, cancels effects, dispatches full-member fan-out and retains reached
   snapshots. Existing manual command entry points pause automation; global key/

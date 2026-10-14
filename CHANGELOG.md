@@ -11,7 +11,8 @@ All notable changes to this project are documented below. This project adheres t
 - Opt-in account-level light/group rules follow plugin startup and PC wake, with
   best-effort power-off before sleep/shutdown through packaged OS event observers
   (#377). Pending automation yields to manual control; existing settings remain
-  disabled. Shutdown delivery is not guaranteed.
+  disabled. Shutdown delivery is not guaranteed. Lifecycle commands use the
+  shared API client 3.4.0 cancellation API.
 
 ## [2.8.2] - 2026-09-20
 

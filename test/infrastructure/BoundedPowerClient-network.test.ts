@@ -1,4 +1,9 @@
-import { describe, expect, it } from "vitest";
+vi.unmock("@felixgeelhaar/govee-api-client");
+import { describe, expect, it, vi } from "vitest";
+import {
+  GoveeDeviceRepository,
+  GoveeControlService,
+} from "@felixgeelhaar/govee-api-client";
 import { createServer } from "node:http";
 import { BoundedPowerClient } from "../../src/backend/infrastructure/BoundedPowerClient";
 
@@ -24,9 +29,14 @@ describe("lifecycle network cancellation", () => {
     if (!address || typeof address === "string")
       throw new Error("No test port");
     const controller = new AbortController();
-    const client = new BoundedPowerClient((_url, options) =>
-      fetch(`http://127.0.0.1:${address.port}`, options),
-    );
+    const repository = new GoveeDeviceRepository({ apiKey: "test-key" });
+    // Test transport only: route the real client to a local socket.
+    const transport = repository as unknown as {
+      httpClient: { defaults: { baseURL: string } };
+    };
+    transport.httpClient.defaults.baseURL = `http://127.0.0.1:${address.port}`;
+    const service = new GoveeControlService({ repository });
+    const client = new BoundedPowerClient(() => service);
     try {
       const request = client.setPower(
         { deviceId: "test-device", model: "H619A" },
