@@ -32,7 +32,10 @@ therefore hides the plugin's image badge for that state; group counts and failur
 banners still use the existing title (which a native custom title can override).
 If only one icon is customized, the other state uses the original artwork and
 badge. No icons configured means the same default appearance as before. Disabling
-Separate icons restores state 0 without deleting either custom image.
+Separate icons restores state 0 without deleting either custom image. The Status dot
+selector is disabled while Separate icons is enabled and explains native artwork
+precedence. Switching back to Use existing icon re-enables it without changing the
+saved global status-dot preference.
 
 Source: [Elgato multi-state keys and image precedence](https://docs.elgato.com/streamdeck/sdk/guides/keys/)
 and installed SDK 2.1.0 `plugin/actions/key.d.ts` / manifest schema.
