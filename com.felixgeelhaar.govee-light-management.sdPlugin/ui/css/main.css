@@ -391,10 +391,33 @@
 	background: rgba(255, 255, 255, 0.08);
 }
 
-.power-lifecycle-panel { width: 100%; }
-.power-lifecycle-panel summary { cursor: pointer; padding: 6px 0; }
-.power-lifecycle-panel label { display: block; margin: 8px 0; }
-.power-lifecycle-panel input[type="checkbox"] { margin-right: 6px; }
-.power-lifecycle-panel select { width: 100%; max-width: 100%; }
-.power-lifecycle-panel button { margin: 4px 4px 4px 0; }
-.power-lifecycle-panel p { font-size: 12px; line-height: 1.4; }
+/* Use the same full-width rows and value-column alignment as Groups. */
+.power-lifecycle-body {
+  padding-top: 4px;
+  font-family: "Segoe UI", Arial, Roboto, Helvetica, sans-serif;
+  color: #d8d8d8;
+}
+.power-lifecycle-events {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+.power-lifecycle-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  box-sizing: border-box;
+  padding-left: 95px;
+  max-width: 336px;
+}
+#powerRefresh {
+  grid-column: 1 / -1;
+}
+
+#powerLifecycleStatus {
+  padding-left: 95px;
+  max-width: 336px;
+  box-sizing: border-box;
+  line-height: 1.4;
+}

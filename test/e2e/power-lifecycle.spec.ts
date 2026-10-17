@@ -1,11 +1,14 @@
 import { test, expect } from "@playwright/test";
 
-test("PC power rules are opt-in and expose honest lifecycle limits", async ({
+test("Automation rules are opt-in and expose honest lifecycle limits", async ({
   page,
 }) => {
   await page.goto("/ui/on-off.html");
   const panel = page.locator("#powerLifecyclePanel");
   await expect(panel).toBeAttached();
+  await expect(page.locator('sdpi-item[label="Automation"]')).toBeAttached();
+  await expect(page.locator("#powerLifecycleBody")).toBeHidden();
+  await expect(page.locator('sdpi-item[label="PC power"]')).toHaveCount(0);
   for (const id of [
     "powerEnabled",
     "powerStartup",
@@ -13,10 +16,16 @@ test("PC power rules are opt-in and expose honest lifecycle limits", async ({
     "powerSleep",
     "powerShutdown",
   ]) {
-    await expect(page.locator(`#${id}`)).not.toBeChecked();
+    await expect(
+      page.locator(`#${id} input[type="checkbox"]`),
+    ).not.toBeChecked();
   }
-  await expect(panel).toContainText("best effort");
-  await expect(panel).toContainText("Manual commands");
+  await expect(page.locator("#powerLifecycleBody")).toContainText(
+    "best effort",
+  );
+  await expect(page.locator("#powerLifecycleBody")).toContainText(
+    "Manual commands",
+  );
   await expect(
     page.locator('script[src="./js/power-lifecycle.js"]'),
   ).toBeAttached();
@@ -118,16 +127,16 @@ test("editing controls sends no command or storage mutation until explicit Save"
   await mockClient(page);
   await page.goto("/ui/on-off.html");
   await page.locator("#powerLifecyclePanel summary").click();
-  await expect(page.locator("#powerSave")).toBeEnabled();
-  await page.locator("#powerEnabled").check();
-  await page.locator("#powerWake").check();
+  await expect(page.locator("#powerSave button")).toBeEnabled();
+  await page.locator("#powerEnabled label").click();
+  await page.locator("#powerWake label").click();
   const before = await page.evaluate(() =>
     (
       window as unknown as { powerCalls: Record<string, unknown>[] }
     ).powerCalls.filter((call) => call.event === "savePowerLifecycleRule"),
   );
   expect(before).toEqual([]);
-  await page.locator("#powerSave").click();
+  await page.locator("#powerSave button").click();
   await expect(page.locator("#powerLifecycleStatus")).toContainText(
     "Rule saved",
   );
@@ -150,7 +159,7 @@ test("editing controls sends no command or storage mutation until explicit Save"
   expect(
     calls.some((call) => call.event === "control" || call.event === "turnOn"),
   ).toBe(false);
-  await page.locator("#powerDelete").click();
+  await page.locator("#powerDelete button").click();
   await expect(page.locator("#powerLifecycleStatus")).toContainText(
     "No saved rule",
   );
@@ -162,20 +171,59 @@ test("an enabled rule without event choices is clearly marked inactive", async (
   await mockClient(page);
   await page.goto("/ui/on-off.html");
   await page.locator("#powerLifecyclePanel summary").click();
-  await expect(page.locator("#powerSave")).toBeEnabled();
-  await page.locator("#powerEnabled").check();
-  await page.locator("#powerSave").click();
+  await expect(page.locator("#powerSave button")).toBeEnabled();
+  await page.locator("#powerEnabled label").click();
+  await page.locator("#powerSave button").click();
   await expect(page.locator("#powerLifecycleStatus")).toContainText(
     "no events selected",
   );
-  await page.locator("#powerStartup").check();
-  await page.locator("#powerSave").click();
+  await page.locator("#powerStartup label").click();
+  await page.locator("#powerSave button").click();
   await expect(page.locator("#powerLifecycleStatus")).not.toContainText(
     "inactive",
   );
-  await page.locator("#powerEnabled").uncheck();
-  await page.locator("#powerSave").click();
+  await page.locator("#powerEnabled label").click();
+  await page.locator("#powerSave button").click();
   await expect(page.locator("#powerLifecycleStatus")).toContainText(
     "Automation is disabled",
   );
+});
+
+test("Automation uses native inspector components without automatic persistence", async ({
+  page,
+}, testInfo) => {
+  await mockClient(page);
+  await page.setViewportSize({ width: 370, height: 1100 });
+  await page.goto("/ui/on-off.html");
+  await page.locator("#powerLifecyclePanel summary").click();
+  await expect(page.locator("#powerLifecycleBody")).toBeVisible();
+  await expect(
+    page.locator("sdpi-select#powerRuleTarget select"),
+  ).toBeEnabled();
+  await expect(page.locator("#powerLifecycleBody sdpi-checkbox")).toHaveCount(
+    5,
+  );
+  await expect(page.locator("#powerLifecycleBody sdpi-button")).toHaveCount(3);
+  await expect(page.locator("#powerLifecycleBody [setting]")).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  expect(
+    await page.evaluate(
+      () =>
+        (
+          window as unknown as { powerCalls: Record<string, unknown>[] }
+        ).powerCalls.filter((call) => call.event === "getPowerLifecycleRule")
+          .length,
+    ),
+  ).toBe(1);
+  await page.addStyleTag({ content: "body { background: #2d2d2d; }" });
+  await page.screenshot({
+    path: testInfo.outputPath("automation-inspector.png"),
+    fullPage: true,
+  });
+  await page.locator("#powerLifecyclePanel summary").click();
+  await expect(page.locator("#powerLifecycleBody")).toBeHidden();
 });

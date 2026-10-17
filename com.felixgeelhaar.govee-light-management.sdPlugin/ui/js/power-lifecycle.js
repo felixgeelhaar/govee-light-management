@@ -2,6 +2,10 @@
 document.addEventListener("DOMContentLoaded", () => {
   const panel = document.getElementById("powerLifecyclePanel");
   if (!panel) return;
+  const body = document.getElementById("powerLifecycleBody");
+  const syncPanel = () => body?.classList.toggle("hidden", !panel.open);
+  panel.addEventListener("toggle", syncPanel);
+  syncPanel();
   const fields = {
     enabled: "powerEnabled",
     onPluginStart: "powerStartup",
@@ -105,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
       rules = payload.rules || [];
       renderTargets();
       for (const [field, id] of Object.entries(fields))
-        document.getElementById(id).checked = payload.rule?.[field] === true;
+        document.getElementById(id).value = payload.rule?.[field] === true;
       const helperNeeded =
         payload.rule?.enabled &&
         (payload.rule.offBeforeSleep || payload.rule.offBeforeShutdown);
@@ -123,16 +127,16 @@ document.addEventListener("DOMContentLoaded", () => {
           ? "Rule saved. Automation is disabled."
           : helperNeeded
             ? {
-                ready: "Rule saved. OS event observer is ready.",
+                ready: "Rule saved. Sleep/shutdown monitoring is ready.",
                 starting:
-                  "Rule saved. OS event observer is starting; refresh status to confirm.",
+                  "Rule saved. Sleep/shutdown monitoring is starting; refresh to confirm.",
                 unavailable:
-                  "OS event observer is unavailable. Startup/wake still work; sleep/shutdown cannot run.",
-                disabled: "OS event observer is disabled.",
+                  "Sleep/shutdown monitoring is unavailable. Startup/wake can still work.",
+                disabled: "Sleep/shutdown monitoring is disabled.",
               }[payload.helperStatus] ||
-              "Refresh to check the OS event observer."
+              "Refresh to check sleep/shutdown support."
             : payload.rule
-              ? "Rule saved. No sleep/shutdown observer is needed."
+              ? "Rule saved. Startup/wake automation is enabled."
               : "No saved rule for this target.";
       controls();
     };
@@ -141,7 +145,8 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     for (const source of sources) source.subscribe(response);
     client.didReceiveSettings.subscribe(settingsChanged);
-    targetSelect.addEventListener("change", () => {
+    targetSelect.addEventListener("valuechange", () => {
+      if (targetSelect.value === editingTarget) return;
       editingTarget = targetSelect.value;
       request("getPowerLifecycleRule");
     });
@@ -149,7 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const rule = Object.fromEntries(
         Object.entries(fields).map(([field, id]) => [
           field,
-          document.getElementById(id).checked,
+          document.getElementById(id).value === true,
         ]),
       );
       request("savePowerLifecycleRule", rule);
@@ -161,6 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
       "beforeunload",
       () => {
         clearTimeout(timer);
+        panel.removeEventListener("toggle", syncPanel);
         client.didReceiveSettings.unsubscribe(settingsChanged);
         for (const source of sources) source.unsubscribe(response);
       },

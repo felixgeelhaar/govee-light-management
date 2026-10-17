@@ -8,7 +8,7 @@ afterEach(() => window.dispatchEvent(new Event("beforeunload")));
 describe("power rule status", () => {
   it("distinguishes enabled rules with no events from active and disabled rules", () => {
     document.body.innerHTML =
-      '<details id="powerLifecyclePanel"></details><select id="powerRuleTarget"></select><p id="powerLifecycleStatus"></p><button id="powerSave"></button><button id="powerDelete"></button><button id="powerRefresh"></button>' +
+      '<details id="powerLifecyclePanel"></details><sdpi-select id="powerRuleTarget"></sdpi-select><p id="powerLifecycleStatus"></p><button id="powerSave"></button><button id="powerDelete"></button><button id="powerRefresh"></button>' +
       [
         "powerEnabled",
         "powerStartup",
@@ -16,7 +16,7 @@ describe("power rule status", () => {
         "powerSleep",
         "powerShutdown",
       ]
-        .map((id) => `<input type="checkbox" id="${id}">`)
+        .map((id) => `<sdpi-checkbox id="${id}"></sdpi-checkbox>`)
         .join("");
     const messages = { subscribe: vi.fn(), unsubscribe: vi.fn() };
     const settings = { subscribe: vi.fn(), unsubscribe: vi.fn() };

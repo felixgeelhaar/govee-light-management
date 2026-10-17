@@ -1,6 +1,6 @@
-# PC power automation (#377)
+# Automation (#377)
 
-Configure account-level rules in **On / Off → PC power → Light automation**.
+Configure account-level rules in **On / Off → Automation → Manage rules**.
 Automation is disabled by default. Existing bindings, schedules and manual
 commands retain their behavior. Each saved rule addresses one light or group;
 up to 100 rules are supported. Rules continue when their editor key is hidden
@@ -9,14 +9,14 @@ or removed. Delete the rule explicitly to remove it.
 ## Configure
 
 1. Select a supported light/group in the normal Device selector.
-2. Open Light automation. Choose the current selection or an existing saved rule.
+2. Open Automation → Manage rules. Choose the current selection or an existing saved rule.
 3. Check Enable and at least one desired event, then **Save rule**. Enable alone
    does not select an event; an enabled rule with no events is saved but clearly
    marked inactive:
-   - On when the plugin starts (also fires on Stream Deck/plugin restart).
-   - On when the PC wakes (requires Stream Deck/plugin to be running).
-   - Off before sleep (starts an OS event observer).
-   - Off before shutdown/logout (**best effort**).
+   - **Turn On → Plugin starts** (also fires on Stream Deck/plugin restart).
+   - **Turn On → Computer wakes** (requires Stream Deck/plugin to be running).
+   - **Turn Off → Before sleep** (starts an OS event observer).
+   - **Turn Off → Before shutdown / logout** (**best effort**).
 4. Use Refresh status to confirm the observer is ready. Disable and save the rule,
    or Delete rule, to stop it. Editing checkboxes alone sends no commands.
 5. To manage a rule for a deleted/unavailable light, choose it from Saved rules.
@@ -107,3 +107,14 @@ configuration has no matching event and therefore sends no power command. The
 inspector now distinguishes this inactive saved rule from an active rule and
 from a disabled rule. No events are enabled implicitly. A startup/wake hardware
 success has not yet been confirmed by this observation.
+
+## Inspector appearance
+
+Automation → Manage rules uses the same disclosure and 95px/241px label/value
+columns as the existing Groups editor. Target, checkboxes and buttons use the
+bundled native SDPI components. No automatic settings bindings are attached to
+the rule controls: Save/Delete remain explicit, preserving opt-in behavior.
+Turn On and Turn Off group the event choices, with short persistence and
+best-effort notes and an aligned status area. The editor is checked at a 370px
+viewport for horizontal overflow and collapse/expand behavior. Programmatic
+target rendering must not create a new load loop.
