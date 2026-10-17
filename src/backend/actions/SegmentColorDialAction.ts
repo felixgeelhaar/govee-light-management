@@ -233,12 +233,15 @@ export class SegmentColorDialAction extends BaseDialAction<SegmentColorDialSetti
         probeLight = target.light;
       } else if (target?.type === "group" && target.group) {
         // Sample power state from the first segmented-color-capable
-        // member; fall back to the first controllable light so the dial
+        // member; fall back to the first group member so the dial
         // still tracks group on/off even when no member advertises the
         // capability (the apply call will alert later).
         const allMembers = target.group.lights;
-        const members = target.group.getControllableLights();
-        this.hasOfflineMember.set(ctx, members.length < allMembers.length);
+        const members = target.group.lights;
+        this.hasOfflineMember.set(
+          ctx,
+          allMembers.some((light) => !light.isOnline),
+        );
         probeLight =
           members.find((l) => l.supportsSegmentedColor()) ?? members[0];
       }

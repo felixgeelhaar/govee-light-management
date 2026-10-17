@@ -157,7 +157,7 @@ export class RecallAction extends SingletonAction<RecallSettings> {
       this.state.setOptimisticSingle(ev.action.id, true);
     } else if (target.type === "group" && target.group) {
       const total = target.group.lights.length;
-      const commanded = target.group.getControllableLights().length;
+      const commanded = target.group.lights.length;
       this.state.setOptimisticGroup(ev.action.id, commanded, total);
     }
     await this.render(ev.action, settings, ev.action.id);
