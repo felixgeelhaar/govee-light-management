@@ -250,12 +250,12 @@ test("saved rules remain visible with count, target, state and events", async ({
   await page.goto("/ui/on-off.html");
   await page.locator("#powerLifecyclePanel summary").click();
   await expect(page.locator("#powerRuleList")).toContainText("No rules yet");
-  await expect(page.locator("#powerSave button")).toHaveText("Create rule");
+  await expect(page.locator("#powerSave")).toHaveText("Create rule");
   await expect(page.locator("#powerDelete")).toHaveCount(0);
   await page.locator("#powerEnabled label").click();
   await page.locator("#powerStartup label").click();
   await page.locator("#powerSave button").click();
-  await expect(page.locator("#powerSave button")).toHaveText("Save changes");
+  await expect(page.locator("#powerSave")).toHaveText("Save changes");
   await expect(page.locator("#powerLifecyclePanel summary")).toHaveText(
     "Manage rules · 1",
   );
