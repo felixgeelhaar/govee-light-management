@@ -2,13 +2,13 @@
   "id": "layouts/brightness.json",
   "items": [
     {
-      "key": "label",
+      "key": "title",
       "type": "text",
       "rect": [16, 10, 168, 18],
       "alignment": "center",
       "color": "#9CA3AF",
       "font": { "size": 12, "weight": 500 },
-      "value": "Brightness"
+      "value": "Select a light"
     },
     {
       "key": "value",
