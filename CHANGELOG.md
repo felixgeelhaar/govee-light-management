@@ -4,6 +4,12 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- Group entries show member names, with a single-line ellipsis and the full list on hover.
+
 ## [2.9.0] - 2026-10-17
 
 ### Added

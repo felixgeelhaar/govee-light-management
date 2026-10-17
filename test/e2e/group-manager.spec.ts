@@ -82,7 +82,7 @@ test("Groups uses native create/edit controls and saved entries like Automation"
       get: () => ({ streamDeckClient: client }),
       set() {},
     });
-    Object.assign(window, { groupCalls: calls });
+    Object.assign(window, { groupCalls: calls, emitGroupReply: emit });
   });
   await page.setViewportSize({ width: 370, height: 1100 });
   await page.goto("/ui/on-off.html");
@@ -106,7 +106,7 @@ test("Groups uses native create/edit controls and saved entries like Automation"
   await expect(page.locator("#groupManagerSummary")).toHaveText(
     "Manage groups · 1",
   );
-  await expect(page.locator("#groupList")).toContainText("1 light");
+  await expect(page.locator("#groupList")).toContainText("Desk");
   await page
     .getByRole("button", { name: "Edit group Office", exact: true })
     .click();
@@ -125,7 +125,40 @@ test("Groups uses native create/edit controls and saved entries like Automation"
   });
   await page.locator("#saveGroupBtn button").click();
   await expect(page.locator("#groupList")).toContainText("Living room");
-  await expect(page.locator("#groupList")).toContainText("2 lights");
+  await expect(page.locator("#groupList")).toContainText("Desk, Shelf");
+  const members = page.locator("#groupList .group-members");
+  await expect(members).toHaveAttribute("title", "Desk, Shelf");
+  await page.evaluate(() => {
+    const emit = (window as unknown as { emitGroupReply: (p: unknown) => void })
+      .emitGroupReply;
+    emit({
+      event: "getDevices",
+      items: [
+        {
+          label: "Lights",
+          children: [
+            {
+              value: "light:a|H6001",
+              label: "A very long renamed monitor backlight with extra details",
+            },
+            { value: "light:b|H6001", label: "Shelf" },
+          ],
+        },
+      ],
+    });
+  });
+  await expect(members).toContainText("A very long renamed monitor backlight");
+  expect(
+    await members.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return (
+        style.textOverflow === "ellipsis" &&
+        style.whiteSpace === "nowrap" &&
+        el.scrollWidth > el.clientWidth
+      );
+    }),
+  ).toBe(true);
+  await expect(members).toHaveAttribute("title", /Shelf$/);
   const saves = await page.evaluate(() =>
     (
       window as unknown as {
