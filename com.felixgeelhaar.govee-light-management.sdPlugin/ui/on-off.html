@@ -34,23 +34,11 @@
         </sdpi-select>
         <p id="nativeArtworkHint">
           This changes state switching; it does not remove custom artwork.
-          Stream Deck custom images hide the status dot. Use Reset to Default
-          on each state to restore plugin artwork.
+          Use Reset to Default on each state to restore plugin artwork.
         </p>
       </sdpi-item>
 
       <div id="groupManager"></div>
-
-      <sdpi-item label="Status dot">
-        <sdpi-select global setting="showStatusBadge" default="true">
-          <option value="true">Show</option>
-          <option value="false">Hide</option>
-        </sdpi-select>
-        <p id="statusDotArtworkHint" class="hidden">
-          Choose “Use On icon for both states” to change the global status-dot
-          preference. Custom images still hide the dot in either mode.
-        </p>
-      </sdpi-item>
     </div>
 
     <div id="setup" class="hidden">
@@ -76,6 +64,5 @@
         </ol>
       </sdpi-item>
     </div>
-    <script src="./js/power-artwork.js"></script>
   </body>
 </html>

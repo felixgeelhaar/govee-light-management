@@ -27,15 +27,11 @@ artwork state and keep their existing command semantics. The Operation setting
 remains authoritative in Multi Actions; adding icon states does not reinterpret
 existing commands based on host state payloads.
 
-Native custom icons take precedence over plugin-rendered artwork. A custom icon
-therefore hides the plugin's image badge for that state; group counts and failure
-banners still use the existing title (which a native custom title can override).
-If only one icon is customized, the other state uses the original artwork and
-badge. No icons configured means the same default appearance as before. Disabling
-Icon switching restores state 0 without deleting either custom image. The Status dot
-selector is disabled while Icon switching is enabled and explains native artwork
-precedence. Switching back to Use On icon for both states re-enables it without changing the
-saved global status-dot preference.
+Native custom icons take precedence over plugin-rendered artwork. Group counts and
+failure banners still use the existing title (which a native custom title can
+override). If only one icon is customized, the other uses plugin state artwork.
+Disabling Icon switching restores state 0 without deleting either custom image.
+The corner status dot and its global selector have been removed in all modes.
 
 Source: [Elgato multi-state keys and image precedence](https://docs.elgato.com/streamdeck/sdk/guides/keys/)
 and installed SDK 2.1.0 `plugin/actions/key.d.ts` / manifest schema.
@@ -50,7 +46,7 @@ and installed SDK 2.1.0 `plugin/actions/key.d.ts` / manifest schema.
 - Try unsupported or unavailable image files in the host editor; confirm rejection
   or the host's fallback without affecting light commands.
 - Test a mixed group, all-off group, failed member, and total API rejection.
-  Check state selection, group count, warning, and default badge where visible.
+  Check state selection, group count, warning, and default power-state artwork where visible.
 - Test unknown/missing target/API key, fixed On/Off commands, and existing Multi
   Actions. Command meaning must continue to come from Operation.
 - Configure a native custom title too; verify normal host precedence.
@@ -73,6 +69,11 @@ indicator. The inspector cannot infer whether a state has a host custom image.
 Icon switching only chooses state 0 versus the live On/Off state. Use On icon for
 both states keeps state 0, including its native custom image; it never removes
 custom images. Use Stream Deck's Reset to Default on **each** state to restore
-plugin artwork and its status dot. This native artwork limitation is explained
-in the inspector in both modes. The disabled field is tied to switching mode,
-not automatic detection of custom artwork.
+plugin artwork. The inspector explains that switching mode does not remove custom
+images; it does not attempt to detect native artwork overrides.
+
+### Status-dot retirement
+
+The corner status dot and its Show/Hide field have been removed. Existing saved
+preferences are ignored; native state switching and group semantics are unchanged.
+The artwork mode no longer disables a status-dot field or manages its help text.

@@ -4,6 +4,14 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- Removed the corner status dot and its Show/Hide preference. Power-state artwork,
+  native On/Off icons and success/error feedback remain. Saved dot preferences are
+  ignored.
+
 ## [2.8.2] - 2026-09-20
 
 ### Added

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("status-dot control follows separate artwork without changing its global preference", async ({
+test("retired status-dot preference is not presented or rewritten", async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -53,31 +53,8 @@ test("status-dot control follows separate artwork without changing its global pr
     });
   });
   await page.goto("/ui/on-off.html");
-  const dot = page.locator('sdpi-select[setting="showStatusBadge"]');
-  await expect(dot).toHaveAttribute("disabled", "");
-  await expect(dot.locator("select")).toBeDisabled();
-  await expect(page.locator("#statusDotArtworkHint")).toBeVisible();
-
-  for (const enabled of [false, true, "false", "true"]) {
-    await page.evaluate(
-      (value) =>
-        (
-          window as unknown as { __artworkSettings: (value: unknown) => void }
-        ).__artworkSettings(value),
-      enabled,
-    );
-    if (enabled === true || enabled === "true")
-      await expect(dot.locator("select")).toBeDisabled();
-    else await expect(dot.locator("select")).toBeEnabled();
-  }
-  await page
-    .locator('sdpi-select[setting="separatePowerIcons"]')
-    .evaluate((element) => {
-      (element as HTMLElement & { value: string }).value = "false";
-      element.dispatchEvent(new Event("valuechange"));
-    });
-  await expect(dot.locator("select")).toBeEnabled();
-  await expect(page.locator("#statusDotArtworkHint")).toBeHidden();
+  await expect(page.locator('[setting="showStatusBadge"]')).toHaveCount(0);
+  await expect(page.locator("#statusDotArtworkHint")).toHaveCount(0);
   expect(
     await page.evaluate(
       () =>
