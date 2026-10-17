@@ -211,15 +211,13 @@ persistent `⚠ N/M` line under the key title, reverting after 30 s.
 `clearPartialFailureBanner(contextId)` must be called from `onWillDisappear`, or
 the timer outlives the key.
 
-### Status badge (`actions/shared/status-badge.ts`)
+### Power-state artwork (`actions/shared/status-badge.ts`)
 
-Renders the ●/◐/○ power indicator into the shipped key artwork at runtime.
-`KEY_ART_NAMES` lists the `imgs/actions/<name>/` folders wired into the badge,
-and a test asserts each one ships a `key.svg`. Visibility is a global
-preference: `plugin.ts` reads it once at start-up via `GlobalSettingsService`
-and pushes it into `setStatusBadgeVisible`, then re-pushes on
-`onDidReceiveGlobalSettings`. The badge module deliberately imports neither the
-SDK nor the settings service, which is what keeps it cheap to test.
+Applies authored state artwork or a generated colour treatment to keys. The corner
+status dot and its inspector preference are retired; saved `showStatusBadge`
+values are ignored. Native custom images take precedence over plugin images.
+`KEY_ART_NAMES` lists the action folders covered by state rendering, and tests
+assert each ships its artwork. Unknown state restores the manifest image.
 
 ### Colour temperature and Kelvin (`actions/shared/kelvin-utils.ts`)
 

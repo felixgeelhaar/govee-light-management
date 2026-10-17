@@ -47,25 +47,12 @@ for (const file of HTML_FILES) {
   });
 }
 
-test("status badge preference explains native artwork precedence on every inspector", async ({
+test("retired status dot has no inspector control or obsolete help", async ({
   page,
 }) => {
   for (const file of HTML_FILES) {
     await page.goto(`/ui/${file}`);
-    const preference = page.locator('sdpi-select[setting="showStatusBadge"]');
-    if (!(await preference.count())) continue;
-    await expect(page.locator("#statusBadgeScopeHint")).toContainText(
-      "all actions",
-    );
-    await expect(page.locator("#statusBadgeScopeHint")).toContainText(
-      "Custom images hide the dot",
-    );
-    await expect(page.locator("#statusBadgeScopeHint")).toContainText(
-      "Reset to Default",
-    );
-    await expect(preference).toHaveAttribute(
-      "aria-describedby",
-      "statusBadgeScopeHint",
-    );
+    await expect(page.locator('[setting="showStatusBadge"]')).toHaveCount(0);
+    await expect(page.locator("#statusBadgeScopeHint")).toHaveCount(0);
   }
 });

@@ -6,6 +6,13 @@ All notable changes to this project are documented below. This project adheres t
 
 ## [Unreleased]
 
+### Changed
+
+- Removed the corner status dot and its Show/Hide preference. Power-state artwork,
+  native On/Off icons and success/error feedback remain available. Existing saved
+  dot preferences are ignored.
+
+
 ### Added
 
 - Opt-in account-level light/group rules follow plugin startup and PC wake, with

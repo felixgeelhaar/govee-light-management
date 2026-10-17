@@ -150,11 +150,11 @@ verify a key and an automation targeting that group still address the same group
 Cancel must not save; Delete must remove the entry after confirmation. Check the
 layout on another action inspector as Groups is shared across all inspectors.
 
-### Status indicator and artwork
+### Removed status dot
 
-The shared inspector marks Show/Hide as a global preference for plugin artwork.
-Stream Deck's Set from File and Icon Library overrides hide the dot in either
-state; Reset to Default on each native icon state restores plugin artwork. The
-SDK does not expose a reliable native-artwork override flag, so this explanation
-is always present instead of pretending to detect those overrides. The separate
-artwork PR retains its mode-based disabled control without changing the preference.
+The corner status dot and its global Show/Hide control have been removed from
+all inspectors. Old saved `showStatusBadge` values are ignored, without deleting
+unrelated settings. Power-state artwork and existing command/group feedback are
+preserved. Native custom artwork continues to take precedence over plugin images.
+Verify no Status dot field is present and state artwork remains distinct for
+On/Off/mixed states; native state switching is delivered separately in #381.

@@ -10,19 +10,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const failedElem = document.getElementById("errorMessage");
   const API_KEY_PATTERN = /^[A-Za-z0-9-]{20,64}$/;
 
-  const badgePreference = document.querySelector(
-    'sdpi-select[setting="showStatusBadge"]',
-  );
-  if (badgePreference) {
-    const hint = document.createElement("p");
-    hint.id = "statusBadgeScopeHint";
-    hint.className = "status-badge-scope-hint";
-    hint.textContent =
-      "Applies to all actions using plugin artwork. Custom images hide the dot, including Set from File and Icon Library. Use Reset to Default on each icon state to restore plugin artwork.";
-    badgePreference.setAttribute("aria-describedby", hint.id);
-    badgePreference.after(hint);
-  }
-
   // Optional conditional visibility elements
   const conditionalItems = {
     brightness: document.getElementById("brightnessItem"),

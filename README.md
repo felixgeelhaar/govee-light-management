@@ -47,7 +47,7 @@ configuration, status indicator stays consistent across both controllers.
 - **Color Temperature** — set fixed Kelvin on press, rotate warm/cool on dial
 - **Segment Color** — apply rainbow / gradient / solid preset across a segment range on press, rotate single-segment hue on dial
 - **Saturation** — set fixed saturation on press, rotate ±step on dial
-- **Visual Feedback** — real-time bar indicators on the dial LCD, multi-state icons + ●/◐/○ status badge on keypad titles
+- **Visual Feedback** — real-time bar indicators on the dial LCD, power-state artwork on keys
 - **Configurable Steps** — customise sensitivity for each dial action
 - **Power Toggle** — press any dial to toggle light power on/off
 - **Group Support** — all hybrid actions work with light groups; partial failures show a persistent `⚠ N/M` banner
@@ -201,8 +201,8 @@ its own action, so a key does one thing and its icon says which:
 | **Sequence**          | Run a chain of commands with configurable delays                  |
 | **Custom Effect**     | Play an RGB animation on an IC strip                              |
 
-Keys show live state in the title and as a badge on the artwork: ● on, ○ off,
-◐ some members on.
+Keys show power state through their artwork; group titles retain member counts
+and partial-failure feedback. The corner status dot and its setting are retired.
 
 ### Selecting lights and groups
 
@@ -608,7 +608,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - [x] Schedule, Sequence, and Custom Effect actions
 - [x] Group support across every action, with per-light fan-out and a `⚠ N/M` partial-failure banner
 - [x] Per-device Kelvin ranges, with a group dial spanning the union of its members' ranges
-- [x] Live state sync and the ●/◐/○ status badge on key artwork
+- [x] Live state sync and power-state key artwork
 - [x] Device Classifier and Capability Registry for device-specific error hints
 - [x] Colour palettes (Warm/Cool/Pastel/Vivid) and recent-colour history
 

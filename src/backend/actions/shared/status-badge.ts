@@ -1,32 +1,7 @@
 /**
- * Renders the power-state indicator into the *key image* rather than the
- * key title.
- *
- * Stream Deck applies a strict precedence when drawing a key:
- * user-defined title > plugin `setTitle()` > manifest default. So the
- * moment a user types anything into the Title field, every `setTitle()`
- * call is silently dropped — and with it the ●/◐/○ status glyph the
- * plugin had been drawing there (#333). Images have no such override:
- * `setImage()` only yields to an image the user picked deliberately,
- * which is a separate opt-in almost nobody uses.
- *
- * So the glyph moves onto the artwork. This module takes an action's
- * shipped `key.svg`, shifts the artwork's own gradient toward one end to
- * signal the state, optionally composites a status badge into the top-right
- * corner (clear of the bottom-aligned title), and hands back a data URI
- * ready for `setImage()`.
- *
- * The badge can be turned off globally (#339). The gradient shift cannot:
- * it replaced a desaturate-to-grey treatment that was hard to read across
- * a room, and there is no user for whom grey is preferable.
- *
- * The badge shapes mirror `powerGlyph()` in `power-state.ts` one-for-one
- * so users learn a single shape language:
- *   ● filled  — every controllable member is on
- *   ◐ half    — at least one but not all members are on
- *   ○ hollow  — every controllable member is off
- * plus a fourth "unknown" case that draws no badge at all, for the
- * frames before the first state sync lands.
+ * Renders power states through the plugin's key artwork, without a corner dot.
+ * Authored state assets take priority over generated colour treatments.
+ * Native user images take precedence over plugin images in Stream Deck.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -384,40 +359,6 @@ export function resolveKeyArt(
 
 const imageCache = new Map<string, string>();
 
-/**
- * Whether the corner badge is drawn, globally.
- *
- * #339 asked to be rid of the dot now that the artwork itself carries the
- * state. It is opt-out rather than removed: without it `partial` leans
- * toward `on`, and it is the one cue that survives for someone who cannot
- * separate the colours.
- *
- * Held here rather than read from settings on every render. This module
- * stays free of the SDK and the settings service — which is what makes it
- * cheap to test — and the plugin pushes the value in at startup and
- * whenever global settings change.
- */
-let badgeVisible = true;
-
-/**
- * Sets the global badge preference.
- *
- * Clears the image cache, because entries rendered under the previous
- * preference are keyed by it but the *default* argument resolves at call
- * time — without this, keys already painted would keep their old look until
- * the plugin restarted.
- */
-export function setStatusBadgeVisible(visible: boolean): void {
-  if (visible === badgeVisible) return;
-  badgeVisible = visible;
-  imageCache.clear();
-}
-
-/** The current global badge preference. */
-export function isStatusBadgeVisible(): boolean {
-  return badgeVisible;
-}
-
 /** Composited data URI for an action's artwork in a given power state. */
 export function statusKeyImage(
   artName: string,
@@ -450,7 +391,7 @@ export interface ImageCapableAction {
 }
 
 /**
- * Push the badged artwork to a key.
+ * Push dot-free state artwork to a key.
  *
  * A `"unknown"` status resets the key to its manifest artwork instead:
  * `setImage()` sticks until it is explicitly cleared, so a key that
@@ -468,14 +409,13 @@ export async function applyStatusImage(
   artName: string,
   status: PowerStatus,
   root: URL | string = defaultArtRoot,
-  showDot = badgeVisible,
 ): Promise<void> {
   if (typeof action.setImage !== "function") return;
 
   let image: string | undefined;
   if (status !== "unknown") {
     try {
-      image = statusKeyImage(artName, status, root, showDot);
+      image = statusKeyImage(artName, status, root, false);
     } catch {
       return;
     }
