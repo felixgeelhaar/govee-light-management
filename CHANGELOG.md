@@ -4,7 +4,7 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
-## [Unreleased]
+## [2.9.1] - 2026-10-17
 
 ### Changed
 
