@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   applyStatusImage,
   KEY_ART_NAMES,
@@ -12,8 +12,6 @@ import {
   statusKeyDataUri,
   statusKeyImage,
   type PowerStatus,
-  setStatusBadgeVisible,
-  isStatusBadgeVisible,
 } from "../../../../src/backend/actions/shared/status-badge";
 
 /**
@@ -477,7 +475,7 @@ describe("applyStatusImage", () => {
     await applyStatusImage({ setImage }, "light", "on", REAL_ART_ROOT);
     expect(setImage).toHaveBeenCalledTimes(1);
     expect(setImage.mock.calls[0][0]).toBe(
-      statusKeyImage("light", "on", REAL_ART_ROOT),
+      statusKeyImage("light", "on", REAL_ART_ROOT, false),
     );
   });
 
@@ -510,32 +508,15 @@ describe("applyStatusImage", () => {
   });
 });
 
-describe("the global badge preference", () => {
-  afterEach(() => setStatusBadgeVisible(true));
-
-  it("defaults to visible", () => {
-    expect(isStatusBadgeVisible()).toBe(true);
-  });
-
-  it("takes effect on keys rendered after it changes", async () => {
-    // The cache is keyed by the preference, but the default argument is
-    // resolved at call time — so a stale cache would keep painting the old
-    // look until the plugin restarted. Setting it clears the cache.
-    const painted: string[] = [];
-    const action = {
-      setImage: async (img?: string) => void painted.push(img ?? ""),
-    };
-
-    await applyStatusImage(action, "light", "on", REAL_ART_ROOT);
-    setStatusBadgeVisible(false);
-    await applyStatusImage(action, "light", "on", REAL_ART_ROOT);
-
-    expect(painted).toHaveLength(2);
-    expect(painted[0]).not.toBe(painted[1]);
-  });
-
-  it("ignores a set to the value it already holds", () => {
-    setStatusBadgeVisible(true);
-    expect(isStatusBadgeVisible()).toBe(true);
+describe("retired status dot", () => {
+  it("renders dot-free state artwork for every action and known state", async () => {
+    for (const art of KEY_ART_NAMES)
+      for (const state of ["on", "off", "partial"] as const) {
+        const setImage = vi.fn().mockResolvedValue(undefined);
+        await applyStatusImage({ setImage }, art, state, REAL_ART_ROOT);
+        expect(setImage).toHaveBeenCalledWith(
+          statusKeyImage(art, state, REAL_ART_ROOT, false),
+        );
+      }
   });
 });

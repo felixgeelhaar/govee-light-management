@@ -66,3 +66,23 @@ test.describe('Color Temperature specific', () => {
     await expect(page.locator('sdpi-range[setting="colorTempValue"]')).toBeAttached();
   });
 });
+
+test('On/Off exposes native per-state artwork without automatic host toggling (#375)', async ({ request }) => {
+  const manifest = await (await request.get('/manifest.json')).json();
+  const action = manifest.Actions.find((item: { UUID: string }) => item.UUID.endsWith('.lights'));
+  expect(action.DisableAutomaticStates).toBe(true);
+  expect(action.States.map((state: { Name: string }) => state.Name)).toEqual(['On', 'Off']);
+  // Both defaults retain the original artwork; custom images belong to the host.
+  expect(action.States.map((state: { Image: string }) => state.Image)).toEqual([
+    'imgs/actions/light/key', 'imgs/actions/light/key',
+  ]);
+});
+
+test('separate power icons are opt-in for existing profiles (#375)', async ({ page }) => {
+  await page.goto('/ui/on-off.html');
+  const setting = page.locator('sdpi-select[setting="separatePowerIcons"]');
+  await expect(setting).toHaveAttribute('default', 'false');
+  expect(await setting.evaluate(element =>
+    element.querySelector('option[value="true"]')?.textContent?.trim(),
+  )).toBe('Switch On/Off icons');
+});

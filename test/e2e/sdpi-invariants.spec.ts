@@ -29,15 +29,13 @@ for (const file of HTML_FILES) {
     test("every sdpi-select with a datasource also has a setting", async ({
       page,
     }) => {
-      const offenders = await page.$$eval(
-        "sdpi-select[datasource]",
-        (nodes) =>
-          nodes
-            .filter((n) => !n.getAttribute("setting"))
-            .map((n) => ({
-              id: n.id || "(no id)",
-              datasource: n.getAttribute("datasource"),
-            })),
+      const offenders = await page.$$eval("sdpi-select[datasource]", (nodes) =>
+        nodes
+          .filter((n) => !n.getAttribute("setting"))
+          .map((n) => ({
+            id: n.id || "(no id)",
+            datasource: n.getAttribute("datasource"),
+          })),
       );
       expect(
         offenders,
@@ -48,3 +46,13 @@ for (const file of HTML_FILES) {
     });
   });
 }
+
+test("retired status dot has no inspector control or obsolete help", async ({
+  page,
+}) => {
+  for (const file of HTML_FILES) {
+    await page.goto(`/ui/${file}`);
+    await expect(page.locator('[setting="showStatusBadge"]')).toHaveCount(0);
+    await expect(page.locator("#statusBadgeScopeHint")).toHaveCount(0);
+  }
+});

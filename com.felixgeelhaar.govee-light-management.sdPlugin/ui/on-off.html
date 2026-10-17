@@ -27,14 +27,18 @@
         </sdpi-select>
       </sdpi-item>
 
-      <div id="groupManager"></div>
-
-      <sdpi-item label="Status dot">
-        <sdpi-select global setting="showStatusBadge" default="true">
-          <option value="true">Show</option>
-          <option value="false">Hide</option>
+      <sdpi-item label="Icon switching">
+        <sdpi-select setting="separatePowerIcons" default="false">
+          <option value="false">Use On icon for both states</option>
+          <option value="true">Switch On/Off icons</option>
         </sdpi-select>
+        <p id="nativeArtworkHint">
+          This changes state switching; it does not remove custom artwork.
+          Use Reset to Default on each state to restore plugin artwork.
+        </p>
       </sdpi-item>
+
+      <div id="groupManager"></div>
     </div>
 
     <div id="setup" class="hidden">

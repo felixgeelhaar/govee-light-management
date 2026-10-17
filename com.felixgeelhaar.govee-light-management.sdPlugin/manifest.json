@@ -12,10 +12,17 @@
       "Tooltip": "Turn a light or group on/off",
       "PropertyInspectorPath": "ui/on-off.html",
       "Controllers": ["Keypad"],
+      "DisableAutomaticStates": true,
       "States": [
         {
           "Image": "imgs/actions/light/key",
-          "TitleAlignment": "bottom"
+          "TitleAlignment": "bottom",
+          "Name": "On"
+        },
+        {
+          "Image": "imgs/actions/light/key",
+          "TitleAlignment": "bottom",
+          "Name": "Off"
         }
       ]
     },
