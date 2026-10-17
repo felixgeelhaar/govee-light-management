@@ -11,8 +11,8 @@ constraints live in `AGENTS.md`.
 A Stream Deck plugin for controlling Govee smart lights. It registers 18
 actions (13 keypad classes + 5 encoder classes) that talk to the Govee Cloud
 API through `@felixgeelhaar/govee-api-client` (`^3.4.0`). Published on the
-Elgato Marketplace; current version is 2.9.0 (`package.json` `version` and the
-manifest's `Version` field — `2.9.0.0` — must be bumped together).
+Elgato Marketplace; current version is 2.9.1 (`package.json` `version` and the
+manifest's `Version` field — `2.9.1.0` — must be bumped together).
 
 Runtime target: Node 20 (the version Elgato's CLI validator pins in the
 manifest), TypeScript, ESM.
@@ -423,7 +423,7 @@ use; `.husky/_` is a leftover of the removed setup. Quality is enforced in CI.
 
 Releases are tag-triggered GitHub Actions — never `npm publish` by hand. Bump
 `package.json` `version` **and** the manifest `Version` (four-part, e.g.
-`2.9.0.0`) in the same commit; a manifest-less bump ships a stale build to the
+`2.9.1.0`) in the same commit; a manifest-less bump ships a stale build to the
 store.
 
 Every new action needs its own `imgs/actions/<name>/icon.svg` (mono) and
