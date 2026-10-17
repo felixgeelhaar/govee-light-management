@@ -680,19 +680,25 @@ export class ActionServices {
       );
 
       if (!lightItem) {
-        // The most likely real-world failure: discovery came back without
-        // the selected device. An empty list usually means the API call
-        // failed or was rate-limited rather than the device being gone, so
-        // report the two cases differently.
+        const matchingDeviceModels = [
+          ...new Set(
+            lights
+              .filter((light) => light.deviceId === target.deviceId)
+              .map((light) => light.model),
+          ),
+        ].slice(0, 20);
         streamDeck.logger?.warn(
-          lights.length === 0
-            ? "resolveTarget: discovery returned no devices at all — likely an API error or rate limit, not a missing device"
-            : "resolveTarget: selected device not present in discovery results",
+          matchingDeviceModels.length > 0
+            ? "resolveTarget: selected device model differs from discovery — reselect this light in the inspector"
+            : lights.length === 0
+              ? "resolveTarget: discovery returned no devices at all — likely an API error or rate limit, not a missing device"
+              : "resolveTarget: selected device not present in discovery results",
           {
             wantDeviceId: target.deviceId,
             wantModel: target.model,
             discoveredCount: lights.length,
-            discoveredModels: lights.slice(0, 20).map((l) => l.model),
+            discoveredModels: lights.slice(0, 20).map((light) => light.model),
+            matchingDeviceModels,
           },
         );
         return null;

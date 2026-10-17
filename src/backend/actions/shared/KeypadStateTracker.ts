@@ -196,12 +196,12 @@ export class KeypadStateTracker {
         }
       } else if (target?.type === "group" && target.group) {
         const allMembers = target.group.lights;
-        const controllable = target.group.getControllableLights();
+        const controllable = target.group.lights;
         let onCount = 0;
         for (const light of controllable) {
           try {
             const live = await this.services.getLivePowerState(light);
-            if (live === true) onCount++;
+            if (live === true || (live === undefined && light.isOn)) onCount++;
           } catch {
             // Best effort per member.
           }
@@ -211,7 +211,10 @@ export class KeypadStateTracker {
           totalCount: allMembers.length,
         });
         this.powerState.set(ctx, onCount > 0);
-        this.hasOfflineMember.set(ctx, controllable.length < allMembers.length);
+        this.hasOfflineMember.set(
+          ctx,
+          allMembers.some((light) => !light.isOnline),
+        );
       }
     } catch (error) {
       streamDeck.logger?.debug("KeypadStateTracker.syncOnce failed", error);

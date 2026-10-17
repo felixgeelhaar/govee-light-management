@@ -42,9 +42,9 @@ export abstract class BaseDialAction<
   protected services = new ActionServices();
   protected powerMap = new Map<string, boolean>();
   /**
-   * Per-context flag set by subclass `syncLiveState` when it observed
-   * a group member that was offline (i.e. `getControllableLights()`
-   * returned fewer entries than `group.lights`). Read by the live-sync
+   * Per-context hint set by `syncLiveState` when a member reported offline.
+   * Every member is still sampled; the flag only controls cache refresh.
+   * Read by the live-sync
    * loop to decide whether to invalidate the device-discover cache so
    * that an offline→online recovery is detected without waiting for
    * the cache TTL on top of the 3 s tick.
@@ -176,12 +176,12 @@ export abstract class BaseDialAction<
       }
     } else if (target.type === "group" && target.group) {
       // Sample group power: any member on → group "on" → toggle off.
-      const members = target.group.getControllableLights();
+      const members = target.group.lights;
       let anyOn = false;
       for (const light of members) {
         try {
           const live = await this.services.getLivePowerState(light);
-          if (live === true) {
+          if (live === true || (live === undefined && light.isOn)) {
             anyOn = true;
             break;
           }
@@ -197,9 +197,9 @@ export abstract class BaseDialAction<
     if (target.type === "group" && target.group) {
       // Optimistic group summary so the keypad glyph snaps to ●/○
       // before the next live-sync round-trip. controlGroup commands
-      // every controllable member, so we treat the whole controllable
+      // every member, so we treat the whole group
       // set as moved to the new state.
-      const total = target.group.getControllableLights().length;
+      const total = target.group.lights.length;
       this.groupSummaryMap.set(ctx, {
         onCount: !originalIsOn ? total : 0,
         totalCount: total,
@@ -220,7 +220,7 @@ export abstract class BaseDialAction<
       // Revert to original state, not a double-flip
       this.powerMap.set(ctx, originalIsOn);
       if (target.type === "group" && target.group) {
-        const total = target.group.getControllableLights().length;
+        const total = target.group.lights.length;
         this.groupSummaryMap.set(ctx, {
           onCount: originalIsOn ? total : 0,
           totalCount: total,
