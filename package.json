@@ -58,7 +58,7 @@
   },
   "dependencies": {
     "@elgato/streamdeck": "^2.1.0",
-    "@felixgeelhaar/govee-api-client": "^3.3.10",
+    "@felixgeelhaar/govee-api-client": "^3.4.0",
     "serialize-javascript": "^7.1.2"
   },
   "overrides": {

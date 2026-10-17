@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="./css/main.css" />
     <script src="./js/sdpi-components.js"></script>
     <script src="./js/setup.js"></script>
+    <script src="./js/power-lifecycle.js"></script>
   </head>
   <body>
     <div id="settings" class="hidden">
@@ -39,6 +40,40 @@
       </sdpi-item>
 
       <div id="groupManager"></div>
+
+      <sdpi-item label="Automation">
+        <details id="powerLifecyclePanel" class="group-manager-details">
+          <summary>Manage rules…</summary>
+        </details>
+      </sdpi-item>
+      <div id="powerLifecycleBody" class="power-lifecycle-body hidden">
+        <div id="powerRuleList" class="group-list-wrapper" aria-label="Saved automation rules"></div>
+        <p class="group-shared-hint">Enable the rule and choose at least one event, then create a rule. Saved rules run even when this key is hidden or removed.</p>
+        <sdpi-item label="Target">
+          <sdpi-select id="powerRuleTarget" aria-label="Rule target"></sdpi-select>
+        </sdpi-item>
+        <sdpi-item label="Rule">
+          <sdpi-checkbox id="powerEnabled" label="Enable this rule"></sdpi-checkbox>
+        </sdpi-item>
+        <sdpi-item label="Turn On">
+          <div class="power-lifecycle-events">
+            <sdpi-checkbox id="powerStartup" label="Plugin starts"></sdpi-checkbox>
+            <sdpi-checkbox id="powerWake" label="Computer wakes"></sdpi-checkbox>
+          </div>
+        </sdpi-item>
+        <sdpi-item label="Turn Off">
+          <div class="power-lifecycle-events">
+            <sdpi-checkbox id="powerSleep" label="Before sleep"></sdpi-checkbox>
+            <sdpi-checkbox id="powerShutdown" label="Before shutdown / logout"></sdpi-checkbox>
+          </div>
+        </sdpi-item>
+        <p class="group-shared-hint">Sleep/shutdown is best effort; network loss or forced shutdown can prevent it. Manual commands take priority.</p>
+        <div class="power-lifecycle-actions">
+          <sdpi-button id="powerSave">Create rule</sdpi-button>
+          <sdpi-button id="powerRefresh">Refresh status</sdpi-button>
+        </div>
+        <div id="powerLifecycleStatus" class="group-status" role="status" aria-live="polite"></div>
+      </div>
     </div>
 
     <div id="setup" class="hidden">

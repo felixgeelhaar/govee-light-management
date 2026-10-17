@@ -1,3 +1,4 @@
+import type { PowerLifecycleRule } from "../../shared/power-lifecycle";
 import { streamDeck } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
 import { isValidApiKeyFormat } from "../actions/shared/validation";
@@ -16,6 +17,7 @@ export interface GlobalPluginSettings {
    */
   showStatusBadge?: boolean | string;
   scheduledActions?: unknown[];
+  powerLifecycleRules?: PowerLifecycleRule[];
   [key: string]: unknown;
 }
 
