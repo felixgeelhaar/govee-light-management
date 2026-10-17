@@ -462,3 +462,13 @@
   gap: 6px;
   padding-top: 4px;
 }
+
+/* Keep member previews on one line; the tooltip retains the complete list. */
+.group-row .group-label {
+  min-width: 0;
+}
+.group-row .group-members {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

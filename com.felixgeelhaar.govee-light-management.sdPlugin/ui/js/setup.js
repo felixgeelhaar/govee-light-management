@@ -500,6 +500,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!container) return;
 
     let devices = [];
+    let savedGroups = [];
     let editingGroupId = "";
 
     // Groups are a plugin-wide concept (shared across every action),
@@ -567,6 +568,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function renderGroups(groups) {
+      savedGroups = groups;
       groupList.innerHTML = "";
       updateSummary(groups.length);
       if (groups.length === 0) {
@@ -582,7 +584,16 @@ document.addEventListener("DOMContentLoaded", () => {
         name.textContent = g.name;
         name.title = g.name;
         const count = document.createElement("small");
-        count.textContent = `${g.size ?? "?"} ${g.size === 1 ? "light" : "lights"}`;
+        count.className = "group-members";
+        const members = (g.lightIds || []).map(
+          (id) =>
+            devices.find((device) => device.value === id)?.label ||
+            "Unavailable light",
+        );
+        count.textContent = members.length
+          ? members.join(", ")
+          : `${g.size ?? "?"} ${g.size === 1 ? "light" : "lights"}`;
+        count.title = count.textContent;
         label.append(name, count);
         const edit = document.createElement("button");
         edit.type = "button";
@@ -681,6 +692,7 @@ document.addEventListener("DOMContentLoaded", () => {
             devices.push(item);
           }
         });
+        renderGroups(savedGroups);
         renderDebugInfo();
         requestSelectedDeviceDebug(client);
       }
