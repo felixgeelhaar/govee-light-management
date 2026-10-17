@@ -22,6 +22,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let editingTarget = "";
   let currentName = "";
   let rules = [];
+  const names = new Map();
+  let pendingEvent = "";
   let requestId = 0;
   let timer;
   let busy = false;
@@ -35,6 +37,10 @@ document.addEventListener("DOMContentLoaded", () => {
     save.disabled = busy || !editingTarget;
     remove.disabled = busy || !editingTarget;
     refresh.disabled = busy;
+    targetSelect.disabled = busy;
+    document.querySelectorAll("#powerRuleList button").forEach((button) => {
+      button.disabled = busy;
+    });
     for (const id of Object.values(fields))
       document.getElementById(id).disabled = busy || !editingTarget;
   };
@@ -47,6 +53,14 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     const request = (event, rule) => {
       clearTimeout(timer);
+      pendingEvent = event;
+      status.className = "group-status";
+      status.textContent =
+        event === "savePowerLifecycleRule"
+          ? "Saving rule…"
+          : event === "deletePowerLifecycleRule"
+            ? "Deleting rule…"
+            : "Loading rules…";
       busy = true;
       controls();
       send({
@@ -58,9 +72,62 @@ document.addEventListener("DOMContentLoaded", () => {
       timer = setTimeout(() => {
         busy = false;
         controls();
+        status.className = "group-status error";
         status.textContent =
           "Power rule response timed out. Refresh to try again.";
       }, 10000);
+    };
+    const nameFor = (id) =>
+      names.get(id) || (id === currentTarget && currentName) || id;
+    const renderRules = () => {
+      const summary = panel.querySelector("summary");
+      if (summary)
+        summary.textContent = rules.length
+          ? `Manage rules · ${rules.length}`
+          : "Manage rules";
+      const list = document.getElementById("powerRuleList");
+      if (!list) return;
+      list.replaceChildren();
+      if (!rules.length) {
+        const empty = document.createElement("div");
+        empty.className = "group-empty";
+        empty.textContent =
+          "No rules yet. Choose a target and save a rule below.";
+        list.appendChild(empty);
+      }
+      for (const rule of rules) {
+        const row = document.createElement("div");
+        row.className = "group-row power-rule-row";
+        const label = document.createElement("span");
+        label.className = "group-label";
+        const name = document.createElement("div");
+        name.textContent = nameFor(rule.selectedDeviceId);
+        name.title = name.textContent;
+        const events = [
+          ["onPluginStart", "Startup"],
+          ["onWake", "Wake"],
+          ["offBeforeSleep", "Sleep"],
+          ["offBeforeShutdown", "Shutdown / logout"],
+        ]
+          .filter(([field]) => rule[field] === true)
+          .map(([, label]) => label);
+        const detail = document.createElement("small");
+        detail.textContent = `${!rule.enabled ? "Disabled" : events.length ? "Enabled" : "Inactive"} · ${events.join(", ") || "No events selected"}`;
+        label.append(name, detail);
+        const edit = document.createElement("button");
+        edit.type = "button";
+        edit.className = "group-delete-btn";
+        edit.textContent = "Edit";
+        edit.setAttribute("aria-label", `Edit rule for ${name.textContent}`);
+        edit.disabled = busy;
+        edit.addEventListener("click", () => {
+          editingTarget = rule.selectedDeviceId;
+          renderTargets();
+          request("getPowerLifecycleRule");
+        });
+        row.append(label, edit);
+        list.appendChild(row);
+      }
     };
     const renderTargets = () => {
       targetSelect.replaceChildren();
@@ -78,13 +145,22 @@ document.addEventListener("DOMContentLoaded", () => {
       );
       for (const rule of rules)
         if (rule.selectedDeviceId !== currentTarget)
-          add(rule.selectedDeviceId, `Saved rule: ${rule.selectedDeviceId}`);
+          add(
+            rule.selectedDeviceId,
+            `Saved rule: ${nameFor(rule.selectedDeviceId)}`,
+          );
       targetSelect.value = editingTarget;
+      renderRules();
     };
     const settingsChanged = (message) => {
       const settings = message.payload?.settings || message.settings || {};
       const next = canonical(settings.selectedDeviceId, settings.selectedModel);
-      if (next === currentTarget && requestId > 0) return;
+      currentName = settings.selectedLightName || "";
+      if (next && currentName) names.set(next, currentName);
+      if (next === currentTarget && requestId > 0) {
+        renderTargets();
+        return;
+      }
       currentTarget = next;
       editingTarget = next;
       currentName = settings.selectedLightName || "";
@@ -93,6 +169,18 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     const response = (message) => {
       const payload = message.payload || message;
+      if (payload.event === "getDevices" && Array.isArray(payload.items)) {
+        const collect = (items) => {
+          for (const item of items) {
+            if (Array.isArray(item.children)) collect(item.children);
+            else if (item.value && item.label)
+              names.set(canonical(item.value), item.label);
+          }
+        };
+        collect(payload.items);
+        renderTargets();
+        return;
+      }
       if (
         payload.event !== "powerLifecycleRule" ||
         payload.requestId !== requestId
@@ -101,6 +189,7 @@ document.addEventListener("DOMContentLoaded", () => {
       clearTimeout(timer);
       busy = false;
       if (payload.status === "error") {
+        status.className = "group-status error";
         status.textContent =
           payload.message || "Power rule could not be saved.";
         controls();
@@ -138,6 +227,9 @@ document.addEventListener("DOMContentLoaded", () => {
             : payload.rule
               ? "Rule saved. Startup/wake automation is enabled."
               : "No saved rule for this target.";
+      if (pendingEvent === "deletePowerLifecycleRule")
+        status.textContent = "Rule deleted. No saved rule for this target.";
+      status.className = `group-status ${noEvents || (helperNeeded && payload.helperStatus === "unavailable") ? "error" : "success"}`;
       controls();
     };
     const sources = [client.sendToPropertyInspector, client.message].filter(

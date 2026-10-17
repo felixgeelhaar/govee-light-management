@@ -45,6 +45,7 @@ async function mockClient(page: import("@playwright/test").Page) {
       },
     });
     const calls: Record<string, unknown>[] = [];
+    let rules: Record<string, unknown>[] = [];
     const client = {
       didReceiveSettings: bus(settings),
       didReceiveGlobalSettings: bus(global),
@@ -87,6 +88,14 @@ async function mockClient(page: import("@playwright/test").Page) {
             "deletePowerLifecycleRule",
           ].includes(String(payload.event))
         ) {
+          if (payload.event === "savePowerLifecycleRule")
+            rules = [
+              {
+                ...(payload.rule as object),
+                selectedDeviceId: payload.selectedDeviceId,
+              },
+            ];
+          if (payload.event === "deletePowerLifecycleRule") rules = [];
           setTimeout(
             () =>
               replies.forEach((handler) =>
@@ -99,8 +108,12 @@ async function mockClient(page: import("@playwright/test").Page) {
                     rule:
                       payload.event === "savePowerLifecycleRule"
                         ? payload.rule
-                        : null,
-                    rules: [],
+                        : rules.find(
+                            (rule) =>
+                              rule.selectedDeviceId ===
+                              payload.selectedDeviceId,
+                          ) || null,
+                    rules,
                     helperStatus: "disabled",
                   },
                 }),
@@ -161,7 +174,7 @@ test("editing controls sends no command or storage mutation until explicit Save"
   ).toBe(false);
   await page.locator("#powerDelete button").click();
   await expect(page.locator("#powerLifecycleStatus")).toContainText(
-    "No saved rule",
+    "Rule deleted",
   );
 });
 
@@ -226,4 +239,39 @@ test("Automation uses native inspector components without automatic persistence"
   });
   await page.locator("#powerLifecyclePanel summary").click();
   await expect(page.locator("#powerLifecycleBody")).toBeHidden();
+});
+
+test("saved rules remain visible with count, target, state and events", async ({
+  page,
+}, testInfo) => {
+  await mockClient(page);
+  await page.goto("/ui/on-off.html");
+  await page.locator("#powerLifecyclePanel summary").click();
+  await expect(page.locator("#powerRuleList")).toContainText("No rules yet");
+  await page.locator("#powerEnabled label").click();
+  await page.locator("#powerStartup label").click();
+  await page.locator("#powerSave button").click();
+  await expect(page.locator("#powerLifecyclePanel summary")).toHaveText(
+    "Manage rules · 1",
+  );
+  await expect(page.locator("#powerRuleList")).toContainText("Desk");
+  await expect(page.locator("#powerRuleList")).toContainText(
+    "Enabled · Startup",
+  );
+  await page.setViewportSize({ width: 370, height: 1100 });
+  await page.addStyleTag({ content: "body { background: #2d2d2d; }" });
+  await page.screenshot({
+    path: testInfo.outputPath("saved-rules.png"),
+    fullPage: true,
+  });
+  await page.locator("#powerRuleList button").click();
+  await expect(page.locator("#powerStartup input")).toBeChecked();
+  await page.locator("#powerDelete button").click();
+  await expect(page.locator("#powerLifecycleStatus")).toContainText(
+    "Rule deleted",
+  );
+  await expect(page.locator("#powerRuleList")).toContainText("No rules yet");
+  await expect(page.locator("#powerLifecyclePanel summary")).toHaveText(
+    "Manage rules",
+  );
 });

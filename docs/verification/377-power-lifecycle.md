@@ -118,3 +118,18 @@ Turn On and Turn Off group the event choices, with short persistence and
 best-effort notes and an aligned status area. The editor is checked at a 370px
 viewport for horizontal overflow and collapse/expand behavior. Programmatic
 target rendering must not create a new load loop.
+
+### Saved-rule feedback
+
+Automation follows the Groups inspector styling. Its summary shows the saved rule
+count; the list shows each target, enabled/disabled/inactive state and selected
+events. Names come from the existing device/group catalog, with saved identifiers
+as a fallback if unavailable. Edit loads the saved rule without changing the key's
+target. Only confirmed responses update the list. Save/Delete show pending and
+success/error feedback; a failed request preserves the last confirmed list.
+
+Manual check: open Automation, select a target, enable Startup and save. Confirm
+`Manage rules · 1` and the target's `Enabled · Startup` row. Select Edit, disable
+and save; confirm Disabled. Delete and confirm the empty list and deletion message.
+Repeat with a group, a long/renamed target and multiple saved rules. Real machine
+startup/sleep/wake validation remains outstanding.

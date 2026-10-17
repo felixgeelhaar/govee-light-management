@@ -12,7 +12,8 @@ All notable changes to this project are documented below. This project adheres t
   best-effort power-off before sleep/shutdown through packaged OS event observers
   (#377). Pending automation yields to manual control; existing settings remain
   disabled. Shutdown delivery is not guaranteed. Lifecycle commands use the
-  shared API client 3.4.0 cancellation API.
+  shared API client 3.4.0 cancellation API. The Automation inspector lists saved
+  rules with target names, event summaries and clear Save/Delete feedback.
 
 ## [2.8.2] - 2026-09-20
 
