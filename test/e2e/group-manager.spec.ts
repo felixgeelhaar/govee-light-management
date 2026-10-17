@@ -93,6 +93,10 @@ test("Groups uses native create/edit controls and saved entries like Automation"
   );
   await page.locator("#groupNameInput input").fill("Office");
   await expect(page.locator("#groupLightList sdpi-checkbox")).toHaveCount(2);
+  const checks = page.locator("#groupLightList sdpi-checkbox");
+  const first = await checks.nth(0).boundingBox();
+  const second = await checks.nth(1).boundingBox();
+  expect(second!.y).toBeGreaterThanOrEqual(first!.y + first!.height);
   await page
     .locator('#groupLightList sdpi-checkbox[label="Desk"] label')
     .click();

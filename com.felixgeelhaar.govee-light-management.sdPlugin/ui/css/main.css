@@ -455,3 +455,10 @@
 .group-editor-actions {
   margin-top: 6px;
 }
+
+.light-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
