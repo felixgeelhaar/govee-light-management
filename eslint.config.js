@@ -44,6 +44,11 @@ export default [
       },
     },
   },
+  // Packaged macOS helper runs in JavaScript for Automation, not Node.
+  {
+    files: ["com.felixgeelhaar.govee-light-management.sdPlugin/power-hooks/macos.js"],
+    languageOptions: { globals: { ObjC: "readonly", $: "readonly" } },
+  },
   // Property Inspector scripts run in the Stream Deck webview. `SDPIComponents`
   // is the vendored Elgato component library, loaded by a <script> tag.
   {

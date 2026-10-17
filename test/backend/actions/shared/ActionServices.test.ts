@@ -1564,3 +1564,58 @@ describe("ActionServices.getApiKey", () => {
     );
   });
 });
+
+describe("group editor preserves existing group references", () => {
+  it("updates the selected group ID and supplies member IDs for editing", async () => {
+    const services = new ActionServices();
+    const shared = (
+      ActionServices as unknown as { _shared: { groupService?: unknown } }
+    )._shared;
+    const original = shared.groupService;
+    const group = LightGroup.create("stable-id", "Office", [makeLight()]);
+    const updateGroup = vi.fn().mockResolvedValue(group);
+    const createGroup = vi.fn();
+    shared.groupService = {
+      getAllGroups: vi.fn().mockResolvedValue([group]),
+      updateGroup,
+      createGroup,
+    };
+    vi.spyOn(globalSettingsService, "getApiKey").mockResolvedValue("test-key");
+    vi.spyOn(ActionServices.prototype, "ensureServices").mockResolvedValue(
+      undefined,
+    );
+    (streamDeck.ui as unknown as Record<string, unknown>).action = {
+      id: "group-test",
+    };
+    const send = vi.spyOn(streamDeck.ui, "sendToPropertyInspector");
+    try {
+      await services.handleSaveGroup("group-test", {
+        group: {
+          id: "stable-id",
+          name: "Office",
+          lightIds: ["light:dev-1|H6001"],
+        },
+      });
+      expect(updateGroup).toHaveBeenCalledWith("stable-id", "Office", [
+        { deviceId: "dev-1", model: "H6001" },
+      ]);
+      expect(createGroup).not.toHaveBeenCalled();
+      await services.handleGetGroups("group-test");
+      expect(send).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          event: "groupsReceived",
+          groups: [
+            expect.objectContaining({
+              id: "stable-id",
+              lightIds: ["light:dev-1|H6001"],
+            }),
+          ],
+        }),
+      );
+    } finally {
+      shared.groupService = original;
+      delete (streamDeck.ui as unknown as Record<string, unknown>).action;
+      vi.restoreAllMocks();
+    }
+  });
+});

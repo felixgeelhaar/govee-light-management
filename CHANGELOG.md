@@ -9,8 +9,20 @@ All notable changes to this project are documented below. This project adheres t
 ### Changed
 
 - Removed the corner status dot and its Show/Hide preference. Power-state artwork,
-  native On/Off icons and success/error feedback remain. Saved dot preferences are
-  ignored.
+  native On/Off icons and success/error feedback remain available. Existing saved
+  dot preferences are ignored.
+
+
+### Added
+
+- Opt-in account-level light/group rules follow plugin startup and PC wake, with
+  best-effort power-off before sleep/shutdown through packaged OS event observers
+  (#377). Pending automation yields to manual control; existing settings remain
+  disabled. Shutdown delivery is not guaranteed. Lifecycle commands use the
+  shared API client 3.4.0 cancellation API. The Automation inspector lists saved
+  rules with target names, event summaries and clear Save/Delete feedback. Groups
+  uses matching native controls and supports editing names/membership while
+  preserving existing group references.
 
 ## [2.8.2] - 2026-09-20
 

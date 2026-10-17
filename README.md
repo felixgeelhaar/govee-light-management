@@ -250,6 +250,13 @@ For a group, a colour-temperature dial spans the union of every member's
 range, and each light stops at its own limit rather than the whole group being
 capped by the narrowest one.
 
+### Automation
+
+In an On / Off inspector, open **Automation → Manage rules** to save an optional
+light/group rule for plugin startup, PC wake, or best-effort sleep/shutdown Off.
+Rules are disabled by default and remain active when the key is hidden/removed.
+See [configuration, limitations and verification](docs/verification/377-power-lifecycle.md).
+
 ### Advanced Features
 
 #### Real-time State Monitoring

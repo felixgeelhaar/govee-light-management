@@ -23,6 +23,7 @@ export default defineConfig({
     },
   ],
   test: {
+    server: { deps: { inline: [/@felixgeelhaar\/govee-api-client/] } },
     globals: true,
     environment: "jsdom",
     include: ["test/**/*.test.ts"],
