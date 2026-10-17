@@ -10,9 +10,9 @@ constraints live in `AGENTS.md`.
 
 A Stream Deck plugin for controlling Govee smart lights. It registers 18
 actions (13 keypad classes + 5 encoder classes) that talk to the Govee Cloud
-API through `@felixgeelhaar/govee-api-client` (`^3.3.10`). Published on the
-Elgato Marketplace; current version is 2.8.0 (`package.json` `version` and the
-manifest's `Version` field — `2.8.0.0` — must be bumped together).
+API through `@felixgeelhaar/govee-api-client` (`^3.4.0`). Published on the
+Elgato Marketplace; current version is 2.9.0 (`package.json` `version` and the
+manifest's `Version` field — `2.9.0.0` — must be bumped together).
 
 Runtime target: Node 20 (the version Elgato's CLI validator pins in the
 manifest), TypeScript, ESM.
@@ -274,7 +274,7 @@ scheduler's 30 s engine poll and persists the schedule. Handlers run in order
 and are awaited; one failure does not strand the rest, and a second signal is
 ignored. Register anything else that owns a process-wide timer the same way.
 
-### PC power automation
+### Automation
 
 `PowerLifecycleController` binds SDK startup/wake and optional native sleep/session
 notifications to `PowerLifecycleService`. Rules live in global `powerLifecycleRules`
@@ -369,8 +369,8 @@ There is no frontend build step.
 
 Vitest for unit tests, Playwright for the Property Inspector end-to-end suite.
 
-- 771 unit tests across 48 files (`test/**/*.test.ts`), jsdom environment
-- 143 E2E tests across 7 files (`test/e2e/*.spec.ts`), excluded from Vitest
+- 885 unit tests across 60 files (`test/**/*.test.ts`), jsdom environment
+- 155 E2E tests across 10 files (`test/e2e/*.spec.ts`), excluded from Vitest
 
 ```
 test/
@@ -423,7 +423,7 @@ use; `.husky/_` is a leftover of the removed setup. Quality is enforced in CI.
 
 Releases are tag-triggered GitHub Actions — never `npm publish` by hand. Bump
 `package.json` `version` **and** the manifest `Version` (four-part, e.g.
-`2.8.0.0`) in the same commit; a manifest-less bump ships a stale build to the
+`2.9.0.0`) in the same commit; a manifest-less bump ships a stale build to the
 store.
 
 Every new action needs its own `imgs/actions/<name>/icon.svg` (mono) and

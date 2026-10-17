@@ -4,25 +4,47 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
-## [Unreleased]
+## [2.9.0] - 2026-10-17
+
+### Added
+
+- **Automation** — opt-in light/group rules for plugin startup and computer wake,
+  with best-effort Off before sleep or shutdown/logout ([#377](https://github.com/felixgeelhaar/govee-light-management/issues/377), [#380](https://github.com/felixgeelhaar/govee-light-management/pull/380)).
+  Rules are disabled by default, saved globally, and yield to manual control.
+  Shutdown and power-loss delivery cannot be guaranteed.
+- **Separate native On/Off icons** — enable Icon switching and choose artwork for
+  each state using Stream Deck's icon editor ([#375](https://github.com/felixgeelhaar/govee-light-management/issues/375), [#381](https://github.com/felixgeelhaar/govee-light-management/pull/381)).
+  Existing profiles retain their single-icon behavior until enabled.
+- **Group editing and rule lists** — matching native inspector controls, saved-entry
+  counts, Edit/Delete actions and clear feedback. Editing a group's name or members
+  preserves its ID and existing key/Automation references.
+
+### Fixed
+
+- **Brightness dial identification** — the LCD shows the selected light/group name,
+  including in dial stacks, with bounded long names and clear unconfigured/missing
+  target fallbacks ([#378](https://github.com/felixgeelhaar/govee-light-management/issues/378), [#379](https://github.com/felixgeelhaar/govee-light-management/pull/379)).
+- **Group power-state sampling** — include all members when Govee's cloud reports
+  an inaccurate offline flag; preserve successful member updates and partial-failure
+  feedback ([#382](https://github.com/felixgeelhaar/govee-light-management/pull/382)).
+  The remaining individual-light report in [#311](https://github.com/felixgeelhaar/govee-light-management/issues/311)
+  is still awaiting fresh diagnostics and is not claimed resolved.
+- Distinguish model mismatches from missing targets in resolution diagnostics.
 
 ### Changed
 
 - Removed the corner status dot and its Show/Hide preference. Power-state artwork,
-  native On/Off icons and success/error feedback remain available. Existing saved
-  dot preferences are ignored.
+  native On/Off icons and success/error feedback remain. Old dot preferences are ignored.
+- Lifecycle requests use API client 3.4.0 cancellation support, bounded deadlines,
+  duplicate-event suppression and a limited transient retry policy.
 
+### Security
 
-### Added
-
-- Opt-in account-level light/group rules follow plugin startup and PC wake, with
-  best-effort power-off before sleep/shutdown through packaged OS event observers
-  (#377). Pending automation yields to manual control; existing settings remain
-  disabled. Shutdown delivery is not guaranteed. Lifecycle commands use the
-  shared API client 3.4.0 cancellation API. The Automation inspector lists saved
-  rules with target names, event summaries and clear Save/Delete feedback. Groups
-  uses matching native controls and supports editing names/membership while
-  preserving existing group references.
+- Updated `source-map-js` to 1.2.2.
+- Includes the build dependency updates and pinned CI action updates already merged
+  through [#373](https://github.com/felixgeelhaar/govee-light-management/pull/373),
+  [#374](https://github.com/felixgeelhaar/govee-light-management/pull/374) and
+  [#376](https://github.com/felixgeelhaar/govee-light-management/pull/376).
 
 ## [2.8.2] - 2026-09-20
 
