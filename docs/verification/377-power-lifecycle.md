@@ -149,3 +149,12 @@ Manual check: create a two-light group, edit its name and remove one member, the
 verify a key and an automation targeting that group still address the same group.
 Cancel must not save; Delete must remove the entry after confirmation. Check the
 layout on another action inspector as Groups is shared across all inspectors.
+
+### Status indicator and artwork
+
+The shared inspector marks Show/Hide as a global preference for plugin artwork.
+Stream Deck's Set from File and Icon Library overrides hide the dot in either
+state; Reset to Default on each native icon state restores plugin artwork. The
+SDK does not expose a reliable native-artwork override flag, so this explanation
+is always present instead of pretending to detect those overrides. The separate
+artwork PR retains its mode-based disabled control without changing the preference.

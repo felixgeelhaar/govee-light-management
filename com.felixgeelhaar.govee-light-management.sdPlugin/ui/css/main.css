@@ -462,3 +462,10 @@
   gap: 6px;
   padding-top: 4px;
 }
+
+.status-badge-scope-hint {
+  margin: 6px 0 0;
+  color: #9da3ae;
+  font-size: 11px;
+  line-height: 1.4;
+}

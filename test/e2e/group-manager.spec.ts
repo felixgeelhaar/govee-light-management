@@ -96,7 +96,9 @@ test("Groups uses native create/edit controls and saved entries like Automation"
   const checks = page.locator("#groupLightList sdpi-checkbox");
   const first = await checks.nth(0).boundingBox();
   const second = await checks.nth(1).boundingBox();
-  expect(second!.y).toBeGreaterThanOrEqual(first!.y + first!.height);
+  if (!first || !second)
+    throw new Error("Group checkboxes must have visible bounds");
+  expect(second.y).toBeGreaterThanOrEqual(first.y + first.height);
   await page
     .locator('#groupLightList sdpi-checkbox[label="Desk"] label')
     .click();

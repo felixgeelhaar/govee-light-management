@@ -29,15 +29,13 @@ for (const file of HTML_FILES) {
     test("every sdpi-select with a datasource also has a setting", async ({
       page,
     }) => {
-      const offenders = await page.$$eval(
-        "sdpi-select[datasource]",
-        (nodes) =>
-          nodes
-            .filter((n) => !n.getAttribute("setting"))
-            .map((n) => ({
-              id: n.id || "(no id)",
-              datasource: n.getAttribute("datasource"),
-            })),
+      const offenders = await page.$$eval("sdpi-select[datasource]", (nodes) =>
+        nodes
+          .filter((n) => !n.getAttribute("setting"))
+          .map((n) => ({
+            id: n.id || "(no id)",
+            datasource: n.getAttribute("datasource"),
+          })),
       );
       expect(
         offenders,
@@ -48,3 +46,26 @@ for (const file of HTML_FILES) {
     });
   });
 }
+
+test("status badge preference explains native artwork precedence on every inspector", async ({
+  page,
+}) => {
+  for (const file of HTML_FILES) {
+    await page.goto(`/ui/${file}`);
+    const preference = page.locator('sdpi-select[setting="showStatusBadge"]');
+    if (!(await preference.count())) continue;
+    await expect(page.locator("#statusBadgeScopeHint")).toContainText(
+      "all actions",
+    );
+    await expect(page.locator("#statusBadgeScopeHint")).toContainText(
+      "Custom images hide the dot",
+    );
+    await expect(page.locator("#statusBadgeScopeHint")).toContainText(
+      "Reset to Default",
+    );
+    await expect(preference).toHaveAttribute(
+      "aria-describedby",
+      "statusBadgeScopeHint",
+    );
+  }
+});
