@@ -16,7 +16,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const targetSelect = document.getElementById("powerRuleTarget");
   const status = document.getElementById("powerLifecycleStatus");
   const save = document.getElementById("powerSave");
-  const remove = document.getElementById("powerDelete");
   const refresh = document.getElementById("powerRefresh");
   let currentTarget = "";
   let editingTarget = "";
@@ -35,7 +34,11 @@ document.addEventListener("DOMContentLoaded", () => {
         : `light:${value.includes("|") ? value : `${value}|${model || ""}`}`;
   const controls = () => {
     save.disabled = busy || !editingTarget;
-    remove.disabled = busy || !editingTarget;
+    save.textContent = rules.some(
+      (rule) => rule.selectedDeviceId === editingTarget,
+    )
+      ? "Save changes"
+      : "Create rule";
     refresh.disabled = busy;
     targetSelect.disabled = busy;
     document.querySelectorAll("#powerRuleList button").forEach((button) => {
@@ -125,7 +128,23 @@ document.addEventListener("DOMContentLoaded", () => {
           renderTargets();
           request("getPowerLifecycleRule");
         });
-        row.append(label, edit);
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "group-delete-btn";
+        remove.textContent = "Delete";
+        remove.setAttribute(
+          "aria-label",
+          `Delete rule for ${name.textContent}`,
+        );
+        remove.disabled = busy;
+        remove.addEventListener("click", () => {
+          editingTarget = rule.selectedDeviceId;
+          for (const [field, id] of Object.entries(fields))
+            document.getElementById(id).value = rule[field] === true;
+          renderTargets();
+          request("deletePowerLifecycleRule");
+        });
+        row.append(label, edit, remove);
         list.appendChild(row);
       }
     };
@@ -251,7 +270,6 @@ document.addEventListener("DOMContentLoaded", () => {
       );
       request("savePowerLifecycleRule", rule);
     });
-    remove.addEventListener("click", () => request("deletePowerLifecycleRule"));
     refresh.addEventListener("click", () => request("getPowerLifecycleRule"));
     client.getSettings();
     window.addEventListener(

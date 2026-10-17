@@ -172,7 +172,9 @@ test("editing controls sends no command or storage mutation until explicit Save"
   expect(
     calls.some((call) => call.event === "control" || call.event === "turnOn"),
   ).toBe(false);
-  await page.locator("#powerDelete button").click();
+  await page
+    .getByRole("button", { name: "Delete rule for Desk", exact: true })
+    .click();
   await expect(page.locator("#powerLifecycleStatus")).toContainText(
     "Rule deleted",
   );
@@ -216,7 +218,7 @@ test("Automation uses native inspector components without automatic persistence"
   await expect(page.locator("#powerLifecycleBody sdpi-checkbox")).toHaveCount(
     5,
   );
-  await expect(page.locator("#powerLifecycleBody sdpi-button")).toHaveCount(3);
+  await expect(page.locator("#powerLifecycleBody sdpi-button")).toHaveCount(2);
   await expect(page.locator("#powerLifecycleBody [setting]")).toHaveCount(0);
   expect(
     await page.evaluate(
@@ -248,9 +250,12 @@ test("saved rules remain visible with count, target, state and events", async ({
   await page.goto("/ui/on-off.html");
   await page.locator("#powerLifecyclePanel summary").click();
   await expect(page.locator("#powerRuleList")).toContainText("No rules yet");
+  await expect(page.locator("#powerSave button")).toHaveText("Create rule");
+  await expect(page.locator("#powerDelete")).toHaveCount(0);
   await page.locator("#powerEnabled label").click();
   await page.locator("#powerStartup label").click();
   await page.locator("#powerSave button").click();
+  await expect(page.locator("#powerSave button")).toHaveText("Save changes");
   await expect(page.locator("#powerLifecyclePanel summary")).toHaveText(
     "Manage rules · 1",
   );
@@ -264,9 +269,13 @@ test("saved rules remain visible with count, target, state and events", async ({
     path: testInfo.outputPath("saved-rules.png"),
     fullPage: true,
   });
-  await page.locator("#powerRuleList button").click();
+  await page
+    .getByRole("button", { name: "Edit rule for Desk", exact: true })
+    .click();
   await expect(page.locator("#powerStartup input")).toBeChecked();
-  await page.locator("#powerDelete button").click();
+  await page
+    .getByRole("button", { name: "Delete rule for Desk", exact: true })
+    .click();
   await expect(page.locator("#powerLifecycleStatus")).toContainText(
     "Rule deleted",
   );

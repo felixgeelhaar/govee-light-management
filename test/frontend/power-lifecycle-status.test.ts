@@ -94,7 +94,7 @@ describe("power rule status", () => {
     );
     expect(document.querySelector("#powerRuleList img")).toBeNull();
     (
-      document.querySelectorAll("#powerRuleList button")[1] as HTMLButtonElement
+      document.querySelectorAll("#powerRuleList button")[2] as HTMLButtonElement
     ).click();
     expect(send.mock.calls.at(-1)?.[0]).toMatchObject({
       event: "getPowerLifecycleRule",
@@ -108,7 +108,7 @@ describe("power rule status", () => {
         message: "Unable to load rules",
       },
     });
-    expect(document.querySelectorAll("#powerRuleList button")).toHaveLength(2);
+    expect(document.querySelectorAll("#powerRuleList button")).toHaveLength(4);
     expect(
       document.getElementById("powerLifecycleStatus")?.className,
     ).toContain("error");

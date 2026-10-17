@@ -37,7 +37,7 @@
       </sdpi-item>
       <div id="powerLifecycleBody" class="power-lifecycle-body hidden">
         <div id="powerRuleList" class="group-list-wrapper" aria-label="Saved automation rules"></div>
-        <p class="group-shared-hint">Enable the rule and choose at least one event, then save. Saved rules run even when this key is hidden or removed.</p>
+        <p class="group-shared-hint">Enable the rule and choose at least one event, then create a rule. Saved rules run even when this key is hidden or removed.</p>
         <sdpi-item label="Target">
           <sdpi-select id="powerRuleTarget" aria-label="Rule target"></sdpi-select>
         </sdpi-item>
@@ -58,8 +58,7 @@
         </sdpi-item>
         <p class="group-shared-hint">Sleep/shutdown is best effort; network loss or forced shutdown can prevent it. Manual commands take priority.</p>
         <div class="power-lifecycle-actions">
-          <sdpi-button id="powerSave">Save rule</sdpi-button>
-          <sdpi-button id="powerDelete">Delete rule</sdpi-button>
+          <sdpi-button id="powerSave">Create rule</sdpi-button>
           <sdpi-button id="powerRefresh">Refresh status</sdpi-button>
         </div>
         <div id="powerLifecycleStatus" class="group-status" role="status" aria-live="polite"></div>

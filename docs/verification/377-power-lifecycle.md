@@ -124,12 +124,14 @@ target rendering must not create a new load loop.
 Automation follows the Groups inspector styling. Its summary shows the saved rule
 count; the list shows each target, enabled/disabled/inactive state and selected
 events. Names come from the existing device/group catalog, with saved identifiers
-as a fallback if unavailable. Edit loads the saved rule without changing the key's
-target. Only confirmed responses update the list. Save/Delete show pending and
+as a fallback if unavailable. Each entry has Edit and Delete controls. Edit loads the saved rule without
+changing the key's target. The editor shows Create rule for a new target and Save
+changes for an existing rule; confirmed creation adds an entry and deletion removes it. Only confirmed responses update the list. Save/Delete show pending and
 success/error feedback; a failed request preserves the last confirmed list.
 
 Manual check: open Automation, select a target, enable Startup and save. Confirm
 `Manage rules · 1` and the target's `Enabled · Startup` row. Select Edit, disable
-and save; confirm Disabled. Delete and confirm the empty list and deletion message.
+and Save changes; confirm Disabled. Use Delete on the entry and confirm the empty
+list and deletion message.
 Repeat with a group, a long/renamed target and multiple saved rules. Real machine
 startup/sleep/wake validation remains outstanding.
