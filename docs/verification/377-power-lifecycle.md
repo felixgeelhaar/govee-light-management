@@ -135,3 +135,17 @@ and Save changes; confirm Disabled. Use Delete on the entry and confirm the empt
 list and deletion message.
 Repeat with a group, a long/renamed target and multiple saved rules. Real machine
 startup/sleep/wake validation remains outstanding.
+
+### Consistent group editor
+
+Groups uses the same native SDPI buttons, saved-entry rows, count summary and
+persistent feedback as Automation. New group opens the Name/Lights form. Create
+group adds an entry; Edit loads its name and membership, and Save changes updates
+the same ID so existing keys and automation references remain valid. Delete stays
+on each entry with its existing confirmation. Members absent from the current
+catalog remain selected and visible as unavailable until explicitly removed.
+
+Manual check: create a two-light group, edit its name and remove one member, then
+verify a key and an automation targeting that group still address the same group.
+Cancel must not save; Delete must remove the entry after confirmation. Check the
+layout on another action inspector as Groups is shared across all inspectors.

@@ -761,7 +761,14 @@ export class ActionServices {
       const groups = await this.groupService.getAllGroups();
       await sendToPI(actionId, {
         event: "groupsReceived",
-        groups: groups.map((g) => ({ id: g.id, name: g.name, size: g.size })),
+        groups: groups.map((g) => ({
+          id: g.id,
+          name: g.name,
+          size: g.size,
+          lightIds: g.lights.map(
+            (light) => `light:${light.deviceId}|${light.model}`,
+          ),
+        })),
       });
     } catch (error) {
       streamDeck.logger.error("Failed to fetch groups:", error);
@@ -992,7 +999,9 @@ export class ActionServices {
    * Handle saveGroup from PI
    */
   async handleSaveGroup(actionId: string, payload: JsonValue): Promise<void> {
-    const data = payload as { group?: { name: string; lightIds: string[] } };
+    const data = payload as {
+      group?: { id?: string; name: string; lightIds: string[] };
+    };
     const group = data.group;
 
     if (!group?.name || !group?.lightIds) {
@@ -1017,10 +1026,9 @@ export class ActionServices {
         return { deviceId, model };
       });
 
-      const savedGroup = await this.groupService.createGroup(
-        group.name,
-        lightIds,
-      );
+      const savedGroup = group.id
+        ? await this.groupService.updateGroup(group.id, group.name, lightIds)
+        : await this.groupService.createGroup(group.name, lightIds);
 
       await sendToPI(actionId, {
         event: "groupSaved",

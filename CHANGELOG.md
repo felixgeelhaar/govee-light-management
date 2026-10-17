@@ -13,7 +13,9 @@ All notable changes to this project are documented below. This project adheres t
   (#377). Pending automation yields to manual control; existing settings remain
   disabled. Shutdown delivery is not guaranteed. Lifecycle commands use the
   shared API client 3.4.0 cancellation API. The Automation inspector lists saved
-  rules with target names, event summaries and clear Save/Delete feedback.
+  rules with target names, event summaries and clear Save/Delete feedback. Groups
+  uses matching native controls and supports editing names/membership while
+  preserving existing group references.
 
 ## [2.8.2] - 2026-09-20
 
