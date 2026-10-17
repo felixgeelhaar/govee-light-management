@@ -109,18 +109,31 @@ document.addEventListener("DOMContentLoaded", () => {
       const helperNeeded =
         payload.rule?.enabled &&
         (payload.rule.offBeforeSleep || payload.rule.offBeforeShutdown);
-      status.textContent = helperNeeded
-        ? {
-            ready: "Rule saved. OS event observer is ready.",
-            starting:
-              "Rule saved. OS event observer is starting; refresh status to confirm.",
-            unavailable:
-              "OS event observer is unavailable. Startup/wake still work; sleep/shutdown cannot run.",
-            disabled: "OS event observer is disabled.",
-          }[payload.helperStatus] || "Refresh to check the OS event observer."
-        : payload.rule
-          ? "Rule saved. No sleep/shutdown observer is needed."
-          : "No saved rule for this target.";
+      const noEvents =
+        payload.rule?.enabled &&
+        [
+          "onPluginStart",
+          "onWake",
+          "offBeforeSleep",
+          "offBeforeShutdown",
+        ].every((event) => payload.rule[event] !== true);
+      status.textContent = noEvents
+        ? "Rule saved but inactive: no events selected. Select a startup, wake, sleep or shutdown event and save again."
+        : payload.rule && !payload.rule.enabled
+          ? "Rule saved. Automation is disabled."
+          : helperNeeded
+            ? {
+                ready: "Rule saved. OS event observer is ready.",
+                starting:
+                  "Rule saved. OS event observer is starting; refresh status to confirm.",
+                unavailable:
+                  "OS event observer is unavailable. Startup/wake still work; sleep/shutdown cannot run.",
+                disabled: "OS event observer is disabled.",
+              }[payload.helperStatus] ||
+              "Refresh to check the OS event observer."
+            : payload.rule
+              ? "Rule saved. No sleep/shutdown observer is needed."
+              : "No saved rule for this target.";
       controls();
     };
     const sources = [client.sendToPropertyInspector, client.message].filter(

@@ -155,3 +155,27 @@ test("editing controls sends no command or storage mutation until explicit Save"
     "No saved rule",
   );
 });
+
+test("an enabled rule without event choices is clearly marked inactive", async ({
+  page,
+}) => {
+  await mockClient(page);
+  await page.goto("/ui/on-off.html");
+  await page.locator("#powerLifecyclePanel summary").click();
+  await expect(page.locator("#powerSave")).toBeEnabled();
+  await page.locator("#powerEnabled").check();
+  await page.locator("#powerSave").click();
+  await expect(page.locator("#powerLifecycleStatus")).toContainText(
+    "no events selected",
+  );
+  await page.locator("#powerStartup").check();
+  await page.locator("#powerSave").click();
+  await expect(page.locator("#powerLifecycleStatus")).not.toContainText(
+    "inactive",
+  );
+  await page.locator("#powerEnabled").uncheck();
+  await page.locator("#powerSave").click();
+  await expect(page.locator("#powerLifecycleStatus")).toContainText(
+    "Automation is disabled",
+  );
+});

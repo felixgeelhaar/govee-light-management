@@ -10,7 +10,9 @@ or removed. Delete the rule explicitly to remove it.
 
 1. Select a supported light/group in the normal Device selector.
 2. Open Light automation. Choose the current selection or an existing saved rule.
-3. Check Enable and the desired events, then **Save rule**:
+3. Check Enable and at least one desired event, then **Save rule**. Enable alone
+   does not select an event; an enabled rule with no events is saved but clearly
+   marked inactive:
    - On when the plugin starts (also fires on Stream Deck/plugin restart).
    - On when the PC wakes (requires Stream Deck/plugin to be running).
    - Off before sleep (starts an OS event observer).
@@ -95,3 +97,13 @@ manual checks. Windows helper runtime validation is performed by Windows CI.
 Release note: Optional account-level light/group rules follow plugin startup and
 PC wake, with opt-in best-effort Off before sleep/shutdown. Manual control takes
 priority over pending automation; existing installations remain disabled.
+
+## Maintainer test finding (2026-10-17)
+
+A reported failure to turn on was investigated on the installed DEV candidate.
+The inspector showed Enable checked, but startup, wake, sleep and shutdown all
+unchecked. No lifecycle command outcome appeared in the recent DEV logs. This
+configuration has no matching event and therefore sends no power command. The
+inspector now distinguishes this inactive saved rule from an active rule and
+from a disabled rule. No events are enabled implicitly. A startup/wake hardware
+success has not yet been confirmed by this observation.
