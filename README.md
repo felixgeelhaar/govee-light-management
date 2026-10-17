@@ -3,7 +3,7 @@
 <div align="center">
 
 ![Stream Deck Plugin](https://img.shields.io/badge/Stream%20Deck-Plugin-blue?style=flat-square&logo=elgato)
-![Version](https://img.shields.io/badge/version-2.8.0-green?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.9.0-green?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.0+-blue?style=flat-square&logo=typescript)
 ![Node.js](https://img.shields.io/badge/Node.js-20+-green?style=flat-square&logo=node.js)
@@ -600,7 +600,15 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## Roadmap
 
-### v2.8.0 (Current)
+### v2.9.0 (Current)
+
+- Optional Automation rules for startup/wake and best-effort Off before sleep/shutdown.
+- Separate native On/Off icons through Icon switching.
+- Named brightness dial displays, saved-rule lists and editable light groups.
+- Correct group power-state sampling when the cloud's offline flag is inaccurate.
+- Removed the corner status dot; existing state artwork and command feedback remain.
+
+### v2.8.0
 
 - [x] 18 actions — 13 keypad, 5 encoder
 - [x] Five hybrid actions (Brightness, Color, Color Temperature, Saturation, Segment Color) that work on a key or a dial from one UUID
