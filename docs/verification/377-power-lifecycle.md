@@ -158,3 +158,31 @@ unrelated settings. Power-state artwork and existing command/group feedback are
 preserved. Native custom artwork continues to take precedence over plugin images.
 Verify no Status dot field is present and state artwork remains distinct for
 On/Off/mixed states; native state switching is delivered separately in #381.
+
+## Sleep-off investigation (October 2026 follow-up)
+
+The reporter confirms wake-on works but sleep-off does not. Their OS and fresh
+logs are still required; this change does not claim to fix that hardware failure.
+The existing AppKit/SystemEvents observers do not negotiate a pre-suspend delay.
+Adding a signed native helper or OS sleep inhibitor requires a separate design
+review covering consent, packaging, bounded acknowledgement and cleanup. No
+sleep inhibitor, new permissions or background service is introduced here.
+
+After testing this candidate, record OS/version, plugin version, whether the
+observer reports Ready, the wall-clock time of one actual sleep/wake, and sanitized
+`power.lifecycle` lines around it. Do not share API keys or the entire log blindly.
+The logger timestamps each record. Interpret the sequence as follows:
+
+- No `event_received` for `sleep`: notification delivery to the plugin has not
+  been demonstrated. Observer Ready proves startup only.
+- `event_received` without `command_started`: rule filtering, duplicate suppression,
+  credentials, target resolution or interruption occurred before dispatch. Check
+  the following `missing_key`, `missing_target`, failure or `timeout` categories.
+- `command_started` without `ok`/`partial`: dispatch was attempted but completion
+  is unconfirmed. A paused process/network loss can prevent completion logging.
+- `ok`/`partial`: the API request returned successfully for all/some members; this
+  is not independent proof of the physical light state.
+
+On macOS and Windows, repeat once with a single light and once with a group.
+Compare actual sleep with display-off/lock, which are intentionally unsupported.
+No real-machine suspend or Windows hardware result is claimed by this patch.

@@ -162,6 +162,7 @@ export class PowerLifecycleService {
 
   async handle(event: PowerEvent): Promise<void> {
     if (this.stopped) return;
+    this.deps.log({ event, category: "event_received" });
     const isOn = event === "startup" || event === "wake";
     // An opposite transition must cancel old requests before issuing new ones.
     for (const [id, task] of this.tasks) {
@@ -370,6 +371,11 @@ export class PowerLifecycleService {
         }
         task.target = target;
         this.prepared.set(rule.selectedDeviceId, target);
+        this.deps.log({
+          event,
+          target: rule.selectedDeviceId,
+          category: "command_started",
+        });
         const outcome = await this.deps.setPower(target, isOn, signal, apiKey);
         this.assertActive(task);
         this.deps.log({
