@@ -14,7 +14,7 @@ saved IDs/models are not silently changed.
    Repeat using brightness dial press/touch. Check counts 2/2, 0/2 and 1/2.
 3. Repeat with cloud online hints false if that condition occurs. Inspect the
    group request log: attemptedCount stays full even if controllableCount is smaller.
-4. Test hybrid/legacy brightness, color, temperature, segment and saturation dials;
+4. Test hybrid brightness, color, temperature, segment and saturation dials;
    bars/values should retain normal behavior. Recall a scene/snapshot too.
 5. Make one member unreachable. Successful commands must survive, with the existing
    partial-failure warning. Failed reads must retain known state.

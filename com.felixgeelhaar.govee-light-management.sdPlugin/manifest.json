@@ -30,7 +30,7 @@
       "Name": "Brightness",
       "UUID": "com.felixgeelhaar.govee-light-management.brightness",
       "Icon": "imgs/actions/brightness/icon",
-      "Tooltip": "Set the brightness of a light or group — drag onto a key to set a fixed value, drag onto a Stream Deck+ dial to rotate-adjust",
+      "Tooltip": "Set the brightness of a light or group \u2014 drag onto a key to set a fixed value, drag onto a Stream Deck+ dial to rotate-adjust",
       "PropertyInspectorPath": "ui/brightness.html",
       "Controllers": ["Keypad", "Encoder"],
       "States": [
@@ -60,7 +60,7 @@
       "Name": "Color",
       "UUID": "com.felixgeelhaar.govee-light-management.color",
       "Icon": "imgs/actions/color/icon",
-      "Tooltip": "Set the color of a light or group — drag onto a key for a fixed colour, drag onto a Stream Deck+ dial to rotate-adjust hue",
+      "Tooltip": "Set the color of a light or group \u2014 drag onto a key for a fixed colour, drag onto a Stream Deck+ dial to rotate-adjust hue",
       "PropertyInspectorPath": "ui/color.html",
       "Controllers": ["Keypad", "Encoder"],
       "States": [
@@ -90,7 +90,7 @@
       "Name": "Color Temperature",
       "UUID": "com.felixgeelhaar.govee-light-management.colortemp",
       "Icon": "imgs/actions/colortemp/icon",
-      "Tooltip": "Set the color temperature of a light or group — drag onto a key for a fixed Kelvin value, drag onto a Stream Deck+ dial to rotate-adjust",
+      "Tooltip": "Set the color temperature of a light or group \u2014 drag onto a key for a fixed Kelvin value, drag onto a Stream Deck+ dial to rotate-adjust",
       "PropertyInspectorPath": "ui/color-temperature.html",
       "Controllers": ["Keypad", "Encoder"],
       "States": [
@@ -120,7 +120,7 @@
       "Name": "Recall",
       "UUID": "com.felixgeelhaar.govee-light-management.recall",
       "Icon": "imgs/actions/recall/icon",
-      "Tooltip": "Apply a saved scene or snapshot — one button per look (replaces juggling Scene + Snapshot for the same job)",
+      "Tooltip": "Apply a saved scene or snapshot \u2014 one button per look (replaces juggling Scene + Snapshot for the same job)",
       "PropertyInspectorPath": "ui/recall.html",
       "Controllers": ["Keypad"],
       "States": [
@@ -176,7 +176,7 @@
       "Name": "Segment Color",
       "UUID": "com.felixgeelhaar.govee-light-management.segment-color",
       "Icon": "imgs/actions/segment-color/icon",
-      "Tooltip": "RGB IC segment colour — drag onto a key to apply a rainbow/gradient/solid preset across a range, drag onto a Stream Deck+ dial to rotate-adjust a single segment hue",
+      "Tooltip": "RGB IC segment colour \u2014 drag onto a key to apply a rainbow/gradient/solid preset across a range, drag onto a Stream Deck+ dial to rotate-adjust a single segment hue",
       "PropertyInspectorPath": "ui/segment-color.html",
       "Controllers": ["Keypad", "Encoder"],
       "States": [
@@ -217,79 +217,10 @@
       ]
     },
     {
-      "Name": "Brightness Dial (legacy)",
-      "UUID": "com.felixgeelhaar.govee-light-management.brightness-dial",
-      "Icon": "imgs/actions/brightness-dial/icon",
-      "Tooltip": "Legacy — use the Brightness action instead (works on both keypad and Stream Deck+ dial). Kept for existing bindings.",
-      "PropertyInspectorPath": "ui/brightness-dial.html",
-      "Controllers": ["Encoder"],
-      "Encoder": {
-        "Icon": "imgs/actions/brightness-dial/icon",
-        "background": "imgs/actions/brightness-dial/background",
-        "TriggerDescription": {
-          "Rotate": "Adjust brightness",
-          "Push": "Toggle power",
-          "Touch": "N/A"
-        },
-        "layout": "layouts/brightness.json"
-      },
-      "States": [
-        {
-          "Image": "imgs/actions/brightness-dial/icon"
-        }
-      ]
-    },
-    {
-      "Name": "Color Hue Dial (legacy)",
-      "UUID": "com.felixgeelhaar.govee-light-management.colorhue-dial",
-      "Icon": "imgs/actions/colorhue-dial/icon",
-      "Tooltip": "Legacy — use the Color action instead (works on both keypad and Stream Deck+ dial). Kept for existing bindings.",
-      "PropertyInspectorPath": "ui/colorhue-dial.html",
-      "Controllers": ["Encoder"],
-      "Encoder": {
-        "Icon": "imgs/actions/colorhue-dial/icon",
-        "background": "imgs/actions/colorhue-dial/background",
-        "TriggerDescription": {
-          "Rotate": "Change color",
-          "Push": "Toggle power",
-          "Touch": "N/A"
-        },
-        "layout": "layouts/color-hue.json"
-      },
-      "States": [
-        {
-          "Image": "imgs/actions/colorhue-dial/icon"
-        }
-      ]
-    },
-    {
-      "Name": "Color Temperature Dial (legacy)",
-      "UUID": "com.felixgeelhaar.govee-light-management.colortemp-dial",
-      "Icon": "imgs/actions/colortemp-dial/icon",
-      "Tooltip": "Legacy — use the Color Temperature action instead (works on both keypad and Stream Deck+ dial). Kept for existing bindings.",
-      "PropertyInspectorPath": "ui/colortemp-dial.html",
-      "Controllers": ["Encoder"],
-      "Encoder": {
-        "Icon": "imgs/actions/colortemp-dial/icon",
-        "background": "imgs/actions/colortemp-dial/background",
-        "TriggerDescription": {
-          "Rotate": "Adjust warm/cool",
-          "Push": "Toggle power",
-          "Touch": "N/A"
-        },
-        "layout": "layouts/color-temp.json"
-      },
-      "States": [
-        {
-          "Image": "imgs/actions/colortemp-dial/icon"
-        }
-      ]
-    },
-    {
       "Name": "Saturation",
       "UUID": "com.felixgeelhaar.govee-light-management.saturation-dial",
       "Icon": "imgs/actions/saturation-dial/icon",
-      "Tooltip": "Set saturation of the current colour — drag onto a key for a fixed value, drag onto a Stream Deck+ dial to rotate-adjust",
+      "Tooltip": "Set saturation of the current colour \u2014 drag onto a key for a fixed value, drag onto a Stream Deck+ dial to rotate-adjust",
       "PropertyInspectorPath": "ui/saturation-dial.html",
       "Controllers": ["Keypad", "Encoder"],
       "Encoder": {
@@ -312,29 +243,6 @@
           "Image": "imgs/actions/saturation-dial/key-off",
           "TitleAlignment": "bottom",
           "Name": "Off"
-        }
-      ]
-    },
-    {
-      "Name": "Segment Color Dial (legacy)",
-      "UUID": "com.felixgeelhaar.govee-light-management.segment-color-dial",
-      "Icon": "imgs/actions/segment-color-dial/icon",
-      "Tooltip": "Legacy — use the Segment Color action instead (works on both keypad and Stream Deck+ dial). Kept for existing bindings.",
-      "PropertyInspectorPath": "ui/segment-color-dial.html",
-      "Controllers": ["Encoder"],
-      "Encoder": {
-        "Icon": "imgs/actions/segment-color-dial/icon",
-        "background": "imgs/actions/segment-color-dial/background",
-        "TriggerDescription": {
-          "Rotate": "Change segment hue",
-          "Push": "Apply color to segment",
-          "Touch": "Apply color to segment"
-        },
-        "layout": "layouts/segment.json"
-      },
-      "States": [
-        {
-          "Image": "imgs/actions/segment-color-dial/icon"
         }
       ]
     },

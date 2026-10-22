@@ -8,8 +8,8 @@ constraints live in `AGENTS.md`.
 
 ## Project Overview
 
-A Stream Deck plugin for controlling Govee smart lights. It registers 18
-actions (13 keypad classes + 5 encoder classes) that talk to the Govee Cloud
+A Stream Deck plugin for controlling Govee smart lights. It registers 14
+actions, including five hybrid keypad/encoder controls that talk to the Govee Cloud
 API through `@felixgeelhaar/govee-api-client` (`^3.4.0`). Published on the
 Elgato Marketplace; Stream Deck SDK dependency is `^3.0.3`; current version is
 2.9.1 (`package.json` `version` and the
@@ -91,8 +91,8 @@ during development, or opening the packed `.streamDeckPlugin` file.
 ```
 src/
 ├── backend/
-│   ├── actions/              # entry layer: 18 Stream Deck action classes
-│   │   └── shared/           # ActionServices, BaseDialAction, status badge, utils
+│   ├── actions/              # entry layer: 14 Stream Deck action classes
+│   │   └── shared/           # ActionServices, BaseDialAction, state artwork, utils
 │   ├── application/services/ # DeviceService (discovery cache + normalization)
 │   ├── connectivity/         # ITransport, TransportOrchestrator, cloud/CloudTransport
 │   ├── domain/
@@ -158,10 +158,8 @@ Registered in `src/backend/plugin.ts`. UUIDs are prefixed
 
 ### Encoder actions
 
-`saturation-dial` (`SaturationDialAction`) is a hybrid like the five above it.
-The remaining four are the pre-2.7.0 standalone dials, kept registered and
-labelled _(legacy)_ in the manifest so existing user bindings keep working:
-`brightness-dial`, `colortemp-dial`, `colorhue-dial`, `segment-color-dial`.
+`saturation-dial` (`SaturationDialAction`) supports both keypad and encoder.
+The four superseded standalone dial actions have been removed.
 
 ### Hybrid keypad + encoder
 
@@ -176,7 +174,7 @@ Read from `settings.stepSize`, clamped in the rotate handler:
 
 | Action                              | Range    | Default |
 | ----------------------------------- | -------- | ------- |
-| Brightness / Brightness Dial        | 1–25 %   | 5 %     |
+| Brightness        | 1–25 %   | 5 %     |
 | Saturation                          | 1–25 %   | 5 %     |
 | Color Temperature / Color Temp Dial | 50–500 K | 100 K   |
 | Color / Color Hue Dial              | 1–90°    | 15°     |

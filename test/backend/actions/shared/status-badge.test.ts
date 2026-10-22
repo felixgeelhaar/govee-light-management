@@ -11,7 +11,6 @@ import {
   resolveKeyArt,
   statusKeyDataUri,
   statusKeyImage,
-  type PowerStatus,
 } from "../../../../src/backend/actions/shared/status-badge";
 
 /**
@@ -72,31 +71,6 @@ describe("powerStatus", () => {
   it("ignores a zero-total summary and falls back to single-light state", () => {
     expect(powerStatus({ onCount: 0, totalCount: 0 }, true)).toBe("on");
   });
-
-  it("preserves the documented ●/◐/○ vocabulary from #194", () => {
-    // These were the glyphs the title used to carry. The badge shapes
-    // replaced them one-for-one, so the mapping has to stay stable or
-    // users relearn the shape language.
-    const glyphForStatus: Record<Exclude<PowerStatus, "unknown">, string> = {
-      on: "●",
-      partial: "◐",
-      off: "○",
-    };
-    const cases = [
-      { summary: undefined, isOn: true, glyph: "●" },
-      { summary: undefined, isOn: false, glyph: "○" },
-      { summary: { onCount: 2, totalCount: 2 }, isOn: true, glyph: "●" },
-      { summary: { onCount: 1, totalCount: 2 }, isOn: true, glyph: "◐" },
-      { summary: { onCount: 0, totalCount: 2 }, isOn: false, glyph: "○" },
-    ];
-    for (const c of cases) {
-      const status = powerStatus(c.summary, c.isOn) as Exclude<
-        PowerStatus,
-        "unknown"
-      >;
-      expect(glyphForStatus[status]).toBe(c.glyph);
-    }
-  });
 });
 
 describe("renderStatusKey", () => {
@@ -124,26 +98,6 @@ describe("renderStatusKey", () => {
     );
   });
 
-  it("draws a filled badge when everything is on", () => {
-    const svg = renderStatusKey(BASE_SVG, "on");
-    expect(svg).toContain('data-status="on"');
-    expect(svg).toContain('fill="#22D3EE"');
-  });
-
-  it("draws a half-filled badge when a group is partially on", () => {
-    const svg = renderStatusKey(BASE_SVG, "partial");
-    expect(svg).toContain('data-status="partial"');
-    // The half disc is an arc path, not a plain circle fill.
-    expect(svg).toMatch(/<path d="M [\d.]+ [\d.]+ A /);
-  });
-
-  it("draws a hollow badge when everything is off", () => {
-    const svg = renderStatusKey(BASE_SVG, "off");
-    expect(svg).toContain('data-status="off"');
-    expect(svg).toContain('stroke="#64748B"');
-    expect(svg).not.toContain('fill="#22D3EE"');
-  });
-
   it("dims an off key that nothing else marks", () => {
     // No badge and no drawn glyph, so hue is alone and needs a second axis.
     // 0.55, not the old 0.4: grey-and-faded read as broken rather than off.
@@ -151,24 +105,14 @@ describe("renderStatusKey", () => {
     expect(svg).toContain('opacity="0.55"');
   });
 
-  it("leaves off at full colour whenever the badge marks it", () => {
-    // The badge is the better second axis, so the dim would only darken a
-    // key that already says what it is.
-    const svg = renderStatusKey(BASE_SVG, "off", true);
-    expect(svg).toContain('data-status="off"');
-    expect(svg).not.toContain("<g opacity=");
-  });
-
   it("does not dim the artwork when on or partial", () => {
-    // The badge's backing disc carries fill-opacity, so this has to look for
-    // the artwork wrapper specifically rather than any opacity at all.
-    for (const showDot of [true, false]) {
-      expect(renderStatusKey(BASE_SVG, "on", showDot)).not.toContain(
+    for (const authoredForState of [true, false]) {
+      expect(renderStatusKey(BASE_SVG, "on", authoredForState)).not.toContain(
         "<g opacity=",
       );
-      expect(renderStatusKey(BASE_SVG, "partial", showDot)).not.toContain(
-        "<g opacity=",
-      );
+      expect(
+        renderStatusKey(BASE_SVG, "partial", authoredForState),
+      ).not.toContain("<g opacity=");
     }
   });
 
@@ -193,17 +137,6 @@ describe("renderStatusKey", () => {
     expect(ends.map((m) => m[1])).toEqual(["#A855F7", "#6366F1", "#22D3EE"]);
   });
 
-  it("omits the badge when the dot is turned off", () => {
-    // #339 asked to ditch the dot. It is opt-out rather than gone, because
-    // without it partial leans toward on.
-    expect(renderStatusKey(BASE_SVG, "partial", false)).not.toContain(
-      "data-status=",
-    );
-    expect(renderStatusKey(BASE_SVG, "partial", true)).toContain(
-      "data-status=",
-    );
-  });
-
   it("still separates every state when the dot is hidden", () => {
     const [on, partial, off] = (["on", "partial", "off"] as const).map((s) =>
       renderStatusKey(GRADIENT_SVG, s, false),
@@ -217,46 +150,6 @@ describe("renderStatusKey", () => {
       ...renderStatusKey(twoStop, "off", false).matchAll(/offset="([^"]+)"/g),
     ];
     expect(offsets.map((m) => m[1])).toEqual(["0", "1"]);
-  });
-
-  it("places the badge in the top-right quadrant, clear of a bottom title", () => {
-    const svg = renderStatusKey(BASE_SVG, "on");
-    const badge = /<circle cx="([\d.]+)" cy="([\d.]+)"/.exec(
-      svg.slice(svg.indexOf('data-status="on"')),
-    );
-    expect(badge).not.toBeNull();
-    const cx = Number(badge![1]);
-    const cy = Number(badge![2]);
-    expect(cx).toBeGreaterThan(144);
-    expect(cy).toBeLessThan(144);
-    // Inside the 14..274 rounded card so it never clips at the key edge.
-    expect(cx).toBeLessThan(274);
-    expect(cy).toBeGreaterThan(14);
-  });
-
-  it("scales the badge to a non-288 viewBox", () => {
-    const small = renderStatusKey(
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144"><rect/></svg>',
-      "on",
-    );
-    expect(small).toContain('viewBox="0 0 144 144"');
-    const badge = /<circle cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"/.exec(
-      small.slice(small.indexOf('data-status="on"')),
-    );
-    expect(Number(badge![1])).toBeLessThan(144);
-    expect(Number(badge![3])).toBeLessThan(144 / 2);
-  });
-
-  it("honours a viewBox with a non-zero origin", () => {
-    const shifted = renderStatusKey(
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="100 200 288 288"><rect/></svg>',
-      "on",
-    );
-    const badge = /<circle cx="([\d.]+)" cy="([\d.]+)"/.exec(
-      shifted.slice(shifted.indexOf('data-status="on"')),
-    );
-    expect(Number(badge![1])).toBeGreaterThan(100);
-    expect(Number(badge![2])).toBeGreaterThan(200);
   });
 
   it("assumes a 288 square when the artwork omits a viewBox", () => {
@@ -312,7 +205,7 @@ describe("loadKeyArt", () => {
     expect(() => loadKeyArt("no-such-action", REAL_ART_ROOT)).toThrow();
   });
 
-  it("ships key.svg for every action the badge is wired into", () => {
+  it("ships key.svg for every action with state artwork", () => {
     for (const name of KEY_ART_NAMES) {
       const file = new URL(`${name}/key.svg`, REAL_ART_ROOT);
       expect(
@@ -322,7 +215,7 @@ describe("loadKeyArt", () => {
     }
   });
 
-  it("renders a badge onto every shipped action artwork", () => {
+  it("renders every shipped action artwork", () => {
     for (const name of KEY_ART_NAMES) {
       const uri = statusKeyImage(name, "partial", REAL_ART_ROOT);
       expect(uri.startsWith("data:image/svg+xml;base64,")).toBe(true);
@@ -384,52 +277,23 @@ describe("resolveKeyArt", () => {
   });
 });
 
-describe("the badge and the drawn glyph never appear together", () => {
-  /** Decode what the plugin actually hands to `setImage()`. */
-  const rendered = (status: PowerStatus, showDot: boolean): string =>
-    Buffer.from(
-      statusKeyImage("light", status, REAL_ART_ROOT, showDot).split(",")[1]!,
+describe("state artwork", () => {
+  it("uses authored off artwork without a dot or dim", () => {
+    const svg = Buffer.from(
+      statusKeyImage("light", "off", REAL_ART_ROOT).split(",")[1]!,
       "base64",
     ).toString("utf-8");
-
-  it("keeps the artwork neutral while the badge is shown", () => {
-    // The drawn off state is a plain ring; the shipped filament is a dashed
-    // circle plus a stem. With the badge on, the shipped one has to win.
-    const svg = rendered("off", true);
-    expect(svg).toContain("data-status=");
-    expect(svg).toContain("stroke-dasharray");
-  });
-
-  it("hands the job to the drawn glyph once the badge is hidden", () => {
-    const svg = rendered("off", false);
     expect(svg).not.toContain("data-status=");
     expect(svg).not.toContain("stroke-dasharray");
+    expect(svg).not.toContain("<g opacity=");
   });
-
-  it("never dims the light key, which always has a better marker", () => {
-    // Badge on: the dot marks it. Badge off: the drawn ring marks it.
-    // Either way the artwork keeps its full colour.
-    expect(rendered("off", true)).not.toContain("<g opacity=");
-    expect(rendered("off", false)).not.toContain("<g opacity=");
-  });
-
-  it("keeps the dim only where nothing else can mark an off key", () => {
-    const brightness = (showDot: boolean): string =>
-      Buffer.from(
-        statusKeyImage("brightness", "off", REAL_ART_ROOT, showDot).split(
-          ",",
-        )[1]!,
-        "base64",
-      ).toString("utf-8");
-
-    // Badge hidden and no drawn art to take over: the dim is the only thing
-    // left saying "off", and brightness is one of seven actions in that boat.
-    expect(brightness(false)).not.toContain("data-status=");
-    expect(brightness(false)).toContain("<g opacity=");
-
-    // Badge shown: it marks the key, so the dim would be redundant.
-    expect(brightness(true)).toContain("data-status=");
-    expect(brightness(true)).not.toContain("<g opacity=");
+  it("dims fallback artwork when off", () => {
+    const svg = Buffer.from(
+      statusKeyImage("brightness", "off", REAL_ART_ROOT).split(",")[1]!,
+      "base64",
+    ).toString("utf-8");
+    expect(svg).toContain('opacity="0.55"');
+    expect(svg).not.toContain("data-status=");
   });
 });
 
@@ -442,29 +306,24 @@ describe("renderStatusKey with artwork drawn for the state", () => {
     // Both directions: without the flag the midpoint is driven to 0.9,
     // with it the authored .5 survives. Asserting only one would pass
     // even if the flag did nothing.
-    expect(
-      midpoints(renderStatusKey(GRADIENT_SVG, "off", false, false)),
-    ).toEqual(["0", "0.9", "1"]);
-    expect(
-      midpoints(renderStatusKey(GRADIENT_SVG, "off", false, true)),
-    ).toEqual(["0", ".5", "1"]);
+    expect(midpoints(renderStatusKey(GRADIENT_SVG, "off", false))).toEqual([
+      "0",
+      "0.9",
+      "1",
+    ]);
+    expect(midpoints(renderStatusKey(GRADIENT_SVG, "off", true))).toEqual([
+      "0",
+      ".5",
+      "1",
+    ]);
   });
 
   it("does not dim an off key that was drawn as off", () => {
-    expect(renderStatusKey(GRADIENT_SVG, "off", false, true)).not.toContain(
+    expect(renderStatusKey(GRADIENT_SVG, "off", true)).not.toContain(
       "<g opacity=",
     );
-    expect(renderStatusKey(GRADIENT_SVG, "off", false, false)).toContain(
+    expect(renderStatusKey(GRADIENT_SVG, "off", false)).toContain(
       "<g opacity=",
-    );
-  });
-
-  it("still composites the badge when the dot is on", () => {
-    expect(renderStatusKey(GRADIENT_SVG, "partial", true, true)).toContain(
-      'data-status="partial"',
-    );
-    expect(renderStatusKey(GRADIENT_SVG, "partial", false, true)).not.toContain(
-      'data-status="partial"',
     );
   });
 });
@@ -475,7 +334,7 @@ describe("applyStatusImage", () => {
     await applyStatusImage({ setImage }, "light", "on", REAL_ART_ROOT);
     expect(setImage).toHaveBeenCalledTimes(1);
     expect(setImage.mock.calls[0][0]).toBe(
-      statusKeyImage("light", "on", REAL_ART_ROOT, false),
+      statusKeyImage("light", "on", REAL_ART_ROOT),
     );
   });
 
@@ -501,7 +360,7 @@ describe("applyStatusImage", () => {
   it("resets to the manifest image when the state is unknown", async () => {
     // setImage sticks until it is cleared, so a key that stops showing
     // state — retargeted, or switched to a plain on/off command — has
-    // to drop back to its manifest artwork rather than keep a stale badge.
+    // to drop back to its manifest artwork rather than keep stale state artwork.
     const setImage = vi.fn().mockResolvedValue(undefined);
     await applyStatusImage({ setImage }, "light", "unknown", REAL_ART_ROOT);
     expect(setImage).toHaveBeenCalledWith();
@@ -515,7 +374,7 @@ describe("retired status dot", () => {
         const setImage = vi.fn().mockResolvedValue(undefined);
         await applyStatusImage({ setImage }, art, state, REAL_ART_ROOT);
         expect(setImage).toHaveBeenCalledWith(
-          statusKeyImage(art, state, REAL_ART_ROOT, false),
+          statusKeyImage(art, state, REAL_ART_ROOT),
         );
       }
   });

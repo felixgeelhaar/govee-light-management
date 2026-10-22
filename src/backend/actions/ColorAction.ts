@@ -6,8 +6,7 @@
  * configured saturation). Encoder press toggles power.
  *
  * Same UUID for both controllers — Stream Deck routes the right
- * handler based on placement. Legacy ColorHueDialAction (different
- * UUID) stays registered so existing dial bindings keep working.
+ * handler based on placement.
  */
 import {
   action,
