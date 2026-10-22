@@ -58,6 +58,39 @@ describe("PowerLifecycleService", () => {
       );
     },
   );
+  it("records event receipt before credentials resolve and command dispatch before transport", async () => {
+    const { service, deps } = setup();
+    let releaseKey!: (key: string) => void;
+    deps.getApiKey.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseKey = resolve;
+        }),
+    );
+    service.configure([rule()]);
+    const sleep = service.handle("sleep");
+    expect(deps.log).toHaveBeenCalledWith({
+      event: "sleep",
+      category: "event_received",
+    });
+    expect(
+      deps.log.mock.calls.some(
+        ([record]) => record.category === "command_started",
+      ),
+    ).toBe(false);
+    releaseKey("test-api-key");
+    await sleep;
+    const categories = deps.log.mock.calls.map(([record]) => record.category);
+    expect(categories).toEqual(["event_received", "command_started", "ok"]);
+    expect(deps.log).toHaveBeenCalledWith({
+      event: "sleep",
+      target: "light:dev-1|H619A",
+      category: "command_started",
+    });
+    expect(JSON.stringify(deps.log.mock.calls)).not.toContain("test-api-key");
+    service.shutdown();
+  });
+
   it("only enables the native hook for enabled off-event rules", () => {
     const { service, deps } = setup();
     service.configure([
