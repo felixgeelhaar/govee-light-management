@@ -4,14 +4,10 @@ import { RecallAction } from "../../../src/backend/actions/RecallAction";
 import { KeypadStateTracker } from "../../../src/backend/actions/shared/KeypadStateTracker";
 import { OnOffAction } from "../../../src/backend/actions/OnOffAction";
 import { BrightnessAction } from "../../../src/backend/actions/BrightnessAction";
-import { BrightnessDialAction } from "../../../src/backend/actions/BrightnessDialAction";
 import { ColorAction } from "../../../src/backend/actions/ColorAction";
 import { ColorTemperatureAction } from "../../../src/backend/actions/ColorTemperatureAction";
-import { ColorTempDialAction } from "../../../src/backend/actions/ColorTempDialAction";
-import { ColorHueDialAction } from "../../../src/backend/actions/ColorHueDialAction";
 import { SaturationDialAction } from "../../../src/backend/actions/SaturationDialAction";
 import { SegmentColorAction } from "../../../src/backend/actions/SegmentColorAction";
-import { SegmentColorDialAction } from "../../../src/backend/actions/SegmentColorDialAction";
 import { Light } from "../../../src/backend/domain/entities/Light";
 import { LightGroup } from "../../../src/backend/domain/entities/LightGroup";
 const group = () =>
@@ -119,21 +115,15 @@ describe("#311 offline hints must not gate group power or sampling", () => {
   });
   it.each([
     { name: "Brightness", Action: BrightnessAction },
-    { name: "Brightness Dial", Action: BrightnessDialAction },
     { name: "Color", Action: ColorAction },
     { name: "Temperature", Action: ColorTemperatureAction },
-    { name: "Temperature Dial", Action: ColorTempDialAction },
-    { name: "Hue Dial", Action: ColorHueDialAction },
     { name: "Saturation", Action: SaturationDialAction },
     { name: "Segment", Action: SegmentColorAction },
-    { name: "Segment Dial", Action: SegmentColorDialAction },
   ])(
     "$name samples the group's power without an online-hint filter",
     async ({ Action }) => {
       const subject = new Action();
       await subject.onWillAppear(event(action()));
-      if (Action === SegmentColorDialAction)
-        expect(ActionServices.prototype.getLivePowerState).toHaveBeenCalled();
       expect(
         (subject as unknown as { powerMap: Map<string, boolean> }).powerMap.get(
           "ctx",

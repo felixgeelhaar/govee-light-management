@@ -6,7 +6,12 @@ All notable changes to this project are documented below. This project adheres t
 
 ### Changed
 
-- Migrate to Stream Deck SDK 3 with its default settings lifecycle. Requires Stream Deck 7.1 or later; existing actions and saved settings are retained. Neo Infobar support is separate.
+- Migrate to Stream Deck SDK 3 with its default settings lifecycle. Requires Stream Deck 7.1 or later; saved settings for retained actions are preserved. Neo Infobar support is separate.
+
+### Removed
+
+- Remove the four superseded standalone dial actions. Replace old Brightness Dial, Color Hue Dial, Color Temperature Dial and Segment Color Dial bindings with their unified actions. This breaks bindings to the four removed UUIDs; Saturation retains its UUID.
+- Remove unused status-dot preferences and rendering code. Native icon switching and power-state artwork remain available.
 
 ### Fixed
 
