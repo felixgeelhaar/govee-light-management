@@ -10,6 +10,12 @@ All notable changes to this project are documented below. This project adheres t
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- Reduced idle cloud state queries across keys/dials/groups and prevented rate-limit fallback queries from bypassing the shared cooldown (#387). External state changes may take about 30 seconds to appear.
+
 ## [2.9.1] - 2026-10-17
 
 ### Changed
