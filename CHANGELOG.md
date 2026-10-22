@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented below. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- Add Automation event/dispatch diagnostics to distinguish missing sleep notifications from incomplete cloud requests. Sleep-off remains best effort.
+
+
 ---
 
 ## [2.9.1] - 2026-10-17
