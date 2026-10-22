@@ -49,7 +49,7 @@ v2.7.0 collapses what used to be 17 separate controls into a focused, jobs-to-be
 - **Sequence** — Chain commands with delays.
 - **Custom Effect** — Animated RGB effects on IC strips (Rainbow Wave, Pulse, Fade, Strobe).
 
-> The standalone `*-Dial` entries from v2.6.0 are kept as `(legacy)` so existing user bindings still work — re-binding to the unified actions is optional.
+> Replace old standalone Brightness, Color Hue, Color Temperature and Segment Color Dial bindings with their unified actions; the four old UUIDs are removed.
 
 ### Setup
 
@@ -71,7 +71,7 @@ The API key is entered once and shared across every action. No accounts, no serv
 
 ## Marketplace reviewer notes
 
-For the Elgato review team — what to focus on for a v2.7.0 re-approval:
+Historical v2.7.0 review notes (the four standalone dial UUIDs described below are now removed):
 
 - **Backwards-compatible.** The five legacy `*-Dial` UUIDs (`brightness-dial`, `colorhue-dial`, `colortemp-dial`, `segment-color-dial`, plus the renamed `saturation-dial`) stay registered with the original behaviour. No user binding from v2.6.x breaks.
 - **No new permissions.** Same Govee cloud API surface as v2.6.x. No new outbound endpoints, no new local capabilities.

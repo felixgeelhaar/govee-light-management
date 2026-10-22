@@ -36,7 +36,6 @@ import streamDeck from "@elgato/streamdeck";
 
 export class GoveeLightRepository implements ILightRepository {
   private client: GoveeClient;
-  private readonly apiKey: string;
 
   /**
    * Short-lived cache of the controllable-device list. The device capability
@@ -53,7 +52,6 @@ export class GoveeLightRepository implements ILightRepository {
   private static readonly DEVICE_CACHE_TTL_MS = 60_000;
 
   constructor(apiKey: string, enableRetries = true) {
-    this.apiKey = apiKey;
     this.client = new GoveeClient({
       apiKey,
       enableRetries,

@@ -10,9 +10,9 @@ import type { GroupPowerSummary } from "./power-state";
 export type PowerStatus = "on" | "partial" | "off" | "unknown";
 
 /**
- * Artwork folders under `imgs/actions/` that the badge is wired into.
+ * Artwork folders under `imgs/actions/` used for power-state rendering.
  * Kept here so a test can assert every one of them actually ships a
- * `key.svg` — a missing file would silently cost the badge at runtime.
+ * `key.svg` — a missing file would silently prevent state rendering at runtime.
  */
 export const KEY_ART_NAMES = [
   "light",
@@ -27,24 +27,12 @@ export const KEY_ART_NAMES = [
 
 export type KeyArtName = (typeof KEY_ART_NAMES)[number];
 
-/** Brand cyan, shared with the gradient in the shipped artwork. */
-const ON_COLOR = "#22D3EE";
-/** Muted slate for the off ring — visible, but clearly inactive. */
-const OFF_COLOR = "#64748B";
-/** Key background, used as a backing disc so the badge reads over art. */
-const BACKING_COLOR = "#0B0E1A";
-
 const DEFAULT_VIEWBOX = { x: 0, y: 0, width: 288, height: 288 };
 
 const SVG_OPEN_TAG = /<svg\b([^>]*)>/i;
 const VIEWBOX_ATTR = /viewBox\s*=\s*["']([^"']+)["']/i;
 
-/**
- * Maps the same inputs `powerGlyph()` takes onto the badge's four-state
- * vocabulary. Unlike `powerGlyph()`, "nothing sampled yet" is
- * distinguishable from "off" — the badge omits itself rather than
- * claiming the light is off before the first sync lands.
- */
+/** Maps sampled light/group power to artwork states; unsampled remains unknown. */
 export function powerStatus(
   summary: GroupPowerSummary | undefined,
   fallbackIsOn: boolean | undefined,
@@ -87,50 +75,6 @@ function n(value: number): string {
 }
 
 /**
- * The status mark itself, drawn on a backing disc so it stays legible
- * over whatever the artwork puts underneath it.
- */
-function renderBadge(
-  status: Exclude<PowerStatus, "unknown">,
-  box: ViewBox,
-): string {
-  const unit = Math.min(box.width, box.height);
-  const radius = unit * 0.105;
-  // Sit the badge on the centre of the artwork's rounded corner arc
-  // (inset 14 + radius 40 on the shared 288 template). Any closer to
-  // the edge and the disc spills past the rounded border.
-  const inset = unit * 0.1875;
-  const cx = box.x + box.width - inset;
-  const cy = box.y + inset;
-  const mark = radius * 0.72;
-  const stroke = radius * 0.26;
-
-  const backing =
-    `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(radius)}" ` +
-    `fill="${BACKING_COLOR}" fill-opacity="0.85"/>`;
-
-  let shape: string;
-  if (status === "on") {
-    shape = `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(mark)}" fill="${ON_COLOR}"/>`;
-  } else if (status === "off") {
-    shape =
-      `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(mark)}" fill="none" ` +
-      `stroke="${OFF_COLOR}" stroke-width="${n(stroke)}"/>`;
-  } else {
-    // Half disc: sweep 0 from top to bottom traces the left semicircle,
-    // matching the ◐ glyph. The ring around it keeps the full extent
-    // readable at Stream Deck's 72 px key size.
-    shape =
-      `<path d="M ${n(cx)} ${n(cy - mark)} A ${n(mark)} ${n(mark)} 0 0 0 ` +
-      `${n(cx)} ${n(cy + mark)} Z" fill="${ON_COLOR}"/>` +
-      `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(mark)}" fill="none" ` +
-      `stroke="${ON_COLOR}" stroke-width="${n(stroke)}"/>`;
-  }
-
-  return `<g data-status="${status}">${backing}${shape}</g>`;
-}
-
-/**
  * Where the artwork's own gradient is pushed for each state.
  *
  * The shipped key art is drawn in one linear gradient running purple →
@@ -153,21 +97,7 @@ const GRADIENT_MIDPOINT: Record<Exclude<PowerStatus, "unknown">, number> = {
   off: 0.9,
 };
 
-/**
- * Last-resort dim for an off key, used only when nothing else marks it.
- *
- * Hue is one axis, and on its own it cannot carry three states: wherever
- * `partial` sits it is adjacent to a neighbour. So a key always needs a
- * second axis, and there are three candidates in order of preference —
- * the corner badge, a glyph drawn into the artwork, and finally this dim.
- *
- * The first two are better because they say "off" rather than merely
- * "less". This is reached only with the badge hidden and no drawn state
- * art, which is every action but `light` today. It matters most for the
- * artwork the gradient barely touches: the colour wheel, the segment bars
- * and the saturation dial are drawn in their own fixed colours, so
- * shifting the gradient leaves `on` and `partial` nearly identical.
- */
+/** Dim off keys that have no authored state artwork. */
 const OFF_OPACITY = 0.55;
 
 const GRADIENT_STOP = /<stop\b[^>]*offset\s*=\s*["']([^"']+)["'][^>]*>/gi;
@@ -203,23 +133,17 @@ function shiftGradient(
 }
 
 /**
- * Composite `baseSvg` with a status badge. Pure — no filesystem, no SDK
+ * Render `baseSvg` with dot-free state styling. Pure — no filesystem, no SDK
  * — so the geometry is straightforward to test.
  *
  * `authoredForState` marks artwork drawn for this exact state (#339), whose
  * gradient is then left exactly as the artist set it.
- *
- * A key carries hue plus exactly one more axis, and `showDot` and
- * `authoredForState` between them say which: the badge, the drawn glyph, or
- * — when neither is present — the off dim. Off is left at full colour
- * whenever something better is already marking it.
  *
  * @throws if `baseSvg` has no `<svg>` root element.
  */
 export function renderStatusKey(
   baseSvg: string,
   status: PowerStatus,
-  showDot = true,
   authoredForState = false,
 ): string {
   if (status === "unknown") return baseSvg;
@@ -233,9 +157,8 @@ export function renderStatusKey(
   const box = parseViewBox(open[1]);
   const body = baseSvg.slice(open.index + open[0].length, close);
   const shifted = authoredForState ? body : shiftGradient(body, status);
-  // Dim only when nothing else marks the key as off — no badge above it and
-  // no glyph drawn into it. See OFF_OPACITY for the ordering.
-  const needsDim = status === "off" && !authoredForState && !showDot;
+  // Authored off artwork already carries the state; otherwise dim the key.
+  const needsDim = status === "off" && !authoredForState;
   const artwork = needsDim
     ? `<g opacity="${n(OFF_OPACITY)}">${shifted}</g>`
     : shifted;
@@ -244,7 +167,6 @@ export function renderStatusKey(
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">` +
     artwork +
-    (showDot ? renderBadge(status, box) : "") +
     "</svg>"
   );
 }
@@ -255,14 +177,13 @@ const DATA_URI_PREFIX = "data:image/svg+xml;base64,";
 export function statusKeyDataUri(
   baseSvg: string,
   status: PowerStatus,
-  showDot = true,
   authoredForState = false,
 ): string {
   return (
     DATA_URI_PREFIX +
-    Buffer.from(
-      renderStatusKey(baseSvg, status, showDot, authoredForState),
-    ).toString("base64")
+    Buffer.from(renderStatusKey(baseSvg, status, authoredForState)).toString(
+      "base64",
+    )
   );
 }
 
@@ -318,10 +239,6 @@ const stateArtCache = new Map<string, KeyArt>();
  * what lets hand-drawn states (#339) land one action at a time without
  * every other action needing artwork drawn for it.
  *
- * Consulted only while the corner badge is hidden — see `statusKeyImage()`.
- * With the badge on, the artwork deliberately stays neutral so the key does
- * not report the same state twice.
- *
  * Deliberately not `key-<status>.svg`: `key-off.svg` is already taken. Five
  * actions declare one as their manifest State 1 image, and those files are
  * the desaturate-to-grey treatment this feature exists to replace. Matching
@@ -364,24 +281,13 @@ export function statusKeyImage(
   artName: string,
   status: PowerStatus,
   root: URL | string = defaultArtRoot,
-  showDot = true,
 ): string {
-  // `showDot` is part of the key: the same art and status render two
-  // different images depending on it, and a cache that ignored it would
-  // serve whichever was asked for first until the plugin restarted.
-  const key = `${String(root)}|${artName}|${status}|${showDot ? "dot" : "nodot"}`;
+  const key = `${String(root)}|${artName}|${status}`;
   const cached = imageCache.get(key);
   if (cached !== undefined) return cached;
 
-  // One indicator at a time (#339). The corner badge and a glyph drawn
-  // inside the bulb carry the same fact, so showing both states it twice.
-  // The badge wins while it is on and the artwork stays neutral; switch the
-  // badge off and the drawn states take the job over, which is the whole
-  // reason the preference is worth having rather than just losing a dot.
-  const art = showDot
-    ? { svg: loadKeyArt(artName, root), authoredForState: false }
-    : resolveKeyArt(artName, status, root);
-  const uri = statusKeyDataUri(art.svg, status, showDot, art.authoredForState);
+  const art = resolveKeyArt(artName, status, root);
+  const uri = statusKeyDataUri(art.svg, status, art.authoredForState);
   imageCache.set(key, uri);
   return uri;
 }
@@ -396,7 +302,7 @@ export interface ImageCapableAction {
  * A `"unknown"` status resets the key to its manifest artwork instead:
  * `setImage()` sticks until it is explicitly cleared, so a key that
  * stops displaying state — retargeted, or switched from a toggle to a
- * plain on/off command — has to drop the badge rather than keep showing
+ * plain on/off command — has to reset the artwork rather than keep showing
  * a state it no longer tracks.
  *
  * Every failure mode is non-fatal: an encoder has no `setImage`,
@@ -415,7 +321,7 @@ export async function applyStatusImage(
   let image: string | undefined;
   if (status !== "unknown") {
     try {
-      image = statusKeyImage(artName, status, root, false);
+      image = statusKeyImage(artName, status, root);
     } catch {
       return;
     }

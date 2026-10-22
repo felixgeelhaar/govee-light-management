@@ -5,8 +5,7 @@
  * configurable segment range. Encoder rotation adjusts the hue of a
  * single chosen segment; encoder press toggles power.
  *
- * Same UUID for both controllers. Legacy SegmentColorDialAction stays
- * registered for existing dial bindings.
+ * Same UUID for both controllers.
  */
 import {
   action,
@@ -274,9 +273,7 @@ export class SegmentColorAction extends BaseDialAction<SegmentColorSettings> {
 
   /**
    * Encoder-mode apply: write the dialled hue at saturation/100 to the
-   * single segment selected via `segmentIndex`. Mirrors the legacy
-   * SegmentColorDialAction.applyToSegment so behaviour is unchanged
-   * for existing users who migrate to the unified action.
+   * single segment selected via `segmentIndex`.
    */
   private async applyToSegment(
     settings: SegmentColorSettings,

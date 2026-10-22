@@ -17,10 +17,3 @@ export const UNSUPPORTED_CLOUD_GROUP_MODELS: ReadonlySet<string> = new Set([
   "SameModelGroup",
   "SameModeGroup",
 ]);
-
-/**
- * Type-narrow helper so callers don't have to repeat the cast.
- */
-export function isUnsupportedCloudGroup(model: string | undefined): boolean {
-  return typeof model === "string" && UNSUPPORTED_CLOUD_GROUP_MODELS.has(model);
-}

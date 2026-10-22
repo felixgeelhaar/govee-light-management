@@ -52,11 +52,9 @@ configuration, status indicator stays consistent across both controllers.
 - **Power Toggle** — press any dial to toggle light power on/off
 - **Group Support** — all hybrid actions work with light groups; partial failures show a persistent `⚠ N/M` banner
 
-> **Legacy actions** — the standalone _Brightness Dial_, _Color Hue Dial_,
-> _Color Temperature Dial_, and _Segment Color Dial_ entries are still
-> registered (now labelled _(legacy)_) so existing user bindings keep
-> working without touching them. New keys should use the unified actions
-> above. The legacy entries will be removed in a future major release.
+> **Removed standalone dials:** replace old Brightness Dial, Color Hue Dial,
+> Color Temperature Dial and Segment Color Dial bindings with the unified
+> actions above. Existing bindings to those four retired UUIDs no longer work.
 
 ### ✨ **Recall — one button per look (new in v2.7.0)**
 
@@ -92,8 +90,7 @@ Check out the **[Stream Deck+ Dials Guide](docs/DIALS_GUIDE.md)** for comprehens
 - **Saturation** — control color intensity (white ↔ vibrant)
 - **Segment Color** — per-segment RGB strip control
 
-> The standalone `*-Dial (legacy)` entries are kept around for existing
-> bindings only. All new dial setups should use the hybrid actions above.
+
 
 📸 **Screenshots and demo videos** available in the [Gallery](docs/gallery/)
 
@@ -614,7 +611,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ### v2.8.0
 
-- [x] 18 actions — 13 keypad, 5 encoder
+- [x] 14 actions, including 5 hybrid keypad/encoder controls
 - [x] Five hybrid actions (Brightness, Color, Color Temperature, Saturation, Segment Color) that work on a key or a dial from one UUID
 - [x] Recall — dynamic scenes, DIY scenes, and snapshots behind one picker
 - [x] Schedule, Sequence, and Custom Effect actions

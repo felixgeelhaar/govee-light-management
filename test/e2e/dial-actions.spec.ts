@@ -4,11 +4,11 @@
 import { test, expect } from '@playwright/test';
 
 const DIAL_PIS = [
-  { name: 'Brightness Dial', url: '/ui/brightness-dial.html', settings: ['stepSize'] },
-  { name: 'Color Hue Dial', url: '/ui/colorhue-dial.html', settings: ['saturation', 'stepSize'] },
-  { name: 'Color Temperature Dial', url: '/ui/colortemp-dial.html', settings: ['stepSize'] },
+  { name: 'Brightness Dial', url: '/ui/brightness.html', settings: ['stepSize'] },
+  { name: 'Color Hue Dial', url: '/ui/color.html', settings: ['saturation', 'stepSize'] },
+  { name: 'Color Temperature Dial', url: '/ui/color-temperature.html', settings: ['stepSize'] },
   { name: 'Saturation Dial', url: '/ui/saturation-dial.html', settings: ['stepSize'] },
-  { name: 'Segment Color Dial', url: '/ui/segment-color-dial.html', settings: ['segmentIndex', 'saturation', 'stepSize'] },
+  { name: 'Segment Color Dial', url: '/ui/segment-color.html', settings: ['segmentIndex', 'saturation', 'stepSize'] },
 ];
 
 for (const { name, url, settings } of DIAL_PIS) {
@@ -49,9 +49,13 @@ for (const { name, url, settings } of DIAL_PIS) {
 
 test('brightness dials expose a host-editable title alongside value and bar (#378)', async ({ request }) => {
   const manifest = await (await request.get('/manifest.json')).json();
+  const retired = ['brightness-dial', 'colorhue-dial', 'colortemp-dial', 'segment-color-dial'];
+  expect(manifest.Actions).toHaveLength(14);
+  expect(manifest.Actions.some((action: { UUID: string }) =>
+    retired.some(suffix => action.UUID.endsWith(`.${suffix}`)))).toBe(false);
   const actions = manifest.Actions.filter((action: { UUID: string }) =>
-    ['brightness', 'brightness-dial'].some(suffix => action.UUID.endsWith(`.${suffix}`)));
-  expect(actions).toHaveLength(2);
+    ['brightness'].some(suffix => action.UUID.endsWith(`.${suffix}`)));
+  expect(actions).toHaveLength(1);
   for (const action of actions) {
     const layout = await (await request.get(`/${action.Encoder.layout}`)).json();
     expect(layout.items.map((item: { key: string }) => item.key)).toEqual(['title', 'value', 'bar']);
