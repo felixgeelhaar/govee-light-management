@@ -6,8 +6,7 @@
  * Encoder rotation adjusts Kelvin by `stepSize` per tick. Encoder
  * press toggles power.
  *
- * Same UUID for both controllers. Legacy ColorTempDialAction stays
- * registered for existing dial bindings.
+ * Same UUID for both controllers.
  */
 import {
   action,

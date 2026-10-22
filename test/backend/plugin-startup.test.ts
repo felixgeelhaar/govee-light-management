@@ -29,7 +29,7 @@ afterEach(() => {
   }
 });
 
-it("uses SDK 3 settings behavior before connecting and retains startup initialization and all 18 registrations", async () => {
+it("uses SDK 3 settings behavior before connecting and retains startup initialization and all 14 registrations", async () => {
   Object.assign(streamDeck.settings, { useLegacySettingsBehavior: false });
   const connect = vi.fn(async () => {
     expect(streamDeck.settings.useLegacySettingsBehavior).toBe(false);
@@ -40,7 +40,7 @@ it("uses SDK 3 settings behavior before connecting and retains startup initializ
   expect(connect).toHaveBeenCalledOnce();
   expect(controller.attach).toHaveBeenCalledOnce();
   expect(scheduler.initialize).toHaveBeenCalledOnce();
-  expect(streamDeck.actions.registerAction).toHaveBeenCalledTimes(18);
+  expect(streamDeck.actions.registerAction).toHaveBeenCalledTimes(14);
   expect(streamDeck.settings.setGlobalSettings).not.toHaveBeenCalled();
 });
 

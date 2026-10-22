@@ -9,9 +9,7 @@
  * Both controllers share the same UUID + state tracking + status
  * glyph, so a user no longer needs to pick "Brightness" vs
  * "Brightness Dial" — Stream Deck routes the right handler based on
- * which controller they drag the action onto. The legacy
- * BrightnessDialAction (different UUID) remains registered to keep
- * existing user bindings working; new users only see "Brightness".
+ * which controller they drag the action onto.
  */
 import {
   action,

@@ -1,6 +1,6 @@
 # Brightness dial target titles (#378)
 
-Brightness and legacy Brightness Dial show the selected light/group name above
+Brightness show the selected light/group name above
 brightness and the bar. Unconfigured dials show “Select a light”; unresolved
 configured targets show “Light unavailable”. Default names longer than 24 Unicode
 code points are shortened with an ellipsis. Renames appear after the discovery
@@ -27,7 +27,7 @@ stack-title API in the installed SDK.
 6. Rotate, press, and touch the dial. Verify brightness and power behavior.
    Test mixed group power/brightness and a failing member; check existing mixed
    values and command warning feedback remain present.
-7. Repeat on a legacy Brightness Dial and a Brightness keypad binding.
+7. Repeat on a Brightness keypad binding.
 
 Hardware and Windows host behavior have not been verified in this implementation
 environment. Unit tests exercise real action handlers with mocked SDK/API boundaries;

@@ -28,6 +28,10 @@ manifest minimum is Stream Deck 7.6. Installing SDK 3 alone does not add it.
 The manifest's protocol `SDKVersion` is separate from the npm package version
 and is not changed by this dependency migration.
 
+The subsequent [obsolete-controls cleanup](obsolete-controls-cleanup.md) reduces
+the action count to 14 and removes four standalone dial UUIDs. Counts below
+record validation of the SDK migration before that cleanup.
+
 ## Automated regressions
 
 - Startup test checks default settings behavior remains enabled before connection, all 18
