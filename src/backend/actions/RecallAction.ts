@@ -57,6 +57,7 @@ export class RecallAction extends SingletonAction<RecallSettings> {
   override async onWillAppear(
     ev: WillAppearEvent<RecallSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     const ctx = ev.action.id;
     this.settingsByCtx.set(ctx, ev.payload.settings);
     this.actionsByCtx.set(ctx, ev.action);
@@ -75,6 +76,7 @@ export class RecallAction extends SingletonAction<RecallSettings> {
   override async onDidReceiveSettings(
     ev: DidReceiveSettingsEvent<RecallSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     const ctx = ev.action.id;
     this.settingsByCtx.set(ctx, ev.payload.settings);
     this.actionsByCtx.set(ctx, ev.action);

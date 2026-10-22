@@ -27,12 +27,14 @@ export class CustomEffectAction extends SingletonAction<CustomEffectSettings> {
   override async onWillAppear(
     ev: WillAppearEvent<CustomEffectSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     await this.refreshTitle(ev.action, ev.payload.settings);
   }
 
   override async onDidReceiveSettings(
     ev: DidReceiveSettingsEvent<CustomEffectSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     await this.refreshTitle(ev.action, ev.payload.settings);
   }
 

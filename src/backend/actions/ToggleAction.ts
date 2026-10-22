@@ -43,6 +43,7 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
   override async onWillAppear(
     ev: WillAppearEvent<ToggleSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     const ctx = ev.action.id;
     if (!this.featureState.has(ctx)) this.featureState.set(ctx, false);
 
@@ -92,6 +93,7 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
   override async onDidReceiveSettings(
     ev: DidReceiveSettingsEvent<ToggleSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     await this.render(ev.action, ev.payload.settings, ev.action.id);
   }
 

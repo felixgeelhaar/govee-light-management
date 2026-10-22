@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented below. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Migrate to Stream Deck SDK 3 with its default settings lifecycle. Requires Stream Deck 7.1 or later; existing actions and saved settings are retained. Neo Infobar support is separate.
+
 ---
 
 ## [2.9.1] - 2026-10-17

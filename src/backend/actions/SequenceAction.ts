@@ -36,6 +36,7 @@ export class SequenceAction extends SingletonAction<SequenceSettings> {
   override async onWillAppear(
     ev: WillAppearEvent<SequenceSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     await sequenceService.initialize();
     await this.refreshTitle(ev.action, ev.payload.settings);
   }
@@ -43,6 +44,7 @@ export class SequenceAction extends SingletonAction<SequenceSettings> {
   override async onDidReceiveSettings(
     ev: DidReceiveSettingsEvent<SequenceSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     await this.refreshTitle(ev.action, ev.payload.settings);
   }
 

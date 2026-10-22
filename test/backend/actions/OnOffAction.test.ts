@@ -7,6 +7,7 @@ import type { WillAppearEvent } from "@elgato/streamdeck";
 
 const key = () => ({
   id: "key-1",
+  isKey: () => true,
   setState: vi.fn().mockResolvedValue(undefined),
   setImage: vi.fn().mockResolvedValue(undefined),
   setTitle: vi.fn().mockResolvedValue(undefined),

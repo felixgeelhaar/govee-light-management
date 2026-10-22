@@ -11,7 +11,8 @@ constraints live in `AGENTS.md`.
 A Stream Deck plugin for controlling Govee smart lights. It registers 18
 actions (13 keypad classes + 5 encoder classes) that talk to the Govee Cloud
 API through `@felixgeelhaar/govee-api-client` (`^3.4.0`). Published on the
-Elgato Marketplace; current version is 2.9.1 (`package.json` `version` and the
+Elgato Marketplace; Stream Deck SDK dependency is `^3.0.3`; current version is
+2.9.1 (`package.json` `version` and the
 manifest's `Version` field — `2.9.1.0` — must be bumped together).
 
 Runtime target: Node 20 (the version Elgato's CLI validator pins in the
@@ -123,6 +124,14 @@ com.felixgeelhaar.govee-light-management.sdPlugin/
 There is no frontend framework in this repository. The Property Inspectors are
 plain HTML plus `ui/js/setup.js` and the vendored SDPI web components. There is
 no Vue, no Vite, no `src/frontend/`, no `ui/dist/`.
+
+## Stream Deck SDK compatibility
+
+SDK 3 uses its default settings lifecycle and requires Stream Deck 7.1+. Reads
+return settings directly; only PI changes trigger settings event handlers. Keypad-only
+actions narrow with `isKey()` because SDK 3 also represents Neo Infobar actions.
+Infobar support requires a separate host-minimum decision (7.6). See
+`docs/verification/sdk-3-migration.md` for validation and manual checks.
 
 ## Actions
 

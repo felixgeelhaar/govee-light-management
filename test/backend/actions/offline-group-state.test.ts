@@ -21,6 +21,7 @@ const group = () =>
   ]);
 const action = () => ({
   id: "ctx",
+  isKey: () => true,
   setTitle: vi.fn().mockResolvedValue(undefined),
   setFeedback: vi.fn().mockResolvedValue(undefined),
   setImage: vi.fn().mockResolvedValue(undefined),

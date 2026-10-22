@@ -28,6 +28,7 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
   override async onWillAppear(
     ev: WillAppearEvent<MusicModeSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     await ev.action.setTitle(this.getTitle(ev.payload.settings));
   }
 
@@ -38,6 +39,7 @@ export class MusicModeAction extends SingletonAction<MusicModeSettings> {
   override async onDidReceiveSettings(
     ev: DidReceiveSettingsEvent<MusicModeSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     await ev.action.setTitle(this.getTitle(ev.payload.settings));
   }
 
