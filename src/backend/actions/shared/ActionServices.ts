@@ -74,7 +74,8 @@ const FLASH_LOADING_DELAY_MS = 250; // only show loading if request is noticeabl
 const FLASH_RESULT_MS = 400; // how long success/error flash stays visible
 const LIVE_STATE_RETRY_BACKOFF_MS = 30_000;
 const RATE_LIMIT_RETRY_BACKOFF_MS = 60_000;
-const LIVE_STATE_MIN_REFRESH_MS = 3_000;
+// Shared across action instances: UI ticks must not become cloud queries.
+const LIVE_STATE_MIN_REFRESH_MS = 30_000;
 
 /**
  * Send a payload to the Property Inspector for the currently visible action.
@@ -333,7 +334,7 @@ export class ActionServices {
 
   private isRateLimitError(error: unknown): boolean {
     const message = error instanceof Error ? error.message : String(error);
-    return message.toLowerCase().includes("rate limit exceeded");
+    return /rate.?limit|\b429\b/i.test(message);
   }
 
   private isNonRetryableControlError(error: unknown): boolean {
@@ -1835,6 +1836,7 @@ export class ActionServices {
       throw new Error("Light repository not initialized");
     }
     this.hydrateFromSnapshot(light);
+    if (this.isLiveStateTemporarilyBlocked(light, "cloud-query")) return false;
     if (this.hasFreshSnapshot(light)) {
       return true;
     }
@@ -1863,7 +1865,7 @@ export class ActionServices {
         if (this.isRateLimitError(error)) {
           this.blockLiveState(
             light,
-            "full-state",
+            "cloud-query",
             RATE_LIMIT_RETRY_BACKOFF_MS,
             error,
           );
@@ -1900,7 +1902,10 @@ export class ActionServices {
       return this.getKnownPowerState(light);
     }
 
-    if (this.isLiveStateTemporarilyBlocked(light, "power-state")) {
+    if (
+      this.isLiveStateTemporarilyBlocked(light, "cloud-query") ||
+      this.isLiveStateTemporarilyBlocked(light, "power-state")
+    ) {
       return this.getKnownPowerState(light);
     }
 
@@ -1933,7 +1938,7 @@ export class ActionServices {
       if (this.isRateLimitError(error)) {
         this.blockLiveState(
           light,
-          "power-state",
+          "cloud-query",
           RATE_LIMIT_RETRY_BACKOFF_MS,
           error,
         );
