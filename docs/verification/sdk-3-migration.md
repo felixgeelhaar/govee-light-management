@@ -54,6 +54,10 @@ and is not changed by this dependency migration.
   registration, settings with matching response IDs, Music Mode titles and
   On/Off state rendering passed; no startup global settings writes occurred.
   This used an isolated temporary manifest/log directory and no real devices.
+- Merge-gate dependency remediation: lock `follow-redirects` 1.16.1 and Vite
+  8.3.5 (plus its resolved tooling dependencies). Dependency scan reports no
+  unbaselined high/critical findings; lower-severity findings remain. Unit,
+  browser, production build and SDK protocol checks were rerun.
 - Local checks ran on macOS arm64 with Node 26.10.0. Node 20 runtime support is
   based on SDK engines and the build target; actual host runtime remains manual.
 
