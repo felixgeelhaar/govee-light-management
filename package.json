@@ -57,7 +57,7 @@
     "vitest": "^4.1.11"
   },
   "dependencies": {
-    "@elgato/streamdeck": "^2.1.0",
+    "@elgato/streamdeck": "^3.0.3",
     "@felixgeelhaar/govee-api-client": "^3.4.0",
     "serialize-javascript": "^7.1.2"
   },

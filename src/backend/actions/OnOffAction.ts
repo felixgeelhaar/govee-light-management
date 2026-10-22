@@ -71,6 +71,7 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
   override async onWillAppear(
     ev: WillAppearEvent<OnOffSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     const contextId = ev.action.id;
     if (!this.powerState.has(contextId)) {
       this.powerState.set(contextId, false);
@@ -131,6 +132,7 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
   override async onDidReceiveSettings(
     ev: DidReceiveSettingsEvent<OnOffSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     const contextId = ev.action.id;
     const newDevice = ev.payload.settings.selectedDeviceId ?? "";
     this.visibleActions.set(contextId, ev.action);

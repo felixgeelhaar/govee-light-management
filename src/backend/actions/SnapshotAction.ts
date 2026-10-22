@@ -27,6 +27,7 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
   override async onWillAppear(
     ev: WillAppearEvent<SnapshotSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     await ev.action.setTitle(this.getTitle(ev.payload.settings));
   }
 
@@ -37,6 +38,7 @@ export class SnapshotAction extends SingletonAction<SnapshotSettings> {
   override async onDidReceiveSettings(
     ev: DidReceiveSettingsEvent<SnapshotSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     await ev.action.setTitle(this.getTitle(ev.payload.settings));
   }
 

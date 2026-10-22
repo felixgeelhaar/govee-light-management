@@ -33,6 +33,7 @@ export class SceneAction extends SingletonAction<SceneSettings> {
   override async onWillAppear(
     ev: WillAppearEvent<SceneSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     await ev.action.setTitle(this.getTitle(ev.payload.settings));
   }
 
@@ -43,6 +44,7 @@ export class SceneAction extends SingletonAction<SceneSettings> {
   override async onDidReceiveSettings(
     ev: DidReceiveSettingsEvent<SceneSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     await ev.action.setTitle(this.getTitle(ev.payload.settings));
   }
 

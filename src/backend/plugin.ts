@@ -22,6 +22,10 @@ import { RecallAction } from "./actions/RecallAction";
 import { schedulerService } from "./services/SchedulerService";
 import { createShutdownRunner } from "./services/lifecycle";
 
+// Preserve SDK 2 settings events and Stream Deck 6.9 compatibility.
+// SDK 3 defaults require message identifiers introduced in Stream Deck 7.1.
+streamDeck.settings.useLegacySettingsBehavior = true;
+
 streamDeck.logger.setLevel("info");
 powerLifecycleController.attach();
 

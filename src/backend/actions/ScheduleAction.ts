@@ -38,6 +38,7 @@ export class ScheduleAction extends SingletonAction<ScheduleSettings> {
   override async onWillAppear(
     ev: WillAppearEvent<ScheduleSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     await schedulerService.initialize();
     await this.refreshTitle(ev.action, ev.payload.settings);
   }
@@ -45,6 +46,7 @@ export class ScheduleAction extends SingletonAction<ScheduleSettings> {
   override async onDidReceiveSettings(
     ev: DidReceiveSettingsEvent<ScheduleSettings>,
   ): Promise<void> {
+    if (!ev.action.isKey()) return;
     await this.syncAction(ev.payload.settings);
     await this.refreshTitle(ev.action, ev.payload.settings);
   }
