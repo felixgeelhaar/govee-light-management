@@ -6,7 +6,7 @@ All notable changes to this project are documented below. This project adheres t
 
 ### Changed
 
-- Migrate to Stream Deck SDK 3 while retaining Stream Deck 6.9 compatibility, existing actions and saved settings. Neo Infobar support is separate.
+- Migrate to Stream Deck SDK 3 with its default settings lifecycle. Requires Stream Deck 7.1 or later; existing actions and saved settings are retained. Neo Infobar support is separate.
 
 ---
 

@@ -115,7 +115,7 @@ jobs:
             echo ""
             echo "## Requirements"
             echo ""
-            echo "- Stream Deck software 6.9 or later"
+            echo "- Stream Deck software 7.1 or later"
             echo "- macOS 12+ or Windows 10+"
             echo "- Govee API key from [developer.govee.com](https://developer.govee.com)"
           } > release_notes.md

@@ -127,8 +127,8 @@ no Vue, no Vite, no `src/frontend/`, no `ui/dist/`.
 
 ## Stream Deck SDK compatibility
 
-SDK 3 is configured with `settings.useLegacySettingsBehavior = true` before
-connecting, preserving SDK 2 settings events and host 6.9 support. Keypad-only
+SDK 3 uses its default settings lifecycle and requires Stream Deck 7.1+. Reads
+return settings directly; only PI changes trigger settings event handlers. Keypad-only
 actions narrow with `isKey()` because SDK 3 also represents Neo Infobar actions.
 Infobar support requires a separate host-minimum decision (7.6). See
 `docs/verification/sdk-3-migration.md` for validation and manual checks.

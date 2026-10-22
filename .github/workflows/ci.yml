@@ -57,6 +57,9 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: SDK settings protocol regression
+        run: npm run test:sdk-protocol
+
       - name: Run build
         run: npm run build
 
@@ -86,6 +89,9 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: SDK settings protocol regression
+        run: npm run test:sdk-protocol
 
       - name: Run build
         run: npm run build

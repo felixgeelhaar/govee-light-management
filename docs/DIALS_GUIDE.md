@@ -387,4 +387,4 @@ A: Segments are numbered 1-15 left to right on most RGB IC strips. The property 
 ---
 
 _Version 2.1.3 — Stream Deck+ Dials Guide_
-_For Stream Deck software 6.9+_
+_For Stream Deck software 7.1+_

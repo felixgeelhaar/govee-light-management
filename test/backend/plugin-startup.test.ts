@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, expect, it, vi } from "vitest";
 import streamDeck from "@elgato/streamdeck";
 
@@ -28,10 +29,10 @@ afterEach(() => {
   }
 });
 
-it("enables legacy settings before connecting and retains startup initialization and all 18 registrations", async () => {
+it("uses SDK 3 settings behavior before connecting and retains startup initialization and all 18 registrations", async () => {
   Object.assign(streamDeck.settings, { useLegacySettingsBehavior: false });
   const connect = vi.fn(async () => {
-    expect(streamDeck.settings.useLegacySettingsBehavior).toBe(true);
+    expect(streamDeck.settings.useLegacySettingsBehavior).toBe(false);
   });
   Object.assign(streamDeck, { connect });
   await import("../../src/backend/plugin");
@@ -41,4 +42,14 @@ it("enables legacy settings before connecting and retains startup initialization
   expect(scheduler.initialize).toHaveBeenCalledOnce();
   expect(streamDeck.actions.registerAction).toHaveBeenCalledTimes(18);
   expect(streamDeck.settings.setGlobalSettings).not.toHaveBeenCalled();
+});
+
+it("declares the SDK 3 settings minimum host version", () => {
+  const manifest = JSON.parse(
+    readFileSync(
+      "com.felixgeelhaar.govee-light-management.sdPlugin/manifest.json",
+      "utf8",
+    ),
+  );
+  expect(manifest.Software.MinimumVersion).toBe("7.1");
 });

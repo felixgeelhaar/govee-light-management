@@ -61,7 +61,7 @@ The API key is entered once and shared across every action. No accounts, no serv
 
 ### Requirements
 
-- Stream Deck app 6.9 or later
+- Stream Deck app 7.1 or later
 - macOS 12+ or Windows 10+
 - A Govee developer API key (free, from the Govee mobile app)
 - Govee smart lights connected to your Govee account
