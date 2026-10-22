@@ -16,14 +16,9 @@ All notable changes to this project are documented below. This project adheres t
 ### Fixed
 
 - Add Automation event/dispatch diagnostics to distinguish missing sleep notifications from incomplete cloud requests. Sleep-off remains best effort.
+- Reduced idle cloud state queries across keys/dials/groups and prevented rate-limit fallback queries from bypassing the shared cooldown (#387). External state changes may take about 30 seconds to appear.
 
 ---
-
-## [Unreleased]
-
-### Fixed
-
-- Reduced idle cloud state queries across keys/dials/groups and prevented rate-limit fallback queries from bypassing the shared cooldown (#387). External state changes may take about 30 seconds to appear.
 
 ## [2.9.1] - 2026-10-17
 
