@@ -13,13 +13,11 @@ All notable changes to this project are documented below. This project adheres t
 - Remove the four superseded standalone dial actions. Replace old Brightness Dial, Color Hue Dial, Color Temperature Dial and Segment Color Dial bindings with their unified actions. This breaks bindings to the four removed UUIDs; Saturation retains its UUID.
 - Remove unused status-dot preferences and rendering code. Native icon switching and power-state artwork remain available.
 
----
-
-## [Unreleased]
-
 ### Fixed
 
 - Reduced idle cloud state queries across keys/dials/groups and prevented rate-limit fallback queries from bypassing the shared cooldown (#387). External state changes may take about 30 seconds to appear.
+
+---
 
 ## [2.9.1] - 2026-10-17
 
