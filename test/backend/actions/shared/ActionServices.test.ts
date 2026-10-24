@@ -865,7 +865,7 @@ describe("ActionServices.handleGetDevices — API key cache retry", () => {
  * that can't address a group MUST be able to opt out of the Groups section
  * so the user never sees a picker entry that will error at runtime.
  */
-describe("ActionServices.handleGetDevices — includeGroups filter", () => {
+describe("ActionServices.handleGetDevices — group availability", () => {
   let services: ActionServices;
   let restoreShared: () => void;
 
@@ -918,22 +918,21 @@ describe("ActionServices.handleGetDevices — includeGroups filter", () => {
     expect(payload.items.some((i) => i.label === "Groups")).toBe(true);
   });
 
-  it("omits the Groups section when includeGroups is false", async () => {
-    const shared = (
-      ActionServices as unknown as {
-        _shared: { groupService?: { getAllGroups: ReturnType<typeof vi.fn> } };
-      }
-    )._shared;
-    const getAllGroupsSpy = shared.groupService!.getAllGroups;
+  it("lists groups greyed out when an action cannot address a group", async () => {
     const s2piSpy = vi.spyOn(streamDeck.ui, "sendToPropertyInspector");
 
-    await services.handleGetDevices("ctx", { includeGroups: false });
+    await services.handleGetDevices("ctx", { groups: "disabled" });
 
-    expect(getAllGroupsSpy).not.toHaveBeenCalled();
     const payload = s2piSpy.mock.calls[0][0] as {
-      items: Array<{ label: string }>;
+      items: Array<{
+        label: string;
+        children?: Array<{ value: string; disabled?: boolean }>;
+      }>;
     };
-    expect(payload.items.some((i) => i.label === "Groups")).toBe(false);
+    const section = payload.items.find((i) => i.label.startsWith("Groups"));
+    expect(section?.label).toBe("Groups (need a single light)");
+    expect(section?.children?.length).toBeGreaterThan(0);
+    expect(section?.children?.every((c) => c.disabled === true)).toBe(true);
   });
 });
 

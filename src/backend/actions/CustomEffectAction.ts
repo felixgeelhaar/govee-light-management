@@ -103,7 +103,7 @@ export class CustomEffectAction extends SingletonAction<CustomEffectSettings> {
     switch (ev.payload.event) {
       case "getDevices":
         await this.services.handleGetDevices(ev.action.id, {
-          includeGroups: false,
+          groups: "disabled",
         });
         break;
       case "getEffects":
