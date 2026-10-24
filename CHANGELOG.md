@@ -6,15 +6,21 @@ All notable changes to this project are documented below. This project adheres t
 
 ### Changed
 
+- On / Off keys always follow live power state: set On and Off artwork with Stream Deck's **Set from File** and it switches with no extra setting. The Icon switching preference is removed and saved values are ignored. A key with only an On custom icon now shows plugin Off artwork while the light is off.
+- Automation rules apply to the light or group selected in the inspector. The separate Target dropdown is removed; Edit on a saved rule still opens rules for other targets.
 - Migrate to Stream Deck SDK 3 with its default settings lifecycle. Requires Stream Deck 7.1 or later; saved settings for retained actions are preserved. Neo Infobar support is separate.
 
 ### Removed
 
 - Remove the four superseded standalone dial actions. Replace old Brightness Dial, Color Hue Dial, Color Temperature Dial and Segment Color Dial bindings with their unified actions. This breaks bindings to the four removed UUIDs; Saturation retains its UUID.
-- Remove unused status-dot preferences and rendering code. Native icon switching and power-state artwork remain available.
+- Remove unused status-dot preferences and rendering code. Native power-state artwork remains available.
 
 ### Fixed
 
+- Every light command now logs one `light.command` line on completion (target, command, value, members reached, duration), including brightness, colour and dial input, which previously logged nothing on success. Pressing an unconfigured key logs why it was ignored for every action, not only On / Off.
+- Custom Effect lists groups greyed out ("Groups (need a single light)") instead of hiding them, and a key saved with a group now explains that custom effects need a single RGB IC light.
+- An idle plugin no longer lists every Govee device every 30 seconds. Keys and dials resolve their saved light from an inventory up to 10 minutes old; opening an inspector or pressing refresh still fetches a fresh list.
+- "Computer wakes → On" no longer turns lights on when only the display wakes. Stream Deck reports a display wake as a system wake; wake rules now run only after the computer was actually suspended, and ignored wakes are logged.
 - Add Automation event/dispatch diagnostics to distinguish missing sleep notifications from incomplete cloud requests. Sleep-off remains best effort.
 - Reduced idle cloud state queries across keys/dials/groups and prevented rate-limit fallback queries from bypassing the shared cooldown (#387). External state changes may take about 30 seconds to appear.
 

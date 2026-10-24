@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
     offBeforeSleep: "powerSleep",
     offBeforeShutdown: "powerShutdown",
   };
-  const targetSelect = document.getElementById("powerRuleTarget");
+  const targetLabel = document.getElementById("powerRuleTarget");
   const status = document.getElementById("powerLifecycleStatus");
   const save = document.getElementById("powerSave");
   const refresh = document.getElementById("powerRefresh");
@@ -40,7 +40,6 @@ document.addEventListener("DOMContentLoaded", () => {
       ? "Save changes"
       : "Create rule";
     refresh.disabled = busy;
-    targetSelect.disabled = busy;
     document.querySelectorAll("#powerRuleList button").forEach((button) => {
       button.disabled = busy;
     });
@@ -95,7 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const empty = document.createElement("div");
         empty.className = "group-empty";
         empty.textContent =
-          "No rules yet. Choose a target and save a rule below.";
+          "No rules yet. Select a light or group above and create a rule below.";
         list.appendChild(empty);
       }
       for (const rule of rules) {
@@ -148,33 +147,20 @@ document.addEventListener("DOMContentLoaded", () => {
         list.appendChild(row);
       }
     };
+    // The rule follows the light/group selected above; Edit on another
+    // saved rule switches to it until the selection changes.
     const renderTargets = () => {
-      targetSelect.replaceChildren();
-      const add = (value, label) => {
-        const option = document.createElement("option");
-        option.value = value;
-        option.textContent = label;
-        targetSelect.appendChild(option);
-      };
-      add(
-        currentTarget,
-        currentTarget
-          ? `Current selection: ${currentName || currentTarget}`
-          : "Select a light/group above or a saved rule",
-      );
-      for (const rule of rules)
-        if (rule.selectedDeviceId !== currentTarget)
-          add(
-            rule.selectedDeviceId,
-            `Saved rule: ${nameFor(rule.selectedDeviceId)}`,
-          );
-      targetSelect.value = editingTarget;
+      targetLabel.textContent = !editingTarget
+        ? "Select a light or group above"
+        : editingTarget === currentTarget
+          ? nameFor(editingTarget)
+          : `${nameFor(editingTarget)} (saved rule)`;
+      targetLabel.title = targetLabel.textContent;
       renderRules();
     };
-    const settingsChanged = (message) => {
-      const settings = message.payload?.settings || message.settings || {};
-      const next = canonical(settings.selectedDeviceId, settings.selectedModel);
-      currentName = settings.selectedLightName || "";
+    renderTargets();
+    const selectTarget = (next, name) => {
+      currentName = name || "";
       if (next && currentName) names.set(next, currentName);
       if (next === currentTarget && requestId > 0) {
         renderTargets();
@@ -182,10 +168,26 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       currentTarget = next;
       editingTarget = next;
-      currentName = settings.selectedLightName || "";
       renderTargets();
       request("getPowerLifecycleRule");
     };
+    const settingsChanged = (message) => {
+      const settings = message.payload?.settings || message.settings || {};
+      selectTarget(
+        canonical(settings.selectedDeviceId, settings.selectedModel),
+        settings.selectedLightName,
+      );
+    };
+    // The host does not echo the inspector's own setSettings back as
+    // didReceiveSettings, so a device picked above arrives only here.
+    const deviceSelect = document.querySelector(
+      'sdpi-select[setting="selectedDeviceId"]',
+    );
+    const deviceChanged = () =>
+      selectTarget(
+        canonical(deviceSelect.value),
+        deviceSelect.querySelector("select")?.selectedOptions?.[0]?.textContent,
+      );
     const response = (message) => {
       const payload = message.payload || message;
       if (payload.event === "getDevices" && Array.isArray(payload.items)) {
@@ -256,11 +258,7 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     for (const source of sources) source.subscribe(response);
     client.didReceiveSettings.subscribe(settingsChanged);
-    targetSelect.addEventListener("valuechange", () => {
-      if (targetSelect.value === editingTarget) return;
-      editingTarget = targetSelect.value;
-      request("getPowerLifecycleRule");
-    });
+    deviceSelect?.addEventListener("valuechange", deviceChanged);
     save.addEventListener("click", () => {
       const rule = Object.fromEntries(
         Object.entries(fields).map(([field, id]) => [
@@ -278,6 +276,7 @@ document.addEventListener("DOMContentLoaded", () => {
         clearTimeout(timer);
         panel.removeEventListener("toggle", syncPanel);
         client.didReceiveSettings.unsubscribe(settingsChanged);
+        deviceSelect?.removeEventListener("valuechange", deviceChanged);
         for (const source of sources) source.unsubscribe(response);
       },
       { once: true },

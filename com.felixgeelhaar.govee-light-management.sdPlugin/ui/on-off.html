@@ -28,17 +28,6 @@
         </sdpi-select>
       </sdpi-item>
 
-      <sdpi-item label="Icon switching">
-        <sdpi-select setting="separatePowerIcons" default="false">
-          <option value="false">Use On icon for both states</option>
-          <option value="true">Switch On/Off icons</option>
-        </sdpi-select>
-        <p id="nativeArtworkHint">
-          This changes state switching; it does not remove custom artwork.
-          Use Reset to Default on each state to restore plugin artwork.
-        </p>
-      </sdpi-item>
-
       <div id="groupManager"></div>
 
       <sdpi-item label="Automation">
@@ -48,9 +37,9 @@
       </sdpi-item>
       <div id="powerLifecycleBody" class="power-lifecycle-body hidden">
         <div id="powerRuleList" class="group-list-wrapper" aria-label="Saved automation rules"></div>
-        <p class="group-shared-hint">Enable the rule and choose at least one event, then create a rule. Saved rules run even when this key is hidden or removed.</p>
+        <p class="group-shared-hint">The rule applies to the light or group selected above. Enable it and choose at least one event, then create the rule. Saved rules run even when this key is hidden or removed.</p>
         <sdpi-item label="Target">
-          <sdpi-select id="powerRuleTarget" aria-label="Rule target"></sdpi-select>
+          <p id="powerRuleTarget" class="power-rule-target" aria-live="polite"></p>
         </sdpi-item>
         <sdpi-item label="Rule">
           <sdpi-checkbox id="powerEnabled" label="Enable this rule"></sdpi-checkbox>

@@ -64,6 +64,14 @@
 	box-sizing: border-box;
 }
 
+.power-rule-target {
+	margin: 0;
+	line-height: 24px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .group-list-wrapper {
 	display: flex;
 	flex-direction: column;

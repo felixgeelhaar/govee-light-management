@@ -106,7 +106,10 @@ export class ToggleAction extends SingletonAction<ToggleSettings> {
 
     const apiKey = await this.services.getApiKey(settings);
     if (!apiKey || !settings.selectedDeviceId) {
-      await ev.action.showAlert();
+      await this.services.ignoreUnconfiguredPress(ev.action, {
+        hasApiKey: Boolean(apiKey),
+        hasSelectedDevice: Boolean(settings.selectedDeviceId),
+      });
       return;
     }
 

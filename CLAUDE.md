@@ -49,7 +49,9 @@ Dependencies point inward. An action reaches infrastructure through
 
 **Filter by capability.** Actions ask `Light` what it supports before offering
 it in a Property Inspector dropdown — never present a light whose command would
-be rejected.
+be rejected. A target type an action can never use is listed disabled with a
+reason (`handleGetDevices(id, { groups: "disabled" })` plus a
+`data-group-unsupported` message on the select), not silently dropped.
 
 ## Commands
 
@@ -268,6 +270,13 @@ cache miss. Without coalescing, the moment the cache lapsed each key issued its
 own request at a rate-limited API. A `forceRefresh` arriving mid-flight joins
 that request rather than starting a second.
 
+**Target resolution uses `knownLights(maxAgeMs)`**, not `discover()`.
+`resolveTarget` needs the inventory (which devices exist, what they support),
+and state is fetched separately, so it accepts a list up to 10 minutes old.
+Every key/dial sync resolves its target; with the 30 s TTL alone an idle plugin
+listed every device twice a minute all day (hardware run 2026-10-24). A light
+missing from an expired list triggers one normal refresh.
+
 **Discovery is bounded** (`discoveryTimeoutMs`, default 15 s). The transport
 issues a plain fetch with no `AbortSignal`, so a hung connection would otherwise
 hold a sync tick open indefinitely. On timeout it takes the same path as a
@@ -289,7 +298,9 @@ and are edited explicitly in the On/Off PI. The observer runs only for enabled
 sleep/shutdown rules, uses packaged OS scripts with no credentials, and exits on
 parent pipe closure. Lifecycle POSTs use the cancellable `BoundedPowerClient`
 rather than the installed client's retry middleware; ordinary commands are unchanged.
-Saved references/local groups avoid cloud discovery during suspension. Manual
+Saved references/local groups avoid cloud discovery during suspension.
+Wake rules run only after a real suspension: `infrastructure/power/SuspensionDetector`
+detects wall-clock gaps between ticks, because the host also reports display wakes. Manual
 input/commands, settings changes, wake and unload cancel obsolete work. See
 `docs/verification/377-power-lifecycle.md` for budgets and unsupported cases.
 

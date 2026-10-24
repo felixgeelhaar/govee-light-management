@@ -56,7 +56,10 @@ export class SequenceAction extends SingletonAction<SequenceSettings> {
       !settings.steps ||
       settings.steps.length === 0
     ) {
-      await ev.action.showAlert();
+      await this.services.ignoreUnconfiguredPress(ev.action, {
+        hasSequence: Boolean(settings.sequenceId),
+        hasSteps: Boolean(settings.steps?.length),
+      });
       return;
     }
 

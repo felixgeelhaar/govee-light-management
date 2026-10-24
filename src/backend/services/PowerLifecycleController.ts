@@ -6,6 +6,7 @@ import {
   sendToPI,
 } from "../actions/shared/ActionServices";
 import { NativePowerEvents } from "../infrastructure/power/NativePowerEvents";
+import { SuspensionDetector } from "../infrastructure/power/SuspensionDetector";
 import {
   canonicalPowerTarget,
   normalizePowerRules,
@@ -29,6 +30,7 @@ function createService(): PowerLifecycleService {
     setPower: (target, power, signal, key) =>
       services.controlLifecyclePower(target, power, signal, key),
     events: new NativePowerEvents(),
+    suspension: new SuspensionDetector(),
     log: (record) => streamDeck.logger.info("power.lifecycle", record),
   });
 }

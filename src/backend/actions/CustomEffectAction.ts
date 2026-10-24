@@ -44,7 +44,10 @@ export class CustomEffectAction extends SingletonAction<CustomEffectSettings> {
     const { settings } = ev.payload;
 
     if (!settings.selectedDeviceId || !settings.effectId) {
-      await ev.action.showAlert();
+      await this.services.ignoreUnconfiguredPress(ev.action, {
+        hasSelectedDevice: Boolean(settings.selectedDeviceId),
+        hasEffect: Boolean(settings.effectId),
+      });
       return;
     }
 
@@ -103,7 +106,7 @@ export class CustomEffectAction extends SingletonAction<CustomEffectSettings> {
     switch (ev.payload.event) {
       case "getDevices":
         await this.services.handleGetDevices(ev.action.id, {
-          includeGroups: false,
+          groups: "disabled",
         });
         break;
       case "getEffects":

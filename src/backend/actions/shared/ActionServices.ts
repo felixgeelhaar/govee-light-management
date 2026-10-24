@@ -76,6 +76,8 @@ const LIVE_STATE_RETRY_BACKOFF_MS = 30_000;
 const RATE_LIMIT_RETRY_BACKOFF_MS = 60_000;
 // Shared across action instances: UI ticks must not become cloud queries.
 const LIVE_STATE_MIN_REFRESH_MS = 30_000;
+/** Inventory age accepted when resolving a saved target; state is fetched separately. */
+const TARGET_INVENTORY_MAX_AGE_MS = 10 * 60_000;
 
 /**
  * Send a payload to the Property Inspector for the currently visible action.
@@ -203,6 +205,35 @@ function toDomainControlValue(
   value?: DomainBrightness | DomainColorRgb | DomainColorTemperature,
 ): DomainBrightness | DomainColorRgb | DomainColorTemperature | undefined {
   return value ?? undefined;
+}
+
+/** Loggable identity of a command target: an id and a display name, no settings. */
+function describeTarget(target: DeviceTarget): {
+  target: string;
+  name?: string;
+} {
+  if (target.light) {
+    return {
+      target: `light:${target.light.deviceId}|${target.light.model}`,
+      name: target.light.name,
+    };
+  }
+  if (target.group) {
+    return { target: `group:${target.group.id}`, name: target.group.name };
+  }
+  return { target: target.type };
+}
+
+function describeValue(
+  value?: DomainBrightness | DomainColorRgb | DomainColorTemperature,
+): number | string | undefined {
+  if (value instanceof DomainBrightness) return value.level;
+  if (value instanceof DomainColorTemperature) return value.kelvin;
+  if (value instanceof DomainColorRgb)
+    return `#${[value.r, value.g, value.b]
+      .map((part) => part.toString(16).padStart(2, "0"))
+      .join("")}`;
+  return undefined;
 }
 
 export { sendToPI, sendPIDatasource };
@@ -458,10 +489,7 @@ export class ActionServices {
 
   private async cachedLightItems(): Promise<LightItem[]> {
     if (!this.deviceService) return [];
-    return (
-      this.deviceService.getCachedLights() ??
-      (await this.deviceService.discover(false))
-    );
+    return this.deviceService.knownLights(TARGET_INVENTORY_MAX_AGE_MS);
   }
 
   /**
@@ -634,9 +662,11 @@ export class ActionServices {
         // about.
         if (this.deviceService) {
           try {
-            const cached =
-              this.deviceService.getCachedLights() ??
-              (await this.deviceService.discover(forceRefresh));
+            const cached = forceRefresh
+              ? await this.deviceService.discover(true)
+              : await this.deviceService.knownLights(
+                  TARGET_INVENTORY_MAX_AGE_MS,
+                );
             for (const light of group.lights) {
               const item = findLightItem(cached, light);
               if (item) {
@@ -674,11 +704,25 @@ export class ActionServices {
         return null;
       }
 
-      // Use DeviceService with its built-in caching (15s TTL)
-      const lights = await this.deviceService.discover(forceRefresh);
-      const lightItem = lights.find(
-        (l) => l.deviceId === target.deviceId && l.model === target.model,
-      );
+      const find = (items: LightItem[]) =>
+        items.find(
+          (l) => l.deviceId === target.deviceId && l.model === target.model,
+        );
+      let lights = forceRefresh
+        ? await this.deviceService.discover(true)
+        : await this.deviceService.knownLights(TARGET_INVENTORY_MAX_AGE_MS);
+      let lightItem = find(lights);
+      // A light missing from an expired inventory may be new or re-added:
+      // refresh once. A fresh list is authoritative, so a failed (empty)
+      // discovery does not turn into a request on every sync tick.
+      if (
+        !lightItem &&
+        !forceRefresh &&
+        !this.deviceService.getCachedLights()
+      ) {
+        lights = await this.deviceService.discover(false);
+        lightItem = find(lights);
+      }
 
       if (!lightItem) {
         const matchingDeviceModels = [
@@ -790,16 +834,16 @@ export class ActionServices {
    * Handle getDevices SDPI datasource - returns both lights and groups.
    * Uses a timeout to prevent hanging forever if the API is unreachable.
    *
-   * Pass `{ includeGroups: false }` from actions that can't address a group
+   * Pass `{ groups: "disabled" }` from actions that can't address a group
    * target (e.g. Custom Effect, where per-segment playback only makes sense
-   * for a single RGB IC light). The default keeps groups visible so the
-   * shared datasource remains backward-compatible for every other action.
+   * for a single RGB IC light). Groups are then listed greyed out rather
+   * than hidden, so users see why theirs can't be picked.
    */
   async handleGetDevices(
     actionId: string,
-    options?: { includeGroups?: boolean; powerOnly?: boolean },
+    options?: { groups?: "selectable" | "disabled"; powerOnly?: boolean },
   ): Promise<void> {
-    const includeGroups = options?.includeGroups !== false;
+    const groupsDisabled = options?.groups === "disabled";
     streamDeck.logger.info(`handleGetDevices called (context: ${actionId})`);
 
     try {
@@ -873,16 +917,17 @@ export class ActionServices {
       }
 
       // Add groups
-      if (includeGroups && this.groupService) {
+      if (this.groupService) {
         const groups = await this.groupService.getAllGroups();
         const groupItems: PIDatasourceItem[] = groups.map((g) => ({
           label: `${g.name} (${g.size} lights)`,
           value: `group:${g.id}`,
+          ...(groupsDisabled ? { disabled: true } : {}),
         }));
 
         if (groupItems.length > 0) {
           items.push({
-            label: "Groups",
+            label: groupsDisabled ? "Groups (need a single light)" : "Groups",
             value: "",
             children: groupItems,
           });
@@ -1572,7 +1617,32 @@ export class ActionServices {
       }
     };
 
-    return execute(0);
+    const started = Date.now();
+    const outcome = await execute(0);
+    streamDeck.logger?.info?.("light.command", {
+      ...describeTarget(target),
+      command,
+      value: describeValue(domainValue),
+      total: outcome.total,
+      failed: outcome.failed.length,
+      durationMs: Date.now() - started,
+    });
+    return outcome;
+  }
+
+  /**
+   * Alert for a key press that cannot run because the key is not set up,
+   * and log why: the alert alone leaves nothing in the user's log.
+   */
+  async ignoreUnconfiguredPress(
+    action: { manifestId?: string; showAlert(): Promise<void> },
+    missing: Record<string, boolean>,
+  ): Promise<void> {
+    streamDeck.logger.warn("Key press ignored: not configured", {
+      action: action.manifestId,
+      ...missing,
+    });
+    await action.showAlert();
   }
 
   /**
