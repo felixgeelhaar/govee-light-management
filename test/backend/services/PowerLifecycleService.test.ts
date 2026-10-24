@@ -36,6 +36,33 @@ describe("PowerLifecycleService", () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
+  it("ignores a wake event when the computer was not suspended", async () => {
+    const { deps } = setup();
+    const suspension = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      recentlySuspended: vi.fn().mockReturnValue(false),
+    };
+    const guarded = new PowerLifecycleService({ ...deps, suspension });
+    expect(suspension.start).toHaveBeenCalledOnce();
+    guarded.configure([rule()]);
+    await guarded.handle("wake");
+    expect(deps.setPower).not.toHaveBeenCalled();
+    expect(deps.log).toHaveBeenCalledWith({
+      event: "wake",
+      category: "wake_ignored_not_suspended",
+    });
+    suspension.recentlySuspended.mockReturnValue(true);
+    await guarded.handle("wake");
+    expect(deps.setPower).toHaveBeenCalledWith(
+      target,
+      true,
+      expect.any(AbortSignal),
+      "test-api-key",
+    );
+    guarded.shutdown();
+    expect(suspension.stop).toHaveBeenCalledOnce();
+  });
   it("defaults to no automation or helper", async () => {
     const { service, deps } = setup();
     service.configure(undefined);

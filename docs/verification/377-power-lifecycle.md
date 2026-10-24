@@ -42,6 +42,12 @@ changes and USB disconnects are not PC power transitions.
 - Commands explicitly set On/Off; they never toggle. Equivalent saved target IDs
   are deduplicated. Repeated start/wake or off events are coalesced per target
   within five seconds; opposite transitions cancel prior work.
+- A wake event runs wake rules only if the computer was actually suspended.
+  Stream Deck also reports a display wake as `systemDidWakeUp` (observed on
+  macOS 2026-10-24 with no system sleep). `SuspensionDetector` ticks every 5 s;
+  a wall-clock gap more than 15 s past a tick counts as a suspension, and a wake
+  within 120 s of one is honoured. Otherwise the log records
+  `wake_ignored_not_suspended`. A sleep shorter than about 15 s may not count.
 - Startup/wake gets at most 15 seconds total and one retry after three seconds
   for a transient power-request network/timeout error. Individual POSTs have a
   five-second deadline. Auth, validation, rate-limit and partial-group failures
