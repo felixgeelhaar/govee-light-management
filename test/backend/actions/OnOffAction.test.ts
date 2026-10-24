@@ -20,7 +20,6 @@ const event = (action: ReturnType<typeof key>, operation = "toggle") =>
     payload: {
       settings: {
         selectedDeviceId: "dev-1|H619A",
-        separatePowerIcons: true,
         operation,
       },
     },
@@ -57,58 +56,37 @@ describe("OnOff native artwork states (#375)", () => {
     vi.useRealTimers();
   });
 
-  it("preserves state 0 for old settings even when the light is off", async () => {
-    vi.mocked(ActionServices.prototype.getLivePowerState).mockResolvedValue(
-      false,
-    );
-    const action = key();
-    const oldEvent = {
-      action,
-      payload: { settings: { selectedDeviceId: "dev-1|H619A" } },
-    };
-    await new OnOffAction().onWillAppear(oldEvent as never);
-    expect(action.setState).toHaveBeenLastCalledWith(0);
-  });
-
-  it.each([
-    ["true", 1],
-    ["false", 0],
-  ])("honors the PI string preference %s", async (preference, state) => {
+  it("follows power state without any icon switching preference", async () => {
     vi.mocked(ActionServices.prototype.getLivePowerState).mockResolvedValue(
       false,
     );
     const action = key();
     await new OnOffAction().onWillAppear({
       action,
-      payload: {
-        settings: {
-          selectedDeviceId: "dev-1|H619A",
-          separatePowerIcons: preference,
-        },
-      },
+      payload: { settings: { selectedDeviceId: "dev-1|H619A" } },
     } as never);
-    expect(action.setState).toHaveBeenLastCalledWith(state);
+    expect(action.setState).toHaveBeenLastCalledWith(1);
   });
 
-  it("returns to state 0 when separate icons are disabled", async () => {
-    vi.mocked(ActionServices.prototype.getLivePowerState).mockResolvedValue(
-      false,
-    );
-    const subject = new OnOffAction();
-    const action = key();
-    await subject.onWillAppear(event(action));
-    expect(action.setState).toHaveBeenLastCalledWith(1);
-    await subject.onDidReceiveSettings({
-      action,
-      payload: {
-        settings: {
-          selectedDeviceId: "dev-1|H619A",
-          separatePowerIcons: false,
+  it.each(["false", false])(
+    "ignores a saved retired separatePowerIcons=%s preference",
+    async (preference) => {
+      vi.mocked(ActionServices.prototype.getLivePowerState).mockResolvedValue(
+        false,
+      );
+      const action = key();
+      await new OnOffAction().onWillAppear({
+        action,
+        payload: {
+          settings: {
+            selectedDeviceId: "dev-1|H619A",
+            separatePowerIcons: preference,
+          },
         },
-      },
-    } as never);
-    expect(action.setState).toHaveBeenLastCalledWith(0);
-  });
+      } as never);
+      expect(action.setState).toHaveBeenLastCalledWith(1);
+    },
+  );
 
   it("selects On→Off→On without changing settings or loading user artwork", async () => {
     const subject = new OnOffAction();

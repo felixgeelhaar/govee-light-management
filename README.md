@@ -604,7 +604,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### v2.9.0
 
 - Optional Automation rules for startup/wake and best-effort Off before sleep/shutdown.
-- Separate native On/Off icons through Icon switching.
+- Separate native On/Off icons.
 - Named brightness dial displays, saved-rule lists and editable light groups.
 - Correct group power-state sampling when the cloud's offline flag is inaccurate.
 - Removed the corner status dot; existing state artwork and command feedback remain.

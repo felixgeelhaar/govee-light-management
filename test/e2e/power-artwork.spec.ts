@@ -22,7 +22,7 @@ test("retired status-dot preference is not presented or rewritten", async ({
       didReceiveGlobalSettings: event(globalHandlers),
       getSettings: () =>
         settingsHandlers.forEach((handler) =>
-          handler({ payload: { settings: { separatePowerIcons: "true" } } }),
+          handler({ payload: { settings: {} } }),
         ),
       getGlobalSettings: () =>
         globalHandlers.forEach((handler) =>
@@ -46,10 +46,6 @@ test("retired status-dot preference is not presented or rewritten", async ({
     });
     Object.assign(window, {
       __artworkWrites: writes,
-      __artworkSettings: (value: unknown) =>
-        settingsHandlers.forEach((handler) =>
-          handler({ payload: { settings: { separatePowerIcons: value } } }),
-        ),
     });
   });
   await page.goto("/ui/on-off.html");
@@ -63,25 +59,11 @@ test("retired status-dot preference is not presented or rewritten", async ({
   ).toEqual([]);
 });
 
-test("artwork choices explain state switching and native image reset", async ({
+test("On/Off has no icon switching preference; artwork belongs to the host", async ({
   page,
 }) => {
   await page.goto("/ui/on-off.html");
-  const icons = page.locator('sdpi-select[setting="separatePowerIcons"]');
-  expect(
-    await icons.evaluate((element) =>
-      element.querySelector('option[value="false"]')?.textContent?.trim(),
-    ),
-  ).toBe("Use On icon for both states");
-  expect(
-    await icons.evaluate((element) =>
-      element.querySelector('option[value="true"]')?.textContent?.trim(),
-    ),
-  ).toBe("Switch On/Off icons");
-  await expect(page.locator("#nativeArtworkHint")).toContainText(
-    "Reset to Default",
-  );
-  await expect(page.locator("#nativeArtworkHint")).toContainText(
-    "does not remove",
-  );
+  await expect(page.locator('[setting="separatePowerIcons"]')).toHaveCount(0);
+  await expect(page.locator('sdpi-item[label="Icon switching"]')).toHaveCount(0);
+  await expect(page.locator("#nativeArtworkHint")).toHaveCount(0);
 });
