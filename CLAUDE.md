@@ -268,6 +268,13 @@ cache miss. Without coalescing, the moment the cache lapsed each key issued its
 own request at a rate-limited API. A `forceRefresh` arriving mid-flight joins
 that request rather than starting a second.
 
+**Target resolution uses `knownLights(maxAgeMs)`**, not `discover()`.
+`resolveTarget` needs the inventory (which devices exist, what they support),
+and state is fetched separately, so it accepts a list up to 10 minutes old.
+Every key/dial sync resolves its target; with the 30 s TTL alone an idle plugin
+listed every device twice a minute all day (hardware run 2026-10-24). A light
+missing from an expired list triggers one normal refresh.
+
 **Discovery is bounded** (`discoveryTimeoutMs`, default 15 s). The transport
 issues a plain fetch with no `AbortSignal`, so a hung connection would otherwise
 hold a sync tick open indefinitely. On timeout it takes the same path as a

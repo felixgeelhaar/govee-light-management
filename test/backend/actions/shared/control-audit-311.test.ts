@@ -137,15 +137,18 @@ describe("#311 current control invariants (no speculative production change)", (
     expect(discoverDevices).toHaveBeenCalledTimes(2);
   });
   it("diagnoses a model mismatch using allowlisted fields without serializing secret settings", async () => {
+    const desk = [
+      {
+        deviceId: "dev-1",
+        model: "H607C",
+        name: "Desk",
+        controllable: true,
+      },
+    ];
     install("deviceService", {
-      discover: vi.fn().mockResolvedValue([
-        {
-          deviceId: "dev-1",
-          model: "H607C",
-          name: "Desk",
-          controllable: true,
-        },
-      ]),
+      discover: vi.fn().mockResolvedValue(desk),
+      knownLights: vi.fn().mockResolvedValue(desk),
+      getCachedLights: vi.fn().mockReturnValue(desk),
     });
     expect(
       await new ActionServices().resolveTarget({

@@ -76,6 +76,8 @@ const LIVE_STATE_RETRY_BACKOFF_MS = 30_000;
 const RATE_LIMIT_RETRY_BACKOFF_MS = 60_000;
 // Shared across action instances: UI ticks must not become cloud queries.
 const LIVE_STATE_MIN_REFRESH_MS = 30_000;
+/** Inventory age accepted when resolving a saved target; state is fetched separately. */
+const TARGET_INVENTORY_MAX_AGE_MS = 10 * 60_000;
 
 /**
  * Send a payload to the Property Inspector for the currently visible action.
@@ -458,10 +460,7 @@ export class ActionServices {
 
   private async cachedLightItems(): Promise<LightItem[]> {
     if (!this.deviceService) return [];
-    return (
-      this.deviceService.getCachedLights() ??
-      (await this.deviceService.discover(false))
-    );
+    return this.deviceService.knownLights(TARGET_INVENTORY_MAX_AGE_MS);
   }
 
   /**
@@ -634,9 +633,11 @@ export class ActionServices {
         // about.
         if (this.deviceService) {
           try {
-            const cached =
-              this.deviceService.getCachedLights() ??
-              (await this.deviceService.discover(forceRefresh));
+            const cached = forceRefresh
+              ? await this.deviceService.discover(true)
+              : await this.deviceService.knownLights(
+                  TARGET_INVENTORY_MAX_AGE_MS,
+                );
             for (const light of group.lights) {
               const item = findLightItem(cached, light);
               if (item) {
@@ -674,11 +675,25 @@ export class ActionServices {
         return null;
       }
 
-      // Use DeviceService with its built-in caching (15s TTL)
-      const lights = await this.deviceService.discover(forceRefresh);
-      const lightItem = lights.find(
-        (l) => l.deviceId === target.deviceId && l.model === target.model,
-      );
+      const find = (items: LightItem[]) =>
+        items.find(
+          (l) => l.deviceId === target.deviceId && l.model === target.model,
+        );
+      let lights = forceRefresh
+        ? await this.deviceService.discover(true)
+        : await this.deviceService.knownLights(TARGET_INVENTORY_MAX_AGE_MS);
+      let lightItem = find(lights);
+      // A light missing from an expired inventory may be new or re-added:
+      // refresh once. A fresh list is authoritative, so a failed (empty)
+      // discovery does not turn into a request on every sync tick.
+      if (
+        !lightItem &&
+        !forceRefresh &&
+        !this.deviceService.getCachedLights()
+      ) {
+        lights = await this.deviceService.discover(false);
+        lightItem = find(lights);
+      }
 
       if (!lightItem) {
         const matchingDeviceModels = [

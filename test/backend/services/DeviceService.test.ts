@@ -8,10 +8,7 @@ import { telemetryService } from "@/backend/services/TelemetryService";
 
 const createOrchestratorMock = () => ({
   discoverDevices: vi.fn<[], Promise<DeviceDiscoveryResult>>(),
-  getLightState: vi.fn<
-    [string, string],
-    Promise<DeviceStateResult>
-  >(),
+  getLightState: vi.fn<[string, string], Promise<DeviceStateResult>>(),
   sendCommand: vi.fn(),
 });
 
@@ -378,5 +375,77 @@ describe("DeviceService.discover — a hung transport", () => {
     await expect(pending).resolves.toEqual([
       expect.objectContaining({ deviceId: "cached" }),
     ]);
+  });
+});
+
+/**
+ * Target resolution needs the account's inventory, not fresh state. On
+ * hardware the 30 s discovery TTL meant an idle plugin listed every device
+ * twice a minute, all day, because each key/dial sync resolves its target.
+ */
+describe("DeviceService.knownLights — inventory for target resolution", () => {
+  const light = {
+    deviceId: "dev-1",
+    model: "H6001",
+    name: "Desk",
+    label: "Desk",
+    value: "dev-1|H6001",
+    controllable: true,
+    retrievable: true,
+    supportedCommands: ["Power"],
+  };
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-01-01T00:00:00Z"));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("serves a list older than the TTL while it is within the maximum age", async () => {
+    const orchestrator = createOrchestratorMock();
+    orchestrator.discoverDevices.mockResolvedValue({
+      lights: [light],
+      stale: false,
+    });
+    const service = new DeviceService(orchestrator as any, {
+      cacheTtlMs: 30_000,
+    });
+    await service.discover();
+    vi.advanceTimersByTime(5 * 60_000);
+
+    const lights = await service.knownLights(10 * 60_000);
+
+    expect(lights.map((l) => l.deviceId)).toEqual(["dev-1"]);
+    expect(orchestrator.discoverDevices).toHaveBeenCalledTimes(1);
+    expect(service.getCachedLights()).toBeNull();
+  });
+
+  it("rediscovers once the list is older than the maximum age", async () => {
+    const orchestrator = createOrchestratorMock();
+    orchestrator.discoverDevices.mockResolvedValue({
+      lights: [light],
+      stale: false,
+    });
+    const service = new DeviceService(orchestrator as any, {
+      cacheTtlMs: 30_000,
+    });
+    await service.discover();
+    vi.advanceTimersByTime(11 * 60_000);
+
+    await service.knownLights(10 * 60_000);
+
+    expect(orchestrator.discoverDevices).toHaveBeenCalledTimes(2);
+  });
+
+  it("discovers when nothing has been cached yet", async () => {
+    const orchestrator = createOrchestratorMock();
+    orchestrator.discoverDevices.mockResolvedValue({
+      lights: [light],
+      stale: false,
+    });
+    const service = new DeviceService(orchestrator as any);
+
+    await service.knownLights(10 * 60_000);
+
+    expect(orchestrator.discoverDevices).toHaveBeenCalledTimes(1);
   });
 });

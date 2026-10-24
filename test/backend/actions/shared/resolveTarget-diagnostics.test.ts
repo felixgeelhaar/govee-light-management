@@ -40,8 +40,7 @@ describe("resolveTarget diagnostics (issue #311)", () => {
     warn.mock.calls.some((c) => String(c[0]).includes(fragment));
   const contextFor = (fragment: string) =>
     warn.mock.calls.find((c) => String(c[0]).includes(fragment))?.[1] as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -67,6 +66,7 @@ describe("resolveTarget diagnostics (issue #311)", () => {
     restore = installShared({
       deviceService: {
         discover: vi.fn().mockResolvedValue([]),
+        knownLights: vi.fn().mockResolvedValue([]),
         getCachedLights: vi.fn().mockReturnValue(null),
       },
     });
@@ -84,17 +84,21 @@ describe("resolveTarget diagnostics (issue #311)", () => {
     // The diagnostic that would have resolved #311 in one round trip:
     // which model was asked for, versus which models came back.
     restore = installShared({
-      deviceService: {
-        discover: vi.fn().mockResolvedValue([
+      deviceService: (() => {
+        const strip = [
           {
             deviceId: "other-1",
             model: "H6001",
             name: "Strip",
             controllable: true,
           },
-        ]),
-        getCachedLights: vi.fn().mockReturnValue(null),
-      },
+        ];
+        return {
+          discover: vi.fn().mockResolvedValue(strip),
+          knownLights: vi.fn().mockResolvedValue(strip),
+          getCachedLights: vi.fn().mockReturnValue(null),
+        };
+      })(),
     });
 
     const target = await services.resolveTarget({
@@ -137,6 +141,97 @@ describe("resolveTarget diagnostics (issue #311)", () => {
     expect(warnedWith("target is incomplete")).toBe(true);
     expect(contextFor("target is incomplete")).toMatchObject({
       hasDeviceService: false,
+    });
+  });
+
+  describe("inventory age (idle discovery traffic)", () => {
+    const desk = {
+      deviceId: "dev-1",
+      model: "H619A",
+      name: "Desk",
+      label: "Desk",
+      value: "dev-1|H619A",
+      controllable: true,
+      retrievable: true,
+    };
+
+    it("resolves a saved light from the known inventory without rediscovering", async () => {
+      const deviceService = {
+        knownLights: vi.fn().mockResolvedValue([desk]),
+        discover: vi.fn().mockResolvedValue([desk]),
+        getCachedLights: vi.fn().mockReturnValue(null),
+      };
+      restore = installShared({ deviceService });
+
+      const target = await services.resolveTarget({
+        selectedDeviceId: "dev-1|H619A",
+      } as never);
+
+      expect(target?.light?.name).toBe("Desk");
+      expect(deviceService.knownLights).toHaveBeenCalledOnce();
+      expect(deviceService.discover).not.toHaveBeenCalled();
+    });
+
+    it("refreshes once when the light is missing from an expired inventory", async () => {
+      const deviceService = {
+        knownLights: vi.fn().mockResolvedValue([]),
+        discover: vi.fn().mockResolvedValue([desk]),
+        getCachedLights: vi.fn().mockReturnValue(null),
+      };
+      restore = installShared({ deviceService });
+
+      const target = await services.resolveTarget({
+        selectedDeviceId: "dev-1|H619A",
+      } as never);
+
+      expect(target?.light?.name).toBe("Desk");
+      expect(deviceService.discover).toHaveBeenCalledOnce();
+      expect(deviceService.discover).toHaveBeenCalledWith(false);
+    });
+
+    it("does not rediscover when the light is missing from a fresh inventory", async () => {
+      const deviceService = {
+        knownLights: vi.fn().mockResolvedValue([]),
+        discover: vi.fn().mockResolvedValue([]),
+        getCachedLights: vi.fn().mockReturnValue([]),
+      };
+      restore = installShared({ deviceService });
+
+      const target = await services.resolveTarget({
+        selectedDeviceId: "dev-1|H619A",
+      } as never);
+
+      expect(target).toBeNull();
+      expect(deviceService.discover).not.toHaveBeenCalled();
+    });
+
+    it("uses the known inventory to hydrate group members", async () => {
+      const group = {
+        id: "g1",
+        name: "Office",
+        lights: [
+          {
+            deviceId: "dev-1",
+            model: "H619A",
+            updateState: vi.fn(),
+            state: {},
+          },
+        ],
+      };
+      const deviceService = {
+        knownLights: vi.fn().mockResolvedValue([desk]),
+        discover: vi.fn(),
+        getCachedLights: vi.fn().mockReturnValue(null),
+      };
+      restore = installShared({
+        deviceService,
+        groupService: { findGroupById: vi.fn().mockResolvedValue(group) },
+      });
+
+      await services.resolveTarget({ selectedDeviceId: "group:g1" } as never);
+
+      expect(deviceService.knownLights).toHaveBeenCalledOnce();
+      expect(deviceService.discover).not.toHaveBeenCalled();
     });
   });
 });
