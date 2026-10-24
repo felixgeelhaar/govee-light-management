@@ -6,7 +6,7 @@ replace them with Brightness, Color, Color Temperature, and Segment Color.
 Saturation retains `saturation-dial` and supports both controller types.
 
 Retired status-dot preferences and rendering are removed. State artwork,
-native On/Off icon switching, saved group migration, and shared encoder art
+native On/Off state artwork, saved group migration, and shared encoder art
 assets remain in use and are retained. Old dot settings are ignored.
 
 ## Manual verification
@@ -16,7 +16,7 @@ assets remain in use and are retained. Old dot settings are ignored.
 3. Select a light, then a group; check fixed-value key presses, rotation,
    power toggling and group partial-failure warnings.
 4. For Brightness, switch between stacked dials and check title, value and bar.
-5. For On/Off, test icon switching disabled/enabled with native custom artwork.
+5. For On/Off, test native custom artwork on each state.
    There must be no status-dot preference or rendered dot.
 6. Restart the host; check saved targets, groups and Automation rules persist.
 

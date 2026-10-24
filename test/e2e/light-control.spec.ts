@@ -77,12 +77,3 @@ test('On/Off exposes native per-state artwork without automatic host toggling (#
     'imgs/actions/light/key', 'imgs/actions/light/key',
   ]);
 });
-
-test('separate power icons are opt-in for existing profiles (#375)', async ({ page }) => {
-  await page.goto('/ui/on-off.html');
-  const setting = page.locator('sdpi-select[setting="separatePowerIcons"]');
-  await expect(setting).toHaveAttribute('default', 'false');
-  expect(await setting.evaluate(element =>
-    element.querySelector('option[value="true"]')?.textContent?.trim(),
-  )).toBe('Switch On/Off icons');
-});
