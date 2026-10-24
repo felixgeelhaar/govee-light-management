@@ -838,6 +838,12 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     deviceSelect.addEventListener("valuechange", rerenderDebug);
+    // Saved settings can arrive after the device list; refresh the hints
+    // then too. init()'s handler, subscribed first, sets latestSettings.
+    client.didReceiveSettings.subscribe(() => {
+      updateUnsupportedHint();
+      updateGroupHint();
+    });
     deviceSelect.addEventListener("change", rerenderDebug);
     deviceSelect.addEventListener("input", rerenderDebug);
 
