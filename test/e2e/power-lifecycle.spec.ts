@@ -212,9 +212,8 @@ test("Automation uses native inspector components without automatic persistence"
   await page.goto("/ui/on-off.html");
   await page.locator("#powerLifecyclePanel summary").click();
   await expect(page.locator("#powerLifecycleBody")).toBeVisible();
-  await expect(
-    page.locator("sdpi-select#powerRuleTarget select"),
-  ).toBeEnabled();
+  await expect(page.locator("#powerLifecycleBody sdpi-select")).toHaveCount(0);
+  await expect(page.locator("#powerRuleTarget")).toHaveText("Desk");
   await expect(page.locator("#powerLifecycleBody sdpi-checkbox")).toHaveCount(
     5,
   );

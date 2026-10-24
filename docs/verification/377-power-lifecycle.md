@@ -9,7 +9,8 @@ or removed. Delete the rule explicitly to remove it.
 ## Configure
 
 1. Select a supported light/group in the normal Device selector.
-2. Open Automation → Manage rules. Choose the current selection or an existing saved rule.
+2. Open Automation → Manage rules. The rule targets the light/group selected above;
+   Target shows its name. Use Edit on a saved rule to manage another target.
 3. Check Enable and at least one desired event, then **Save rule**. Enable alone
    does not select an event; an enabled rule with no events is saved but clearly
    marked inactive:
@@ -19,7 +20,7 @@ or removed. Delete the rule explicitly to remove it.
    - **Turn Off → Before shutdown / logout** (**best effort**).
 4. Use Refresh status to confirm the observer is ready. Disable and save the rule,
    or Delete rule, to stop it. Editing checkboxes alone sends no commands.
-5. To manage a rule for a deleted/unavailable light, choose it from Saved rules.
+5. To manage a rule for a deleted/unavailable light, use Edit or Delete on its saved rule.
    Selecting a saved rule in this editor does not retarget the key itself.
 
 A macOS JXA/AppKit observer or Windows PowerShell/.NET observer runs only when an

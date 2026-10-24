@@ -7,6 +7,7 @@ All notable changes to this project are documented below. This project adheres t
 ### Changed
 
 - On / Off keys always follow live power state: set On and Off artwork with Stream Deck's **Set from File** and it switches with no extra setting. The Icon switching preference is removed and saved values are ignored. A key with only an On custom icon now shows plugin Off artwork while the light is off.
+- Automation rules apply to the light or group selected in the inspector. The separate Target dropdown is removed; Edit on a saved rule still opens rules for other targets.
 - Migrate to Stream Deck SDK 3 with its default settings lifecycle. Requires Stream Deck 7.1 or later; saved settings for retained actions are preserved. Neo Infobar support is separate.
 
 ### Removed

@@ -6,9 +6,10 @@ const script = readFileSync(
 );
 afterEach(() => window.dispatchEvent(new Event("beforeunload")));
 describe("power rule status", () => {
-  it("distinguishes enabled rules with no events from active and disabled rules", () => {
+  const mount = () => {
     document.body.innerHTML =
-      '<details id="powerLifecyclePanel"><summary></summary></details><div id="powerRuleList"></div><sdpi-select id="powerRuleTarget"></sdpi-select><p id="powerLifecycleStatus"></p><button id="powerSave"></button><button id="powerDelete"></button><button id="powerRefresh"></button>' +
+      '<sdpi-select setting="selectedDeviceId"><select><option value="light:dev-2|H6056">Backlight (H6056)</option></select></sdpi-select>' +
+      '<details id="powerLifecyclePanel"><summary></summary></details><div id="powerRuleList"></div><p id="powerRuleTarget"></p><p id="powerLifecycleStatus"></p><button id="powerSave"></button><button id="powerDelete"></button><button id="powerRefresh"></button>' +
       [
         "powerEnabled",
         "powerStartup",
@@ -34,10 +35,76 @@ describe("power rule status", () => {
     });
     window.eval(script);
     document.dispatchEvent(new Event("DOMContentLoaded"));
-    settings.subscribe.mock.calls[0][0]({
+    return {
+      send,
+      changeSettings: settings.subscribe.mock.calls[0][0],
+      response: messages.subscribe.mock.calls[0][0],
+    };
+  };
+  const target = () => document.getElementById("powerRuleTarget");
+
+  it("takes the rule target from the light selected above, without a dropdown", () => {
+    const { send, changeSettings } = mount();
+    expect(
+      document.querySelector(
+        "#powerLifecycleBody select, sdpi-select#powerRuleTarget",
+      ),
+    ).toBeNull();
+    expect(target()?.textContent).toContain("Select a light or group above");
+    changeSettings({
+      payload: {
+        settings: {
+          selectedDeviceId: "dev-1|H619A",
+          selectedLightName: "Desk",
+        },
+      },
+    });
+    expect(target()?.textContent).toBe("Desk");
+    expect(send.mock.calls.at(-1)?.[0]).toMatchObject({
+      event: "getPowerLifecycleRule",
+      selectedDeviceId: "light:dev-1|H619A",
+    });
+    changeSettings({
+      payload: {
+        settings: { selectedDeviceId: "group:room", selectedLightName: "Room" },
+      },
+    });
+    expect(target()?.textContent).toBe("Room");
+    expect(send.mock.calls.at(-1)?.[0]).toMatchObject({
+      event: "getPowerLifecycleRule",
+      selectedDeviceId: "group:room",
+    });
+  });
+
+  it("follows a device chosen in the inspector, which the host does not echo back", () => {
+    const { send, changeSettings } = mount();
+    changeSettings({
+      payload: {
+        settings: {
+          selectedDeviceId: "dev-1|H619A",
+          selectedLightName: "Desk",
+        },
+      },
+    });
+    const device = document.querySelector(
+      'sdpi-select[setting="selectedDeviceId"]',
+    ) as HTMLElement & { value?: string };
+    const option = device.querySelector("option") as HTMLOptionElement;
+    option.selected = true;
+    device.value = "light:dev-2|H6056";
+    device.dispatchEvent(new Event("valuechange"));
+    expect(target()?.textContent).toBe("Backlight (H6056)");
+    expect(send.mock.calls.at(-1)?.[0]).toMatchObject({
+      event: "getPowerLifecycleRule",
+      selectedDeviceId: "light:dev-2|H6056",
+    });
+  });
+
+  it("distinguishes enabled rules with no events from active and disabled rules", () => {
+    const { send, changeSettings, response } = mount();
+    changeSettings({
       payload: { settings: { selectedDeviceId: "dev-1|H619A" } },
     });
-    const response = messages.subscribe.mock.calls[0][0];
     const reply = (
       rule: Record<string, unknown>,
       rules: Record<string, unknown>[] = [],
