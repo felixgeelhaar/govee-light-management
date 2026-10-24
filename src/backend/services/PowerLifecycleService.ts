@@ -14,6 +14,12 @@ export interface PowerEventSource {
   ): Promise<void>;
   stop(): void;
 }
+/** Confirms that a wake event follows a real suspension. */
+export interface SuspensionSignal {
+  start(): void;
+  stop(): void;
+  recentlySuspended(): boolean;
+}
 interface Dependencies {
   getApiKey(): Promise<string | undefined>;
   resolveTarget(
@@ -27,6 +33,7 @@ interface Dependencies {
     apiKey: string,
   ): Promise<FanOutOutcome>;
   events: PowerEventSource;
+  suspension?: SuspensionSignal;
   log(record: {
     event?: PowerEvent;
     target?: string;
@@ -118,7 +125,9 @@ export class PowerLifecycleService {
   private hookEnabled = false;
   helperStatus: "disabled" | "starting" | "ready" | "unavailable" = "disabled";
 
-  constructor(private readonly deps: Dependencies) {}
+  constructor(private readonly deps: Dependencies) {
+    deps.suspension?.start();
+  }
 
   configure(value: unknown): void {
     if (this.stopped) return;
@@ -163,6 +172,14 @@ export class PowerLifecycleService {
   async handle(event: PowerEvent): Promise<void> {
     if (this.stopped) return;
     this.deps.log({ event, category: "event_received" });
+    // The host also reports a display wake as a system wake.
+    if (
+      event === "wake" &&
+      this.deps.suspension?.recentlySuspended() === false
+    ) {
+      this.deps.log({ event, category: "wake_ignored_not_suspended" });
+      return;
+    }
     const isOn = event === "startup" || event === "wake";
     // An opposite transition must cancel old requests before issuing new ones.
     for (const [id, task] of this.tasks) {
@@ -295,6 +312,7 @@ export class PowerLifecycleService {
     ++this.helperGeneration;
     this.abortAll("unload");
     this.deps.events.stop();
+    this.deps.suspension?.stop();
     this.helperStatus = "disabled";
   }
 

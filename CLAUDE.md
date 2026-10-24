@@ -289,7 +289,9 @@ and are edited explicitly in the On/Off PI. The observer runs only for enabled
 sleep/shutdown rules, uses packaged OS scripts with no credentials, and exits on
 parent pipe closure. Lifecycle POSTs use the cancellable `BoundedPowerClient`
 rather than the installed client's retry middleware; ordinary commands are unchanged.
-Saved references/local groups avoid cloud discovery during suspension. Manual
+Saved references/local groups avoid cloud discovery during suspension.
+Wake rules run only after a real suspension: `infrastructure/power/SuspensionDetector`
+detects wall-clock gaps between ticks, because the host also reports display wakes. Manual
 input/commands, settings changes, wake and unload cancel obsolete work. See
 `docs/verification/377-power-lifecycle.md` for budgets and unsupported cases.
 
