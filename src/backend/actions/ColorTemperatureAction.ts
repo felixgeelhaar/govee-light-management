@@ -77,7 +77,10 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
 
     const apiKey = await this.services.getApiKey(settings);
     if (!apiKey || !settings.selectedDeviceId) {
-      await ev.action.showAlert();
+      await this.services.ignoreUnconfiguredPress(ev.action, {
+        hasApiKey: Boolean(apiKey),
+        hasSelectedDevice: Boolean(settings.selectedDeviceId),
+      });
       return;
     }
 

@@ -53,7 +53,10 @@ export class SceneAction extends SingletonAction<SceneSettings> {
 
     const apiKey = await this.services.getApiKey(settings);
     if (!apiKey || !settings.selectedDeviceId) {
-      await ev.action.showAlert();
+      await this.services.ignoreUnconfiguredPress(ev.action, {
+        hasApiKey: Boolean(apiKey),
+        hasSelectedDevice: Boolean(settings.selectedDeviceId),
+      });
       return;
     }
 

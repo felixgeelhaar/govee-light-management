@@ -17,6 +17,7 @@ All notable changes to this project are documented below. This project adheres t
 
 ### Fixed
 
+- Every light command now logs one `light.command` line on completion (target, command, value, members reached, duration), including brightness, colour and dial input, which previously logged nothing on success. Pressing an unconfigured key logs why it was ignored for every action, not only On / Off.
 - Custom Effect lists groups greyed out ("Groups (need a single light)") instead of hiding them, and a key saved with a group now explains that custom effects need a single RGB IC light.
 - An idle plugin no longer lists every Govee device every 30 seconds. Keys and dials resolve their saved light from an inventory up to 10 minutes old; opening an inspector or pressing refresh still fetches a fresh list.
 - "Computer wakes → On" no longer turns lights on when only the display wakes. Stream Deck reports a display wake as a system wake; wake rules now run only after the computer was actually suspended, and ignored wakes are logged.

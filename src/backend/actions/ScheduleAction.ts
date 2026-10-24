@@ -55,7 +55,9 @@ export class ScheduleAction extends SingletonAction<ScheduleSettings> {
     const settings = ev.payload.settings;
 
     if (!this.isConfigured(settings)) {
-      await ev.action.showAlert();
+      await this.services.ignoreUnconfiguredPress(ev.action, {
+        hasSchedule: false,
+      });
       return;
     }
 
