@@ -7,7 +7,13 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 
-async function mountWith(page: Page, selectedDeviceId: string) {
+type Order = "settings-first" | "devices-first";
+
+async function mountWith(
+  page: Page,
+  selectedDeviceId: string,
+  order: Order = "settings-first",
+) {
   await page.addInitScript((selected) => {
     type Handler = (msg: unknown) => void;
     const bus = (handlers: Handler[]) => ({
@@ -24,13 +30,7 @@ async function mountWith(page: Page, selectedDeviceId: string) {
       sendToPropertyInspector: bus(pi),
       didReceiveSettings: bus(settings),
       didReceiveGlobalSettings: bus(global),
-      getSettings() {
-        setTimeout(() =>
-          settings.forEach((h) =>
-            h({ payload: { settings: { selectedDeviceId: selected } } }),
-          ),
-        );
-      },
+      getSettings() {},
       getGlobalSettings() {
         setTimeout(() =>
           global.forEach((h) =>
@@ -45,8 +45,41 @@ async function mountWith(page: Page, selectedDeviceId: string) {
       send() {},
       sendToPlugin() {},
     };
-    (window as unknown as { __pi: (p: unknown) => void }).__pi = (payload) =>
-      pi.forEach((h) => h({ payload }));
+    Object.assign(window, {
+      __settings: () =>
+        settings.forEach((h) =>
+          h({ payload: { settings: { selectedDeviceId: selected } } }),
+        ),
+      __devices: () =>
+        pi.forEach((h) =>
+          h({
+            payload: {
+              event: "getDevices",
+              status: "ok",
+              items: [
+                {
+                  label: "Lights",
+                  value: "",
+                  children: [
+                    { label: "Desk (H6056)", value: "light:dev-1|H6056" },
+                  ],
+                },
+                {
+                  label: "Groups (need a single light)",
+                  value: "",
+                  children: [
+                    {
+                      label: "Office (2 lights)",
+                      value: "group:g1",
+                      disabled: true,
+                    },
+                  ],
+                },
+              ],
+            },
+          }),
+        ),
+    });
     Object.defineProperty(window, "SDPIComponents", {
       get: () => ({ streamDeckClient: client }),
       set() {},
@@ -54,26 +87,19 @@ async function mountWith(page: Page, selectedDeviceId: string) {
     });
   }, selectedDeviceId);
   await page.goto("/ui/custom-effect.html");
-  await page.evaluate(() =>
-    (window as unknown as { __pi: (p: unknown) => void }).__pi({
-      event: "getDevices",
-      status: "ok",
-      items: [
-        {
-          label: "Lights",
-          value: "",
-          children: [{ label: "Desk (H6056)", value: "light:dev-1|H6056" }],
-        },
-        {
-          label: "Groups (need a single light)",
-          value: "",
-          children: [
-            { label: "Office (2 lights)", value: "group:g1", disabled: true },
-          ],
-        },
-      ],
-    }),
-  );
+  // setup.js starts listening once it finds the SDPI client, which is when
+  // the hint element appears. Anything sent earlier would be lost.
+  await page.locator("#deviceUnsupported").waitFor({ state: "attached" });
+  const send = (name: "__settings" | "__devices") =>
+    page.evaluate(
+      (fn) => (window as unknown as Record<string, () => void>)[fn](),
+      name,
+    );
+  const sequence: ("__settings" | "__devices")[] =
+    order === "settings-first"
+      ? ["__settings", "__devices"]
+      : ["__devices", "__settings"];
+  for (const step of sequence) await send(step);
 }
 
 test("a saved group target explains that custom effects need a single light", async ({
@@ -84,6 +110,13 @@ test("a saved group target explains that custom effects need a single light", as
   await expect(page.locator("#deviceUnsupported")).toContainText(
     "single RGB IC light",
   );
+});
+
+test("the hint also appears when settings arrive after the device list", async ({
+  page,
+}) => {
+  await mountWith(page, "group:g1", "devices-first");
+  await expect(page.locator("#deviceUnsupported")).toBeVisible();
 });
 
 test("a light target shows no group warning", async ({ page }) => {
