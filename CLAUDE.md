@@ -49,7 +49,9 @@ Dependencies point inward. An action reaches infrastructure through
 
 **Filter by capability.** Actions ask `Light` what it supports before offering
 it in a Property Inspector dropdown — never present a light whose command would
-be rejected.
+be rejected. A target type an action can never use is listed disabled with a
+reason (`handleGetDevices(id, { groups: "disabled" })` plus a
+`data-group-unsupported` message on the select), not silently dropped.
 
 ## Commands
 

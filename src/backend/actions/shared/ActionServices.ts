@@ -805,16 +805,16 @@ export class ActionServices {
    * Handle getDevices SDPI datasource - returns both lights and groups.
    * Uses a timeout to prevent hanging forever if the API is unreachable.
    *
-   * Pass `{ includeGroups: false }` from actions that can't address a group
+   * Pass `{ groups: "disabled" }` from actions that can't address a group
    * target (e.g. Custom Effect, where per-segment playback only makes sense
-   * for a single RGB IC light). The default keeps groups visible so the
-   * shared datasource remains backward-compatible for every other action.
+   * for a single RGB IC light). Groups are then listed greyed out rather
+   * than hidden, so users see why theirs can't be picked.
    */
   async handleGetDevices(
     actionId: string,
-    options?: { includeGroups?: boolean; powerOnly?: boolean },
+    options?: { groups?: "selectable" | "disabled"; powerOnly?: boolean },
   ): Promise<void> {
-    const includeGroups = options?.includeGroups !== false;
+    const groupsDisabled = options?.groups === "disabled";
     streamDeck.logger.info(`handleGetDevices called (context: ${actionId})`);
 
     try {
@@ -888,16 +888,17 @@ export class ActionServices {
       }
 
       // Add groups
-      if (includeGroups && this.groupService) {
+      if (this.groupService) {
         const groups = await this.groupService.getAllGroups();
         const groupItems: PIDatasourceItem[] = groups.map((g) => ({
           label: `${g.name} (${g.size} lights)`,
           value: `group:${g.id}`,
+          ...(groupsDisabled ? { disabled: true } : {}),
         }));
 
         if (groupItems.length > 0) {
           items.push({
-            label: "Groups",
+            label: groupsDisabled ? "Groups (need a single light)" : "Groups",
             value: "",
             children: groupItems,
           });

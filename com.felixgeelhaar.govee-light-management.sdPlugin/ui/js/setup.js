@@ -792,9 +792,14 @@ document.addEventListener("DOMContentLoaded", () => {
           ? latestSettings.selectedDeviceId
           : "");
       const model = getSelectedModel(selectedDeviceId);
+      // Actions that can't address a group say why on their select.
+      const groupMessage = deviceSelect.dataset.groupUnsupported;
       if (UNSUPPORTED_CLOUD_GROUP_MODELS.has(model)) {
         unsupportedHint.textContent =
           "Govee cloud groups like BaseGroup / SameModelGroup are not supported. Use a plugin group instead.";
+        unsupportedHint.className = "field-hint error";
+      } else if (groupMessage && selectedDeviceId.startsWith("group:")) {
+        unsupportedHint.textContent = groupMessage;
         unsupportedHint.className = "field-hint error";
       } else {
         unsupportedHint.textContent = "";

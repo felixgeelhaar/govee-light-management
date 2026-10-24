@@ -17,6 +17,7 @@ All notable changes to this project are documented below. This project adheres t
 
 ### Fixed
 
+- Custom Effect lists groups greyed out ("Groups (need a single light)") instead of hiding them, and a key saved with a group now explains that custom effects need a single RGB IC light.
 - An idle plugin no longer lists every Govee device every 30 seconds. Keys and dials resolve their saved light from an inventory up to 10 minutes old; opening an inspector or pressing refresh still fetches a fresh list.
 - "Computer wakes → On" no longer turns lights on when only the display wakes. Stream Deck reports a display wake as a system wake; wake rules now run only after the computer was actually suspended, and ignored wakes are logged.
 - Add Automation event/dispatch diagnostics to distinguish missing sleep notifications from incomplete cloud requests. Sleep-off remains best effort.
