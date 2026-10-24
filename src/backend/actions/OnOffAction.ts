@@ -159,11 +159,10 @@ export class OnOffAction extends SingletonAction<OnOffSettings> {
 
     const apiKey = await this.services.getApiKey(settings);
     if (!apiKey || !settings.selectedDeviceId) {
-      streamDeck.logger.warn("Key press ignored: not configured", {
+      await this.services.ignoreUnconfiguredPress(ev.action, {
         hasApiKey: Boolean(apiKey),
         hasSelectedDevice: Boolean(settings.selectedDeviceId),
       });
-      await ev.action.showAlert();
       return;
     }
 

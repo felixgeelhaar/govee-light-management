@@ -10,6 +10,7 @@ import type { LightState } from "../../../../src/backend/domain/value-objects/Li
 import type { DeviceTarget } from "../../../../src/backend/actions/shared/ActionServices";
 import { globalSettingsService } from "../../../../src/backend/services/GlobalSettingsService";
 import { ColorTemperature as DomainColorTemperature } from "../../../../src/backend/domain/value-objects/ColorTemperature";
+import { Brightness as DomainBrightness } from "../../../../src/backend/domain/value-objects/Brightness";
 
 const makeLight = (
   opts: {
@@ -1486,6 +1487,70 @@ describe("ActionServices.controlTarget — group outcome", () => {
     // The command never reached this lamp, so its cached state is not
     // news — marking it fresh would suppress the next live refresh.
     expect(snapshots.has("unreachable|H6001")).toBe(false);
+  });
+
+  // Brightness, colour and dial commands logged nothing on success, so a
+  // hardware run could not tell from logs whether a dial turn reached the
+  // lights (2026-10-24). One line per completed command closes that gap.
+  it("logs one completion line per group command with its outcome", async () => {
+    const reached = makeLight({ deviceId: "reached", model: "H6001" });
+    const unreachable = makeLight({ deviceId: "unreachable", model: "H6001" });
+    const group = LightGroup.create("grp", "Living Room", [
+      reached,
+      unreachable,
+    ]);
+    shared.lightControlService = {
+      controlGroup: vi.fn().mockResolvedValue({
+        total: 2,
+        failed: [{ light: unreachable, error: new Error("offline") }],
+      }),
+    };
+    const info = vi.spyOn(streamDeck.logger, "info");
+
+    await new ActionServices().controlTarget(
+      { type: "group", group },
+      "brightness",
+      new DomainBrightness(40),
+    );
+
+    const line = info.mock.calls.find((c) => c[0] === "light.command");
+    expect(line?.[1]).toMatchObject({
+      target: "group:grp",
+      name: "Living Room",
+      command: "brightness",
+      value: 40,
+      total: 2,
+      failed: 1,
+    });
+    expect(typeof (line?.[1] as { durationMs: unknown }).durationMs).toBe(
+      "number",
+    );
+  });
+
+  it("logs a single light command with its value", async () => {
+    shared.lightControlService = {
+      controlLight: vi.fn().mockResolvedValue(undefined),
+    };
+    const info = vi.spyOn(streamDeck.logger, "info");
+
+    await new ActionServices().controlTarget(
+      {
+        type: "light",
+        light: makeLight({ deviceId: "dev-1", model: "H6001" }),
+      },
+      "colorTemperature",
+      new DomainColorTemperature(4500),
+    );
+
+    expect(
+      info.mock.calls.find((c) => c[0] === "light.command")?.[1],
+    ).toMatchObject({
+      target: "light:dev-1|H6001",
+      command: "colorTemperature",
+      value: 4500,
+      total: 1,
+      failed: 0,
+    });
   });
 
   it("reports a single light as one success", async () => {

@@ -207,6 +207,35 @@ function toDomainControlValue(
   return value ?? undefined;
 }
 
+/** Loggable identity of a command target: an id and a display name, no settings. */
+function describeTarget(target: DeviceTarget): {
+  target: string;
+  name?: string;
+} {
+  if (target.light) {
+    return {
+      target: `light:${target.light.deviceId}|${target.light.model}`,
+      name: target.light.name,
+    };
+  }
+  if (target.group) {
+    return { target: `group:${target.group.id}`, name: target.group.name };
+  }
+  return { target: target.type };
+}
+
+function describeValue(
+  value?: DomainBrightness | DomainColorRgb | DomainColorTemperature,
+): number | string | undefined {
+  if (value instanceof DomainBrightness) return value.level;
+  if (value instanceof DomainColorTemperature) return value.kelvin;
+  if (value instanceof DomainColorRgb)
+    return `#${[value.r, value.g, value.b]
+      .map((part) => part.toString(16).padStart(2, "0"))
+      .join("")}`;
+  return undefined;
+}
+
 export { sendToPI, sendPIDatasource };
 
 /**
@@ -1588,7 +1617,32 @@ export class ActionServices {
       }
     };
 
-    return execute(0);
+    const started = Date.now();
+    const outcome = await execute(0);
+    streamDeck.logger?.info?.("light.command", {
+      ...describeTarget(target),
+      command,
+      value: describeValue(domainValue),
+      total: outcome.total,
+      failed: outcome.failed.length,
+      durationMs: Date.now() - started,
+    });
+    return outcome;
+  }
+
+  /**
+   * Alert for a key press that cannot run because the key is not set up,
+   * and log why: the alert alone leaves nothing in the user's log.
+   */
+  async ignoreUnconfiguredPress(
+    action: { manifestId?: string; showAlert(): Promise<void> },
+    missing: Record<string, boolean>,
+  ): Promise<void> {
+    streamDeck.logger.warn("Key press ignored: not configured", {
+      action: action.manifestId,
+      ...missing,
+    });
+    await action.showAlert();
   }
 
   /**
