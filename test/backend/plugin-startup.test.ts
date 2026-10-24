@@ -42,7 +42,10 @@ it("uses SDK 3 settings behavior before connecting and retains startup initializ
   expect(scheduler.initialize).toHaveBeenCalledOnce();
   expect(streamDeck.actions.registerAction).toHaveBeenCalledTimes(14);
   expect(streamDeck.settings.setGlobalSettings).not.toHaveBeenCalled();
-});
+  // Importing plugin.ts loads every action and service: ~4.5 s alone, past
+  // the 5 s default on a loaded machine. The time is module loading, not
+  // the startup path asserted here.
+}, 30_000);
 
 it("declares the SDK 3 settings minimum host version", () => {
   const manifest = JSON.parse(
