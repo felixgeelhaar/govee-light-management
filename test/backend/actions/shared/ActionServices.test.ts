@@ -1091,9 +1091,15 @@ describe("ActionServices.resolveKelvinRangeForTarget", () => {
     )._shared;
     const originalDevice = shared.deviceService;
     const originalGroup = shared.groupService;
+    const discover =
+      opts.discover ?? vi.fn().mockResolvedValue(opts.items ?? []);
     shared.deviceService = {
       getCachedLights: vi.fn().mockReturnValue(opts.items ?? null),
-      discover: opts.discover ?? vi.fn().mockResolvedValue(opts.items ?? []),
+      discover,
+      // Like the real service: the cached inventory, else a discovery.
+      knownLights: vi.fn(() =>
+        opts.items ? Promise.resolve(opts.items) : discover(false),
+      ),
     };
     shared.groupService = {
       findGroupById: vi.fn().mockResolvedValue(opts.group ?? null),
@@ -1251,6 +1257,7 @@ describe("ActionServices.controlTarget — per-light colour temperature clamping
     shared.deviceService = {
       getCachedLights: vi.fn().mockReturnValue(items),
       discover: vi.fn().mockResolvedValue(items),
+      knownLights: vi.fn().mockResolvedValue(items),
     };
     shared.lightControlService = {
       controlLight,

@@ -23,6 +23,7 @@ interface DeviceServiceOptions {
 interface CacheEntry {
   lights: LightItem[];
   unsupportedDevices: UnsupportedDevice[];
+  fetchedAt: number;
   expiresAt: number;
   stale: boolean;
 }
@@ -110,6 +111,7 @@ export class DeviceService {
     this.cache = {
       lights: normalized,
       unsupportedDevices: result.unsupportedDevices ?? [],
+      fetchedAt: now,
       expiresAt: now + this.cacheTtl,
       stale,
     };
@@ -148,6 +150,19 @@ export class DeviceService {
       );
     });
     return Promise.race([work, expiry]).finally(() => clearTimeout(timer));
+  }
+
+  /**
+   * The inventory for resolving a saved target: which devices exist and
+   * what they support. That rarely changes, so a list up to `maxAgeMs` old
+   * is served past the TTL. Each key/dial sync resolves its target, and the
+   * TTL alone made an idle plugin list every device twice a minute.
+   */
+  async knownLights(maxAgeMs: number): Promise<LightItem[]> {
+    if (this.cache && Date.now() - this.cache.fetchedAt <= maxAgeMs) {
+      return this.cache.lights;
+    }
+    return this.discover(false);
   }
 
   getCachedLights(): LightItem[] | null {
