@@ -4,6 +4,14 @@ All notable changes to this project are documented below. This project adheres t
 
 ## [Unreleased]
 
+### Changed
+
+- Automation switches lights with LAN Control on over the local network, and uses the cloud only when a light doesn't confirm within half a second. "Off before sleep" no longer depends on a cloud request finishing before the computer sleeps (#377). "Plugin starts" rules wait for the first local network scan.
+
+### Fixed
+
+- A local network scan that failed while Wi-Fi was reconnecting (for example right after wake) switched local network control off until Stream Deck restarted. The next scan now tries again, and known lights are kept.
+
 ## [3.1.0] - 2026-10-25
 
 ### Added

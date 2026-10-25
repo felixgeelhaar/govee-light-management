@@ -277,7 +277,10 @@ the same repository overrides `setPower`, `setBrightness`, `setColor`,
 state and returns once sent; `LAN_CONFIRM_DELAY_MS` (1.5 s) later a status
 read confirms the newest command per light. No reply or a mismatch logs
 `lan.command.unconfirmed`, resends over the cloud and keeps that light on
-the cloud for 10 minutes. `light.command` logs `transport`. Scans send three
+the cloud for 10 minutes. `light.command` logs `transport`. A scan that
+fails with a network error (Wi-Fi reconnecting after wake) is retried on the
+next scan and keeps known lights; only a taken port disables LAN for the
+session. Scans send three
 packets per window because one packet missed a light on hardware. Scenes,
 segments, music modes, snapshots and toggles are cloud-only (no documented
 LAN command). When cloud discovery returns nothing (no internet),
@@ -325,8 +328,10 @@ ignored. Register anything else that owns a process-wide timer the same way.
 notifications to `PowerLifecycleService`. Rules live in global `powerLifecycleRules`
 and are edited explicitly in the On/Off PI. The observer runs only for enabled
 sleep/shutdown rules, uses packaged OS scripts with no credentials, and exits on
-parent pipe closure. Lifecycle POSTs use the cancellable `BoundedPowerClient`
-rather than the installed client's retry middleware; ordinary commands are unchanged.
+parent pipe closure. Lifecycle power goes through `LanFirstPowerClient`: LAN `turn` plus a 500 ms
+status confirmation, then the cancellable `BoundedPowerClient` cloud POST
+(no retry middleware) when the light didn't confirm. It waits up to 3 s for
+`lanDiscovery.ready()` so startup rules can use LAN.
 Saved references/local groups avoid cloud discovery during suspension.
 Wake rules run only after a real suspension: `infrastructure/power/SuspensionDetector`
 detects wall-clock gaps between ticks, because the host also reports display wakes. Manual

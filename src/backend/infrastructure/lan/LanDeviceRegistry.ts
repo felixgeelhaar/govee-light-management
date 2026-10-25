@@ -40,7 +40,14 @@ interface Options {
 /** Scan packets per scan, spread across the reply window. */
 const SCAN_REPEATS = 3;
 
-const BLOCKED = new Set(["EHOSTUNREACH", "ENETUNREACH", "EACCES", "EPERM"]);
+const BLOCKED = new Set([
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "ENETDOWN",
+  "EADDRNOTAVAIL",
+  "EACCES",
+  "EPERM",
+]);
 
 /**
  * Which lights answer on the local network, and at which address. Any
@@ -88,7 +95,13 @@ export class LanDeviceRegistry {
 
   /** Sends one scan and returns the lights that answered within the window. */
   async scan(): Promise<(LanDevice & { device: string })[]> {
-    if (!this.current.available) return [];
+    // A blocked network can be temporary (Wi-Fi reconnecting after wake),
+    // so it is retried on the next scan; a socket that never opened isn't.
+    const retry =
+      !this.current.available &&
+      this.current.reason !== "port-in-use" &&
+      this.current.reason !== "not-started";
+    if (!this.current.available && !retry) return [];
     const started = this.now();
     // UDP has no delivery guarantee and a single scan missed a light on
     // hardware (2026-10-25), so the scan is repeated within the window.
@@ -103,6 +116,10 @@ export class LanDeviceRegistry {
       } catch (error) {
         this.disable(error);
         return [];
+      }
+      if (!this.current.available) {
+        this.logger.info("lan.available", { after: this.current.reason });
+        this.current = { available: true };
       }
       await new Promise((resolve) => setTimeout(resolve, gap));
     }
@@ -199,7 +216,9 @@ export class LanDeviceRegistry {
     if (this.current.available === false && this.current.reason === reason)
       return;
     this.current = { available: false, reason };
-    this.devices.clear();
+    // A blocked network is often temporary, so known lights are kept (they
+    // expire by maxAgeMs); a socket that couldn't open knows nothing.
+    if (reason === "port-in-use") this.devices.clear();
     this.logger.warn("lan.unavailable", { reason, code });
   }
 }

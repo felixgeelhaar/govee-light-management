@@ -36,12 +36,22 @@ const RESCAN_GAP_MS = 60_000;
 export class LanDiscovery {
   private timer?: NodeJS.Timeout;
   private lastScan = 0;
+  private started = false;
+  private resolveReady!: () => void;
+  private readonly firstScan = new Promise<void>(
+    (resolve) => (this.resolveReady = resolve),
+  );
 
   constructor(private readonly registry: Registry) {}
 
   async start(): Promise<void> {
-    if (!(await this.registry.start())) return;
-    await this.scan();
+    this.started = true;
+    try {
+      if (!(await this.registry.start())) return;
+      await this.scan();
+    } finally {
+      this.resolveReady();
+    }
     this.timer = setInterval(() => void this.scan(), SCAN_INTERVAL_MS);
     this.timer.unref?.();
   }
@@ -70,14 +80,22 @@ export class LanDiscovery {
       : { type: "cloud", reason: "not-found" };
   }
 
+  /** Settles once the first scan finished, or LAN couldn't start. */
+  ready(): Promise<void> {
+    return this.started ? this.firstScan : Promise.resolve();
+  }
+
   /** Whether this light answered the LAN scan with this model. */
   knows(deviceId: string, model: string): boolean {
     return this.registry.get(deviceId)?.sku === model;
   }
 
   /** The light's state over the local network, or null to use the cloud. */
-  readStatus(deviceId: string): Promise<LanStatusReply | null> {
-    return this.registry.requestStatus(deviceId);
+  readStatus(
+    deviceId: string,
+    timeoutMs?: number,
+  ): Promise<LanStatusReply | null> {
+    return this.registry.requestStatus(deviceId, timeoutMs);
   }
 
   /** Sends commands over the local network; false to use the cloud. */

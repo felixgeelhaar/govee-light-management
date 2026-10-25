@@ -39,6 +39,13 @@ changes and USB disconnects are not PC power transitions.
 
 ## Command and override policy
 
+- Lights with LAN Control on are switched over the local network first
+  (`LanFirstPowerClient`): a `turn` command, then a status read with a 500 ms
+  limit. If the light confirms, no cloud request is made; otherwise the bounded
+  cloud POST below runs. Before sleep this is the difference between a command
+  sent in about 1 ms and a cloud round trip of about 700 ms that sleep often cut
+  off. Automation waits up to 3 s for the first LAN scan, so "Plugin starts" rules
+  can use LAN too. Each light logs `lifecycle.power` with `transport: lan | cloud`.
 - Commands explicitly set On/Off; they never toggle. Equivalent saved target IDs
   are deduplicated. Repeated start/wake or off events are coalesced per target
   within five seconds; opposite transitions cancel prior work.

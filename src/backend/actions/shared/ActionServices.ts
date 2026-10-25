@@ -1,4 +1,4 @@
-import { BoundedPowerClient } from "../../infrastructure/BoundedPowerClient";
+import { LanFirstPowerClient } from "../../infrastructure/LanFirstPowerClient";
 /**
  * Shared services and utilities for all light actions.
  * Handles device/group resolution, service initialization, and
@@ -1631,10 +1631,15 @@ export class ActionServices {
     await this.cancelActiveEffectForTarget(target, false);
     signal.throwIfAborted();
     const lights = target.light ? [target.light] : (target.group?.lights ?? []);
-    const client = new BoundedPowerClient();
+    const client = new LanFirstPowerClient(lanDiscovery);
     const outcome = await fanOutToLights(lights, async (light) => {
       signal.throwIfAborted();
-      await client.setPower(light, isOn, apiKey, signal);
+      const transport = await client.setPower(light, isOn, apiKey, signal);
+      streamDeck.logger?.info?.("lifecycle.power", {
+        light: `${light.deviceId}|${light.model}`,
+        on: isOn,
+        transport,
+      });
       signal.throwIfAborted();
       light.updateState({ isOn });
       this.rememberLightState(light);

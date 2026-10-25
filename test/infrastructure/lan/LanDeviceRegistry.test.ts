@@ -143,3 +143,31 @@ describe("LanDeviceRegistry", () => {
     expect(socket.closed).toBe(true);
   });
 });
+
+describe("LanDeviceRegistry after a network outage", () => {
+  it("scans again after a send failed, e.g. while Wi-Fi reconnects after wake", async () => {
+    const socket = new FakeSocket();
+    const { registry } = setup(socket);
+    await registry.start();
+    socket.sendError = errno("ENETUNREACH");
+    expect(await registry.scan()).toEqual([]);
+    expect(registry.status).toEqual({
+      available: false,
+      reason: "network-blocked",
+    });
+    socket.sendError = undefined;
+    const scan = registry.scan();
+    socket.reply(desk);
+    expect((await scan).map((d) => d.ip)).toEqual(["192.168.1.23"]);
+    expect(registry.status).toEqual({ available: true });
+  });
+
+  it("stays off when another app holds the port", async () => {
+    const socket = new FakeSocket();
+    socket.openError = errno("EADDRINUSE");
+    const { registry } = setup(socket);
+    await registry.start();
+    await registry.scan();
+    expect(socket.sent).toEqual([]);
+  });
+});
