@@ -9,7 +9,7 @@ Open each in a browser and take a screenshot to produce marketplace gallery imag
 
 ```bash
 cd docs/gallery
-for page in 1-hero 2-actions 3-dials 4-setup 5-v21-features; do
+for page in 1-hero 2-actions 3-dials 4-setup 5-v21-features 6-v22-features 7-v3-features 8-lan; do
   /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
     --headless --disable-gpu --hide-scrollbars \
     --window-size=1920,1080 \
@@ -41,5 +41,8 @@ npx playwright screenshot --viewport-size=1920,1080 \
 | `3-dials.html`        | Stream Deck+ dial experience with touchscreen layouts     |
 | `4-setup.html`        | 3-step setup walkthrough                                  |
 | `5-v21-features.html` | New in v2.1 — Scenes, Music Mode, Feature Toggle showcase |
+| `6-v22-features.html` | v2.7 group state (shows the retired ●/◐/○ glyphs; replace with 7 and 8) |
+| `7-v3-features.html`  | New in v3 — key art, local-time schedules, groups everywhere, group effects |
+| `8-lan.html`          | New in v3.1 — local network control, measured LAN vs cloud send time |
 
 Upload the captured PNGs to the Elgato Marketplace listing (minimum 3, no cropped info).
