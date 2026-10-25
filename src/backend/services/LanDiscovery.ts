@@ -70,6 +70,11 @@ export class LanDiscovery {
       : { type: "cloud", reason: "not-found" };
   }
 
+  /** Whether this light answered the LAN scan with this model. */
+  knows(deviceId: string, model: string): boolean {
+    return this.registry.get(deviceId)?.sku === model;
+  }
+
   /** The light's state over the local network, or null to use the cloud. */
   readStatus(deviceId: string): Promise<LanStatusReply | null> {
     return this.registry.requestStatus(deviceId);

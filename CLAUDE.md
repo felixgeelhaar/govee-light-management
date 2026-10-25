@@ -280,7 +280,10 @@ read confirms the newest command per light. No reply or a mismatch logs
 the cloud for 10 minutes. `light.command` logs `transport`. Scans send three
 packets per window because one packet missed a light on hardware. Scenes,
 segments, music modes, snapshots and toggles are cloud-only (no documented
-LAN command).
+LAN command). When cloud discovery returns nothing (no internet),
+`resolveTarget` builds the target from the LAN scan (`lanDiscovery.knows`
+— same id and model) with LAN capabilities only, and group members the
+scan knows stay online.
 
 ### `DeviceService` (`src/backend/application/services/DeviceService.ts`)
 

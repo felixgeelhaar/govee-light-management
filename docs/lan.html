@@ -94,7 +94,9 @@
   <p class="note">
     For those lights, power, brightness, colour and colour temperature go
     over the local network: keys and dials react in milliseconds and keep
-    working when the internet is down. Each command is checked; if a light
+    working when the internet is down, even after a restart. Setting up a
+    key still needs the internet, because the light list comes from Govee's
+    cloud. Each command is checked; if a light
     didn't react, the plugin sends it again through the cloud. Scenes,
     segments, music modes and snapshots always use the cloud, because
     Govee's local API doesn't offer them.

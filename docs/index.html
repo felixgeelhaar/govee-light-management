@@ -5,17 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Govee Light Management — Stream Deck Plugin</title>
 <meta name="description" content="Control your room's Govee lighting from your Stream Deck. One press for a saved look. One rotation for the perfect setting. Hybrid actions work on keys and Stream Deck+ dials.">
-<meta property="og:title" content="Govee Light Management for Stream Deck — v2.7">
+<meta property="og:title" content="Govee Light Management for Stream Deck">
 <meta property="og:description" content="Your Govee lights, without the phone. One press for a saved look. One rotation for the perfect setting.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://felixgeelhaar.github.io/govee-light-management/">
 <meta property="og:image" content="https://felixgeelhaar.github.io/govee-light-management/gallery/1-hero.png">
 <meta property="og:image:width" content="1920">
 <meta property="og:image:height" content="1080">
-<meta property="og:image:alt" content="Stream Deck mockup showing Govee Light Management v2.7 — keys for On/Off, Brightness, Color Temperature plus Stream Deck+ touch strip and dial caps">
+<meta property="og:image:alt" content="Stream Deck mockup showing Govee Light Management — keys for On/Off, Brightness, Color Temperature plus Stream Deck+ touch strip and dial caps">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Govee Light Management for Stream Deck — v2.7">
-<meta name="twitter:description" content="Your Govee lights, without the phone. Hybrid keypad + dial actions, Recall composite, honest group state.">
+<meta name="twitter:title" content="Govee Light Management for Stream Deck">
+<meta name="twitter:description" content="Your Govee lights, without the phone. Hybrid keypad + dial actions, local network control, honest group state.">
 <meta name="twitter:image" content="https://felixgeelhaar.github.io/govee-light-management/gallery/1-hero.png">
 <link rel="icon" type="image/svg+xml" href="./assets/keys/light.svg">
 <style>
@@ -469,13 +469,14 @@
     padding: 24px 20px;
     text-align: center;
   }
+  .feature p a { color: var(--accent-1); }
   .tb-glyph {
     width: 56px; height: 56px;
     margin: 0 auto 14px;
     border-radius: 50%;
     background: rgba(255,255,255,0.04);
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.6rem;
+    font-size: 1.1rem;
     font-weight: 800;
     color: var(--muted);
   }
@@ -631,7 +632,7 @@
 
 <header class="hero">
   <div class="container">
-    <span class="badge"><span class="dot"></span> v2.7 — fewer actions, more control</span>
+    <span class="badge"><span class="dot"></span> v3.1 — now over your local network</span>
     <h1>Your Govee lights,<br><span class="grad">without the phone.</span></h1>
     <p class="tagline">
       One press for a saved scene. One rotation for the perfect setting.
@@ -694,15 +695,15 @@
 <section id="features">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">What's inside · v2.7</span>
+      <span class="eyebrow">What's inside</span>
       <h2>One action. Key or dial.<br>Done.</h2>
-      <p class="section-sub">Five hybrid actions cover everything you'd reach for, plus a new <strong>Recall</strong> composite that turns any saved look into a single press. Replaces 17 atomic actions from earlier versions.</p>
+      <p class="section-sub">Five hybrid actions cover everything you'd reach for, plus a new <strong>Recall</strong> composite that turns any saved look into a single press. </p>
     </div>
 
     <!-- Hero feature: Recall -->
     <div class="feature feature-hero">
       <div class="feature-hero-text">
-        <span class="hero-tag">New in v2.7 · Headline</span>
+        <span class="hero-tag">Headline</span>
         <h3>Recall — one key, any saved look</h3>
         <p>Pick from every Govee dynamic scene, your DIY moods, and saved snapshots — in a single dropdown. Drop the action on a key, choose "Sunset" or "Movie night" or "Late-night code" — press to apply. Replaces juggling separate Scene and Snapshot keys for the same job.</p>
       </div>
@@ -722,7 +723,7 @@
       <div class="feature">
         <div class="feature-icon"><img src="./assets/keys/light.svg" alt="" aria-hidden="true"></div>
         <h3>On / Off</h3>
-        <p>Toggle a light or a whole group. Three-state title (●/◐/○) with N/M count for groups — never lies about mixed state.</p>
+        <p>Toggle a light or a whole group. The key lights up or dims with the light, and groups show how many members are on — never lies about mixed state.</p>
       </div>
       <div class="feature">
         <div class="feature-icon"><img src="./assets/keys/brightness.svg" alt="" aria-hidden="true"></div>
@@ -737,7 +738,7 @@
       <div class="feature">
         <div class="feature-icon"><img src="./assets/keys/colortemp.svg" alt="" aria-hidden="true"></div>
         <h3>Color Temperature</h3>
-        <p>Press for a fixed Kelvin. Rotate the dial between 2000K warm candlelight and 9000K crisp daylight.</p>
+        <p>Press for a fixed Kelvin. Rotate the dial from warm to crisp daylight across the range your light actually supports.</p>
       </div>
       <div class="feature">
         <div class="feature-icon"><img src="./assets/keys/segment-color.svg" alt="" aria-hidden="true"></div>
@@ -766,7 +767,12 @@
       <div class="feature">
         <div class="feature-icon"><img src="./assets/keys/schedule.svg" alt="" aria-hidden="true"></div>
         <h3>Schedule · Sequence · Custom Effect</h3>
-        <p>Daily / weekly / delayed automation. Chain commands with delays. Animated RGB effects on IC strips.</p>
+        <p>Daily / weekly / delayed automation in your local time. Chain commands with delays. Animated RGB effects on IC strips and on groups.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon"><img src="./assets/keys/light.svg" alt="" aria-hidden="true"></div>
+        <h3>Local network control</h3>
+        <p>Lights with LAN Control turned on get power, brightness and colour in milliseconds, straight over your network — no cloud round trip, no rate limit. <a href="./lan.html">How it works</a>.</p>
       </div>
     </div>
 
@@ -778,19 +784,19 @@
       </div>
       <div class="trust-band-grid">
         <div class="tb-item">
-          <div class="tb-glyph all-on">●</div>
-          <div class="tb-t">All on · 2/2</div>
-          <div class="tb-s">Solid glyph + N/M count when every member is on.</div>
+          <div class="tb-glyph all-on">2/2</div>
+          <div class="tb-t">All on</div>
+          <div class="tb-s">Lit artwork + N/M count when every member is on.</div>
         </div>
         <div class="tb-item">
-          <div class="tb-glyph mixed">◐</div>
-          <div class="tb-t">Mixed · 1/2</div>
-          <div class="tb-s">Half glyph + count. No more silent lies about uniform state.</div>
+          <div class="tb-glyph mixed">1/2</div>
+          <div class="tb-t">Mixed</div>
+          <div class="tb-s">The count says how many are on. No silent lies about uniform state.</div>
         </div>
         <div class="tb-item">
-          <div class="tb-glyph">○</div>
-          <div class="tb-t">All off · 0/2</div>
-          <div class="tb-s">Empty glyph + desaturated multi-state icon variant.</div>
+          <div class="tb-glyph">0/2</div>
+          <div class="tb-t">All off</div>
+          <div class="tb-s">Dimmed artwork + count when every member is off.</div>
         </div>
         <div class="tb-item">
           <div class="tb-glyph warn">⚠</div>
@@ -842,8 +848,8 @@
         <p>In Stream Deck's encrypted local settings store on your machine. Never sent anywhere except the Govee Cloud API itself. No analytics endpoint. No telemetry. The full source is on GitHub if you want to verify.</p>
       </details>
       <details class="faq-item">
-        <summary>Will my v2.6 setup break when I install v2.7?</summary>
-        <p>The four standalone Brightness, Color Hue, Color Temperature and Segment Color Dial actions have been removed. Replace those bindings with the unified actions. Saturation keeps its existing UUID.</p>
+        <summary>Will my setup break when I update?</summary>
+        <p>No: keys, groups and schedules carry over. Coming from v2.6 or earlier? The four standalone Brightness, Color Hue, Color Temperature and Segment Color Dial actions were removed in v2.7; replace them with the unified actions. Saturation keeps its existing UUID.</p>
       </details>
       <details class="faq-item">
         <summary>What happens when Govee changes the API?</summary>
