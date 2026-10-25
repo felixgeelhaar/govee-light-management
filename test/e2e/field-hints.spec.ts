@@ -85,8 +85,10 @@ const HINT_SCENARIOS = [
     name: "Snapshot",
     url: "/ui/snapshot.html",
     event: "getSnapshots",
-    emptyMessage: "No snapshots found. Create one in the Govee mobile app first.",
-    errorMessage: "Couldn't load snapshots. Check your connection and try again.",
+    emptyMessage:
+      "No snapshots found. Create one in the Govee mobile app first.",
+    errorMessage:
+      "Couldn't load snapshots. Check your connection and try again.",
   },
   {
     name: "Scene",
@@ -184,3 +186,43 @@ for (const { name, url, event, emptyMessage, errorMessage } of HINT_SCENARIOS) {
     });
   });
 }
+
+/**
+ * Once the key is set, changing it is rare setup, so it sits with the other
+ * shared sections at the bottom (Groups, Automation, API Key, Metadata)
+ * instead of above the light picker.
+ */
+test.describe("API key placement", () => {
+  for (const url of [
+    "/ui/on-off.html",
+    "/ui/brightness.html",
+    "/ui/schedule.html",
+  ]) {
+    test(`${url}: Change API Key follows the shared sections, before Metadata`, async ({
+      page,
+    }) => {
+      await installMockClient(page);
+      await page.goto(url);
+      await page.locator("#editApiKeyBtn").waitFor({ state: "attached" });
+      const order = await page.evaluate(() => {
+        const settings = document.getElementById("settings")!;
+        const items = [...settings.children];
+        const index = (el: Element | null) =>
+          items.findIndex((item) => item === el || item.contains(el));
+        return {
+          device: index(
+            document.querySelector('sdpi-select[setting="selectedDeviceId"]'),
+          ),
+          groups: index(document.getElementById("groupManager")),
+          apiKey: index(document.getElementById("editApiKeyBtn")),
+          metadata: index(document.getElementById("deviceDebugDetails")),
+          last: items.length - 1,
+        };
+      });
+      expect(order.apiKey).toBeGreaterThan(order.device);
+      expect(order.apiKey).toBeGreaterThan(order.groups);
+      expect(order.metadata).toBe(order.apiKey + 1);
+      expect(order.metadata).toBe(order.last);
+    });
+  }
+});
