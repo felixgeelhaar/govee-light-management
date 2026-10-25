@@ -89,3 +89,21 @@ describe("LanDiscovery", () => {
     });
   });
 });
+
+describe("LanDiscovery.ready", () => {
+  it("settles after the first scan, and at once when never started", async () => {
+    const registry = fakeRegistry();
+    const discovery = new LanDiscovery(registry);
+    await expect(discovery.ready()).resolves.toBeUndefined();
+    let scanned = false;
+    registry.scan.mockImplementation(async () => {
+      scanned = true;
+      return [];
+    });
+    const starting = discovery.start();
+    await discovery.ready();
+    expect(scanned).toBe(true);
+    await starting;
+    await discovery.shutdown();
+  });
+});

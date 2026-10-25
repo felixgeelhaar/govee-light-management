@@ -99,7 +99,9 @@
     cloud. Each command is checked; if a light
     didn't react, the plugin sends it again through the cloud. Scenes,
     segments, music modes and snapshots always use the cloud, because
-    Govee's local API doesn't offer them.
+    Govee's local API doesn't offer them. Automation (turning lights on at
+    wake and off before sleep) also goes over the local network, which makes
+    "off before sleep" much more reliable.
   </p>
 
   <h2>Turn on LAN Control for a light</h2>
