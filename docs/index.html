@@ -854,6 +854,10 @@
         <p>Govee Cloud groups (<code>SameModelGroup</code>, <code>BaseGroup</code>) appear in the device dropdown as a disabled hint — Govee's API doesn't accept commands on them. Use the plugin's own group manager to compose multiple lights into a group you can drive together.</p>
       </details>
       <details class="faq-item">
+        <summary>Does it use my local network?</summary>
+        <p>Yes, for Govee lights with LAN Control turned on: the plugin finds them automatically, with no setting. On macOS, allow Stream Deck local network access when asked. <a href="./lan.html">How to turn it on, or allow it again</a>.</p>
+      </details>
+      <details class="faq-item">
         <summary>What if a group apply only half-works?</summary>
         <p>The key shows <code>⚠ N/M failed</code> for 30 seconds — never a silent green checkmark. State sync also reverts the optimistic update if every member failed.</p>
       </details>
@@ -885,6 +889,7 @@
       </div>
       <div class="foot-links">
         <a href="./privacy.html">Privacy</a>
+        <a href="./lan.html">Local network</a>
         <a href="https://github.com/felixgeelhaar/govee-light-management">Source</a>
         <a href="https://github.com/felixgeelhaar/govee-light-management/issues">Support</a>
         <a href="https://developer.govee.com">Govee API</a>
