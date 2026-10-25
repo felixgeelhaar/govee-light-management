@@ -24,7 +24,7 @@ test("Automation rules are opt-in and expose honest lifecycle limits", async ({
     "best effort",
   );
   await expect(page.locator("#powerLifecycleBody")).toContainText(
-    "Manual commands",
+    "manual commands take priority",
   );
   await expect(
     page.locator('script[src="./js/power-lifecycle.js"]'),

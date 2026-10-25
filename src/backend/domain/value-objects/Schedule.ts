@@ -9,7 +9,7 @@ export enum ScheduleType {
 }
 
 /**
- * Days of the week (0=Sunday, 6=Saturday — matches Date.getUTCDay())
+ * Days of the week (0=Sunday, 6=Saturday — matches Date.getDay())
  */
 export enum DayOfWeek {
   Sunday = 0,
@@ -20,6 +20,13 @@ export enum DayOfWeek {
   Friday = 5,
   Saturday = 6,
 }
+
+/**
+ * Clock that daily/weekly hour, minute and days are read in. Schedules are
+ * entered in the computer's local time; "utc" remains for schedules saved
+ * before 3.0.1, whose times were entered as UTC.
+ */
+export type ScheduleClock = "local" | "utc";
 
 /**
  * Serializable schedule representation
@@ -34,6 +41,7 @@ export interface ScheduleJSON {
   minute?: number;
   days?: DayOfWeek[];
   fired?: boolean;
+  clock?: ScheduleClock;
 }
 
 /**
@@ -52,6 +60,7 @@ export class Schedule {
       minute?: number;
       days?: DayOfWeek[];
       fired?: boolean;
+      clock?: ScheduleClock;
     },
   ) {}
 
@@ -81,12 +90,21 @@ export class Schedule {
     });
   }
 
-  static daily(hour: number, minute: number): Schedule {
+  static daily(
+    hour: number,
+    minute: number,
+    clock: ScheduleClock = "local",
+  ): Schedule {
     Schedule.validateTime(hour, minute);
-    return new Schedule(ScheduleType.Daily, true, { hour, minute });
+    return new Schedule(ScheduleType.Daily, true, { hour, minute, clock });
   }
 
-  static weekly(days: DayOfWeek[], hour: number, minute: number): Schedule {
+  static weekly(
+    days: DayOfWeek[],
+    hour: number,
+    minute: number,
+    clock: ScheduleClock = "local",
+  ): Schedule {
     if (days.length === 0) {
       throw new Error("Weekly schedule requires at least one day");
     }
@@ -95,6 +113,7 @@ export class Schedule {
       days: [...days].sort(),
       hour,
       minute,
+      clock,
     });
   }
 
@@ -134,23 +153,36 @@ export class Schedule {
     }
   }
 
+  /** The schedule's time on the day `offset` days from `now`, in its clock. */
+  private timeOnDay(now: Date, offset: number): { at: Date; day: DayOfWeek } {
+    const { hour, minute } = this.data;
+    if (this.data.clock === "utc") {
+      const at = new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate() + offset,
+          hour!,
+          minute!,
+        ),
+      );
+      return { at, day: at.getUTCDay() as DayOfWeek };
+    }
+    // Local fields, so the time holds across daylight-saving changes.
+    const at = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + offset,
+      hour!,
+      minute!,
+    );
+    return { at, day: at.getDay() as DayOfWeek };
+  }
+
   private calculateNextDaily(): Date {
     const now = new Date();
-    const candidate = new Date(
-      Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate(),
-        this.data.hour!,
-        this.data.minute!,
-        0,
-        0,
-      ),
-    );
-    if (candidate.getTime() <= now.getTime()) {
-      candidate.setUTCDate(candidate.getUTCDate() + 1);
-    }
-    return candidate;
+    const today = this.timeOnDay(now, 0).at;
+    return today.getTime() > now.getTime() ? today : this.timeOnDay(now, 1).at;
   }
 
   private calculateNextWeekly(): Date {
@@ -158,21 +190,8 @@ export class Schedule {
     const days = this.data.days!;
 
     for (let offset = 0; offset < 14; offset++) {
-      const candidate = new Date(
-        Date.UTC(
-          now.getUTCFullYear(),
-          now.getUTCMonth(),
-          now.getUTCDate() + offset,
-          this.data.hour!,
-          this.data.minute!,
-          0,
-          0,
-        ),
-      );
-      const day = candidate.getUTCDay() as DayOfWeek;
-      if (days.includes(day) && candidate.getTime() > now.getTime()) {
-        return candidate;
-      }
+      const { at, day } = this.timeOnDay(now, offset);
+      if (days.includes(day) && at.getTime() > now.getTime()) return at;
     }
     throw new Error("Could not find next weekly trigger");
   }
@@ -215,6 +234,7 @@ export class Schedule {
       minute: this.data.minute,
       days: this.data.days ? [...this.data.days] : undefined,
       fired: this.data.fired,
+      clock: this.data.clock,
     };
   }
 
@@ -227,6 +247,8 @@ export class Schedule {
       minute: json.minute,
       days: json.days,
       fired: json.fired,
+      // Persisted before 3.0.1, when daily/weekly times were UTC.
+      clock: json.clock ?? "utc",
     };
     return new Schedule(json.type, json.isActive, data);
   }

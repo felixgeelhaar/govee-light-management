@@ -6,51 +6,7 @@
     <link rel="stylesheet" href="./css/main.css" />
     <script src="./js/sdpi-components.js"></script>
     <script src="./js/setup.js"></script>
-    <style>
-      .schedule-section {
-        display: block;
-        margin-top: 4px;
-      }
-      .schedule-section.hidden {
-        display: none;
-      }
-      .time-row {
-        display: flex;
-        gap: 4px;
-        align-items: center;
-      }
-      .time-row input[type="number"] {
-        width: 60px;
-      }
-      .day-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 4px;
-      }
-      .day-chip {
-        padding: 4px 6px;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 3px;
-        text-align: center;
-        cursor: pointer;
-        font-size: 11px;
-        user-select: none;
-      }
-      .day-chip.active {
-        background: #4fa3ff;
-        color: white;
-        border-color: #4fa3ff;
-      }
-      .help-text {
-        font-size: 11px;
-        color: #888;
-        margin-top: 4px;
-      }
-      sdpi-item {
-        --sdpi-label-width: 90px;
-      }
-    </style>
+    <script src="./js/range-value.js"></script>
   </head>
   <body>
     <div id="settings" class="hidden">
@@ -65,71 +21,50 @@
       <sdpi-item label="Device">
         <sdpi-select
           setting="selectedDeviceId"
+          placeholder="Select a light or group"
           datasource="getDevices"
           show-refresh
           label-setting="selectedLightName"
         ></sdpi-select>
       </sdpi-item>
 
-      <sdpi-item label="Schedule">
-        <sdpi-select setting="scheduleType">
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
-          <option value="delay">After Delay</option>
+      <sdpi-item label="Repeat">
+        <sdpi-select setting="scheduleType" default="daily">
+          <option value="daily">Every day</option>
+          <option value="weekly">On selected days</option>
+          <option value="delay">Once, after a delay</option>
         </sdpi-select>
       </sdpi-item>
 
-      <div id="timeSection" class="schedule-section">
-        <sdpi-item label="Time (UTC)">
-          <div class="time-row">
-            <input
-              id="hourInput"
-              type="number"
-              min="0"
-              max="23"
-              placeholder="HH"
-            />
-            <span>:</span>
-            <input
-              id="minuteInput"
-              type="number"
-              min="0"
-              max="59"
-              placeholder="MM"
-            />
-          </div>
-        </sdpi-item>
-      </div>
+      <!-- Time, days and delay are written by the script below, so they carry
+           no setting attribute: hour/minute/days must be saved together with
+           the clock they were entered in. -->
+      <sdpi-item label="Time" id="timeItem">
+        <sdpi-calendar id="timeInput" type="time"></sdpi-calendar>
+      </sdpi-item>
 
-      <div id="daysSection" class="schedule-section hidden">
-        <sdpi-item label="Days">
-          <div class="day-grid" id="dayGrid">
-            <div class="day-chip" data-day="0">Sun</div>
-            <div class="day-chip" data-day="1">Mon</div>
-            <div class="day-chip" data-day="2">Tue</div>
-            <div class="day-chip" data-day="3">Wed</div>
-            <div class="day-chip" data-day="4">Thu</div>
-            <div class="day-chip" data-day="5">Fri</div>
-            <div class="day-chip" data-day="6">Sat</div>
-          </div>
-        </sdpi-item>
-      </div>
+      <sdpi-item label="Days" id="daysItem" class="hidden">
+        <sdpi-checkbox-list id="dayList" columns="4">
+          <option value="1">Mon</option>
+          <option value="2">Tue</option>
+          <option value="3">Wed</option>
+          <option value="4">Thu</option>
+          <option value="5">Fri</option>
+          <option value="6">Sat</option>
+          <option value="0">Sun</option>
+        </sdpi-checkbox-list>
+      </sdpi-item>
 
-      <div id="delaySection" class="schedule-section hidden">
-        <sdpi-item label="Delay (s)">
-          <input
-            id="delayInput"
-            type="number"
-            min="1"
-            max="86400"
-            placeholder="e.g. 300"
-          />
-        </sdpi-item>
-        <div class="help-text">Runs once N seconds after button press</div>
-      </div>
+      <sdpi-item label="Delay (sec)" id="delayItem" class="hidden">
+        <sdpi-textfield
+          id="delayInput"
+          pattern="[0-9]+"
+          placeholder="e.g. 300"
+        ></sdpi-textfield>
+      </sdpi-item>
 
       <sdpi-item label="Action">
-        <sdpi-select setting="command">
+        <sdpi-select setting="command" default="on">
           <option value="on">Turn On</option>
           <option value="off">Turn Off</option>
           <option value="toggle">Toggle</option>
@@ -137,18 +72,27 @@
         </sdpi-select>
       </sdpi-item>
 
-      <sdpi-item label="Brightness" id="brightnessItem" class="hidden">
+      <sdpi-item label="Brightness" id="scheduleBrightnessItem" class="hidden">
         <sdpi-range
           setting="commandValue"
           min="0"
           max="100"
           step="5"
+          showlabels
           data-suffix="%"
           data-number-input
-        ></sdpi-range>
+        >
+          <span slot="min">Off</span>
+          <span slot="max">Max</span>
+        </sdpi-range>
       </sdpi-item>
 
-      <div class="help-text">Press button to enable/disable this schedule</div>
+      <sdpi-item>
+        <p class="field-hint info" id="scheduleHint">
+          Times use this computer's time zone. Press the key to pause or resume
+          the schedule.
+        </p>
+      </sdpi-item>
     </div>
 
     <div id="setup" class="hidden">
@@ -166,125 +110,105 @@
           Failed to connect, please try again.
         </div>
       </sdpi-item>
+      <sdpi-item label="Guide" class="guide">
+        <ol>
+          <li>Open the Govee app</li>
+          <li>Go to settings</li>
+          <li>Select "Apply for API Key"</li>
+          <li>Paste the key from Govee's email above</li>
+        </ol>
+        <a
+          class="guide-link"
+          href="https://developer.govee.com/reference/apply-you-govee-api-key"
+          data-open-url
+          >How to get a Govee API key</a
+        >
+      </sdpi-item>
     </div>
 
+    <script src="./js/schedule-time.js"></script>
     <script>
-      (function () {
-        const timeSection = document.getElementById("timeSection");
-        const daysSection = document.getElementById("daysSection");
-        const delaySection = document.getElementById("delaySection");
-        const brightnessItem = document.getElementById("brightnessItem");
-        const hourInput = document.getElementById("hourInput");
-        const minuteInput = document.getElementById("minuteInput");
+      // GoveePI is defined by setup.js on DOMContentLoaded.
+      document.addEventListener("DOMContentLoaded", function () {
+        const timeItem = document.getElementById("timeItem");
+        const daysItem = document.getElementById("daysItem");
+        const delayItem = document.getElementById("delayItem");
+        const brightnessItem = document.getElementById(
+          "scheduleBrightnessItem",
+        );
+        const timeInput = document.getElementById("timeInput");
+        const dayList = document.getElementById("dayList");
         const delayInput = document.getElementById("delayInput");
-        const dayGrid = document.getElementById("dayGrid");
+        const typeSelect = document.querySelector(
+          'sdpi-select[setting="scheduleType"]',
+        );
+        const commandSelect = document.querySelector(
+          'sdpi-select[setting="command"]',
+        );
+        const { localTimeFields, timeText, toLocalSchedule } =
+          window.GoveeScheduleTime;
 
-        let currentSettings = {};
-        let client = null;
+        // Last known repeat type and action; the selects report no value
+        // until their options render, so they can't be read on demand.
+        const shown = { type: "daily", command: "on" };
 
-        function ensureId(settings) {
-          if (!settings.scheduleId) {
-            settings.scheduleId = `schedule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-          }
-          return settings;
-        }
-
-        function updateVisibility(type) {
-          timeSection.classList.toggle(
-            "hidden",
-            type !== "daily" && type !== "weekly",
-          );
-          daysSection.classList.toggle("hidden", type !== "weekly");
-          delaySection.classList.toggle("hidden", type !== "delay");
-        }
-
-        function updateBrightnessVisibility(command) {
+        function showFor(type = shown.type, command = shown.command) {
+          shown.type = type;
+          shown.command = command;
+          const repeating = type !== "delay";
+          timeItem.classList.toggle("hidden", !repeating);
+          daysItem.classList.toggle("hidden", type !== "weekly");
+          delayItem.classList.toggle("hidden", type !== "delay");
           brightnessItem.classList.toggle("hidden", command !== "brightness");
         }
 
-        function renderDays(days) {
-          const active = new Set(days || []);
-          dayGrid.querySelectorAll(".day-chip").forEach((chip) => {
-            const day = parseInt(chip.dataset.day, 10);
-            chip.classList.toggle("active", active.has(day));
-          });
-        }
-
-        function toggleDay(day) {
-          const days = new Set(currentSettings.days || []);
-          if (days.has(day)) days.delete(day);
-          else days.add(day);
-          currentSettings.days = Array.from(days).sort();
-          renderDays(currentSettings.days);
-          saveSettings();
-        }
-
-        function saveSettings() {
-          if (!client) return;
-          client.setSettings(ensureId({ ...currentSettings }));
-        }
-
-        function onSettingsReceived(settings) {
-          currentSettings = ensureId({ ...settings });
-          updateVisibility(settings.scheduleType || "daily");
-          updateBrightnessVisibility(settings.command);
-          hourInput.value = settings.hour ?? "";
-          minuteInput.value = settings.minute ?? "";
-          delayInput.value = settings.delaySeconds ?? "";
-          renderDays(settings.days);
-        }
-
-        function bind() {
-          client = window.SDPIComponents?.streamDeckClient;
-          if (!client) {
-            setTimeout(bind, 100);
-            return;
+        async function load(client) {
+          const { settings = {} } = (await client.getSettings()) || {};
+          const patch = {};
+          if (!settings.scheduleId) {
+            patch.scheduleId = `schedule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
           }
+          // Keys saved before 3.0.1 hold UTC times: convert them once.
+          const local = toLocalSchedule(settings);
+          if (local) Object.assign(patch, local);
+          if (Object.keys(patch).length)
+            await window.GoveePI.patchSettings(patch);
+          const current = { ...settings, ...patch };
+          timeInput.value = timeText(current.hour, current.minute);
+          dayList.value = (current.days || []).map(String);
+          delayInput.value =
+            current.delaySeconds === undefined
+              ? ""
+              : String(current.delaySeconds);
+          showFor(current.scheduleType || "daily", current.command);
+        }
 
-          client.on?.("didReceiveSettings", (msg) => {
-            onSettingsReceived(msg?.payload?.settings || {});
+        window.GoveePI.ready((client) => {
+          load(client);
+
+          timeInput.addEventListener("valuechange", () => {
+            const fields = localTimeFields(timeInput.value);
+            if (fields) window.GoveePI.patchSettings(fields);
           });
-
-          dayGrid.addEventListener("click", (e) => {
-            const chip = e.target.closest(".day-chip");
-            if (chip) toggleDay(parseInt(chip.dataset.day, 10));
-          });
-
-          [hourInput, minuteInput].forEach((input) => {
-            input.addEventListener("change", () => {
-              currentSettings.hour = parseInt(hourInput.value, 10);
-              currentSettings.minute = parseInt(minuteInput.value, 10);
-              saveSettings();
+          dayList.addEventListener("valuechange", () => {
+            window.GoveePI.patchSettings({
+              days: (dayList.value || []).map(Number).sort(),
+              clock: "local",
             });
           });
-
-          delayInput.addEventListener("change", () => {
-            currentSettings.delaySeconds = parseInt(delayInput.value, 10);
-            saveSettings();
+          delayInput.addEventListener("valuechange", () => {
+            const seconds = parseInt(delayInput.value, 10);
+            if (Number.isInteger(seconds) && seconds > 0)
+              window.GoveePI.patchSettings({ delaySeconds: seconds });
           });
-
-          // React to schedule type / command changes via global settings observer
-          document.addEventListener("change", (e) => {
-            const target = e.target;
-            if (!target) return;
-            const setting = target.getAttribute?.("setting");
-            if (setting === "scheduleType") {
-              setTimeout(() => {
-                const newType = target.value;
-                updateVisibility(newType);
-              }, 50);
-            }
-            if (setting === "command") {
-              setTimeout(() => {
-                updateBrightnessVisibility(target.value);
-              }, 50);
-            }
+          typeSelect.addEventListener("valuechange", () => {
+            if (typeSelect.value) showFor(typeSelect.value, undefined);
           });
-        }
-
-        document.addEventListener("DOMContentLoaded", bind);
-        if (document.readyState !== "loading") bind();
-      })();
+          commandSelect.addEventListener("valuechange", () => {
+            if (commandSelect.value) showFor(undefined, commandSelect.value);
+          });
+        });
+      });
     </script>
   </body>
 </html>

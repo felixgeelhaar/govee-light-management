@@ -46,8 +46,8 @@
         }
       ],
       "Encoder": {
-        "Icon": "imgs/actions/brightness-dial/icon",
-        "background": "imgs/actions/brightness-dial/background",
+        "Icon": "imgs/actions/brightness/dial-icon",
+        "background": "imgs/actions/brightness/dial-background",
         "TriggerDescription": {
           "Rotate": "Adjust brightness",
           "Push": "Toggle power",
@@ -76,8 +76,8 @@
         }
       ],
       "Encoder": {
-        "Icon": "imgs/actions/colorhue-dial/icon",
-        "background": "imgs/actions/colorhue-dial/background",
+        "Icon": "imgs/actions/color/dial-icon",
+        "background": "imgs/actions/color/dial-background",
         "TriggerDescription": {
           "Rotate": "Change color",
           "Push": "Toggle power",
@@ -106,8 +106,8 @@
         }
       ],
       "Encoder": {
-        "Icon": "imgs/actions/colortemp-dial/icon",
-        "background": "imgs/actions/colortemp-dial/background",
+        "Icon": "imgs/actions/colortemp/dial-icon",
+        "background": "imgs/actions/colortemp/dial-background",
         "TriggerDescription": {
           "Rotate": "Adjust warm/cool",
           "Push": "Toggle power",
@@ -192,8 +192,8 @@
         }
       ],
       "Encoder": {
-        "Icon": "imgs/actions/segment-color-dial/icon",
-        "background": "imgs/actions/segment-color-dial/background",
+        "Icon": "imgs/actions/segment-color/dial-icon",
+        "background": "imgs/actions/segment-color/dial-background",
         "TriggerDescription": {
           "Rotate": "Change segment hue",
           "Push": "Apply color to segment",
@@ -225,7 +225,7 @@
       "Controllers": ["Keypad", "Encoder"],
       "Encoder": {
         "Icon": "imgs/actions/saturation-dial/icon",
-        "background": "imgs/actions/saturation-dial/background",
+        "background": "imgs/actions/saturation-dial/dial-background",
         "TriggerDescription": {
           "Rotate": "Adjust saturation",
           "Push": "Toggle power",
@@ -235,7 +235,7 @@
       },
       "States": [
         {
-          "Image": "imgs/actions/saturation-dial/icon",
+          "Image": "imgs/actions/saturation-dial/key",
           "TitleAlignment": "bottom",
           "Name": "On"
         },

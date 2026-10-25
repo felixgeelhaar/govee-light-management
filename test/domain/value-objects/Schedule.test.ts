@@ -76,7 +76,7 @@ describe("Schedule", () => {
 
     it("should calculate next trigger for today if time is in future", () => {
       // Current time: 10:00, schedule for 14:30 today
-      const schedule = Schedule.daily(14, 30);
+      const schedule = Schedule.daily(14, 30, "utc");
       const next = schedule.nextTriggerAt()!;
       expect(next.getUTCHours()).toBe(14);
       expect(next.getUTCMinutes()).toBe(30);
@@ -85,7 +85,7 @@ describe("Schedule", () => {
 
     it("should calculate next trigger for tomorrow if time has passed", () => {
       // Current time: 10:00, schedule for 08:00 - should be tomorrow
-      const schedule = Schedule.daily(8, 0);
+      const schedule = Schedule.daily(8, 0, "utc");
       const next = schedule.nextTriggerAt()!;
       expect(next.getUTCHours()).toBe(8);
       expect(next.getUTCDate()).toBe(18);
@@ -119,7 +119,7 @@ describe("Schedule", () => {
     it("should find next matching day", () => {
       // Current: Friday 10:00
       // Schedule: Friday at 14:00 - should be today
-      const schedule = Schedule.weekly([DayOfWeek.Friday], 14, 0);
+      const schedule = Schedule.weekly([DayOfWeek.Friday], 14, 0, "utc");
       const next = schedule.nextTriggerAt()!;
       expect(next.getUTCDate()).toBe(17);
       expect(next.getUTCHours()).toBe(14);
@@ -128,7 +128,7 @@ describe("Schedule", () => {
     it("should skip to next week if day has passed", () => {
       // Current: Friday 10:00
       // Schedule: Friday at 08:00 - should be next Friday
-      const schedule = Schedule.weekly([DayOfWeek.Friday], 8, 0);
+      const schedule = Schedule.weekly([DayOfWeek.Friday], 8, 0, "utc");
       const next = schedule.nextTriggerAt()!;
       expect(next.getUTCDate()).toBe(24);
       expect(next.getUTCHours()).toBe(8);
@@ -141,10 +141,59 @@ describe("Schedule", () => {
         [DayOfWeek.Monday, DayOfWeek.Wednesday],
         9,
         0,
+        "utc",
       );
       const next = schedule.nextTriggerAt()!;
       expect(next.getUTCDay()).toBe(DayOfWeek.Monday);
       expect(next.getUTCDate()).toBe(20);
+    });
+  });
+
+  describe("Local clock", () => {
+    const zone = process.env.TZ;
+    beforeEach(() => {
+      // UTC+2 in April; 2026-04-17T10:00Z is 12:00 local (Friday).
+      process.env.TZ = "Europe/Berlin";
+    });
+    afterEach(() => {
+      process.env.TZ = zone;
+    });
+
+    it("reads daily times in the computer's local time by default", () => {
+      const next = Schedule.daily(14, 30).nextTriggerAt()!;
+      expect(next.toISOString()).toBe("2026-04-17T12:30:00.000Z");
+    });
+
+    it("moves a local time that has passed today to tomorrow", () => {
+      const next = Schedule.daily(11, 0).nextTriggerAt()!;
+      expect(next.toISOString()).toBe("2026-04-18T09:00:00.000Z");
+    });
+
+    it("matches weekdays in local time", () => {
+      // 01:00 local Saturday is still Friday 23:00 UTC.
+      const next = Schedule.weekly([DayOfWeek.Saturday], 1, 0).nextTriggerAt()!;
+      expect(next.toISOString()).toBe("2026-04-17T23:00:00.000Z");
+    });
+
+    it("keeps the local time across a daylight-saving change", () => {
+      vi.setSystemTime(new Date("2026-10-24T12:00:00Z"));
+      const next = Schedule.weekly([DayOfWeek.Sunday], 9, 0).nextTriggerAt()!;
+      // CEST ends 2026-10-25; 09:00 CET is 08:00 UTC.
+      expect(next.toISOString()).toBe("2026-10-25T08:00:00.000Z");
+    });
+
+    it("restores schedules persisted without a clock as UTC", () => {
+      const json = Schedule.daily(14, 30).toJSON();
+      delete json.clock;
+      const next = Schedule.fromJSON(json).nextTriggerAt()!;
+      expect(next.toISOString()).toBe("2026-04-17T14:30:00.000Z");
+    });
+
+    it("round-trips the local clock", () => {
+      const original = Schedule.daily(14, 30);
+      expect(Schedule.fromJSON(original.toJSON()).nextTriggerAt()).toEqual(
+        original.nextTriggerAt(),
+      );
     });
   });
 

@@ -399,7 +399,7 @@ document.addEventListener("DOMContentLoaded", () => {
     debugItem.setAttribute("label", "Metadata");
     debugItem.innerHTML = `
       <details class="sdpi-item-value metadata-details" id="deviceDebugDetails">
-        <summary>Selected device metadata</summary>
+        <summary>What this light supports</summary>
         <div id="deviceDebugValue" class="metadata-content">
           <div class="metadata-empty">Select a light to inspect device metadata.</div>
         </div>
@@ -1020,6 +1020,20 @@ document.addEventListener("DOMContentLoaded", () => {
     if (readyClient) fn(readyClient);
     else readyQueue.push(fn);
   };
+  /**
+   * Writes settings through SDPI's shared settings store, the same store
+   * the sdpi-* components save from. Calling streamDeckClient.setSettings
+   * directly replaces the key's whole settings object and leaves the store
+   * stale, so a later component change saves the old values back.
+   */
+  window.GoveePI.patchSettings = async function (patch) {
+    const useSettings = window.SDPIComponents?.useSettings;
+    if (typeof useSettings !== "function") return;
+    for (const [key, value] of Object.entries(patch)) {
+      const [, set] = useSettings(key, undefined, 0);
+      await set(value);
+    }
+  };
   window.GoveePI.attachFieldStatus = function (selectEl, event, opts) {
     if (!readyClient) {
       // Defer until ready
@@ -1038,6 +1052,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const client = SDPIComponents.streamDeckClient;
     injectApiKeyActions(client);
     initSharedMessageHandlers(client);
+    // Inspector pages can't navigate; Stream Deck opens links in the browser.
+    document.addEventListener("click", (event) => {
+      const link = event.target.closest?.("a[data-open-url]");
+      if (!link) return;
+      event.preventDefault();
+      client.send("openUrl", { url: link.href });
+    });
 
     client.didReceiveGlobalSettings.subscribe((msg) => {
       cachedGlobalSettings = msg.payload?.settings || {};

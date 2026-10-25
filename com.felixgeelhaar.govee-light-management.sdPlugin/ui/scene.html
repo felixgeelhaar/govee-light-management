@@ -13,7 +13,7 @@
         <sdpi-select
           id="deviceSelect"
           setting="selectedDeviceId"
-          placeholder=""
+          placeholder="Select a light or group"
           datasource="getDevices"
           show-refresh
           label-setting="selectedLightName"
@@ -51,7 +51,14 @@
           <li>Open the Govee app</li>
           <li>Go to settings</li>
           <li>Select "Apply for API Key"</li>
+          <li>Paste the key from Govee's email above</li>
         </ol>
+        <a
+          class="guide-link"
+          href="https://developer.govee.com/reference/apply-you-govee-api-key"
+          data-open-url
+          >How to get a Govee API key</a
+        >
       </sdpi-item>
     </div>
 
@@ -112,7 +119,7 @@
             return;
           }
 
-          if (selectedDeviceId !== lastDeviceId && client?.setSettings) {
+          if (selectedDeviceId !== lastDeviceId) {
             lastDeviceId = selectedDeviceId;
             currentSettings = {
               ...currentSettings,
@@ -121,7 +128,10 @@
               selectedScene: "",
             };
             clearSceneSelection();
-            await client.setSettings(currentSettings);
+            await window.GoveePI.patchSettings({
+              selectedLightName: currentSettings.selectedLightName,
+              selectedScene: "",
+            });
           } else {
             lastDeviceId = selectedDeviceId;
           }
