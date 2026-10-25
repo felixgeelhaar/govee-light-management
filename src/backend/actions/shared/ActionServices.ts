@@ -277,6 +277,53 @@ export interface BaseSettings {
 }
 
 /**
+ * A light the cloud list can't confirm because discovery returned nothing
+ * (typically no internet after a restart) but that answered the LAN scan
+ * with the same id and model. It gets what Govee's LAN API can do: power,
+ * brightness, colour and colour temperature.
+ */
+function lanOnlyLightItem(
+  cloudLights: LightItem[],
+  settings: BaseSettings,
+  target: { deviceId?: string; model?: string },
+): LightItem | undefined {
+  const { deviceId, model } = target;
+  if (cloudLights.length > 0 || !deviceId || !model) return undefined;
+  if (!lanDiscovery.knows(deviceId, model)) return undefined;
+  const label = settings.selectedLightName ?? "";
+  const suffix = ` (${model})`;
+  const name =
+    (label.endsWith(suffix) ? label.slice(0, -suffix.length) : label) || model;
+  streamDeck.logger?.info(
+    "resolveTarget: using the LAN scan (cloud list empty)",
+    {
+      light: `${deviceId}|${model}`,
+    },
+  );
+  return {
+    deviceId,
+    model,
+    name,
+    label,
+    value: `${deviceId}|${model}`,
+    controllable: true,
+    retrievable: true,
+    supportedCommands: [],
+    capabilities: {
+      power: true,
+      brightness: true,
+      color: true,
+      colorTemperature: true,
+      scenes: false,
+      segmentedColor: false,
+      musicMode: false,
+      nightlight: false,
+      gradient: false,
+    },
+  };
+}
+
+/**
  * Manages shared services for light/group actions.
  * Uses static shared state so all action instances share a single
  * GoveeLightRepository and rate limiter.
@@ -675,6 +722,10 @@ export class ActionServices {
               const item = findLightItem(cached, light);
               if (item) {
                 light.updateState({ isOnline: item.controllable });
+              } else if (lanDiscovery.knows(light.deviceId, light.model)) {
+                // Not in the cloud list (no internet?) but answering on
+                // the local network, so it can still be controlled.
+                light.updateState({ isOnline: true });
               } else {
                 // Group references a light that's no longer in the
                 // user's Govee account (deleted from the app, or
@@ -715,7 +766,8 @@ export class ActionServices {
       let lights = forceRefresh
         ? await this.deviceService.discover(true)
         : await this.deviceService.knownLights(TARGET_INVENTORY_MAX_AGE_MS);
-      let lightItem = find(lights);
+      let lightItem =
+        find(lights) ?? lanOnlyLightItem(lights, settings, target);
       // A light missing from an expired inventory may be new or re-added:
       // refresh once. A fresh list is authoritative, so a failed (empty)
       // discovery does not turn into a request on every sync tick.
@@ -725,7 +777,7 @@ export class ActionServices {
         !this.deviceService.getCachedLights()
       ) {
         lights = await this.deviceService.discover(false);
-        lightItem = find(lights);
+        lightItem = find(lights) ?? lanOnlyLightItem(lights, settings, target);
       }
 
       if (!lightItem) {
