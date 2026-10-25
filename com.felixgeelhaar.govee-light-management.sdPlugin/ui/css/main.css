@@ -1,3 +1,11 @@
+/* Text outside SDPI components (hints, builder rows) uses the same font
+   as the components; without it the inspector falls back to serif. */
+body {
+	font-family: "Segoe UI", Arial, Roboto, Helvetica, sans-serif;
+	font-size: 9pt;
+	color: #d8d8d8;
+}
+
 .hidden {
 	display: none;
 	visibility: collapse;
@@ -15,6 +23,13 @@
 
 .guide ol > li {
 	margin: 5px 0;
+}
+
+.guide-link {
+	display: inline-block;
+	margin-top: 4px;
+	color: #4fa3ff;
+	font-size: 12px;
 }
 
 /* ── Group Manager ── */
@@ -295,6 +310,7 @@
 }
 
 .field-hint {
+	margin: 0;
 	font-size: 11px;
 	padding: 4px 0 0;
 	line-height: 1.4;
@@ -354,7 +370,7 @@
    if they would otherwise spill into the spinbox column. */
 .range-with-number {
 	display: grid;
-	grid-template-columns: 1fr 50px;
+	grid-template-columns: 1fr 56px;
 	column-gap: 18px;
 	align-items: center;
 	width: 100%;

@@ -34,7 +34,7 @@ for (const { name, url } of KEYPAD_PIS) {
 
     test('should have setup guide', async ({ page }) => {
       const guide = page.locator('.guide ol li');
-      await expect(guide).toHaveCount(3);
+      await expect(guide).toHaveCount(4);
     });
   });
 }

@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented below. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Schedule times are entered in the computer's local time instead of UTC, with a time picker and weekday checkboxes. Existing schedules keep firing at the same moment: their UTC time (and weekdays, when they cross midnight) is converted the first time the inspector is opened.
+- Inspectors follow Elgato's plugin guidelines: a 256 and 512 px plugin icon, a white-only Saturation icon with its own key artwork, device lists that say "Select a light or group" instead of showing an empty or first entry, slider labels that are no longer cut off, the same font and hint style in every inspector, shorter Automation help, and a setup guide with a link to Govee's API key page on every action.
+- The device metadata panel is titled "What this light supports".
+
+### Fixed
+
+- Picking a colour preset on a Color key no longer erases the key's light, step size and saturation.
+- Schedule and Sequence inspectors load saved settings and no longer lose steps, times or days when another field changes; Schedule's brightness slider is shown again for "Set Brightness".
+- Scene, Snapshot, Music Mode, Feature Toggle and Recall clear their choice through the same settings store as the rest of the inspector, so the cleared value is not saved back by a later change.
+
 ## [3.0.0] - 2026-10-25
 
 ### Upgrade notes

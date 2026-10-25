@@ -39,6 +39,24 @@
 		return true;
 	}
 
+	/**
+	 * A native range input is 129px wide by default and the SDPI track
+	 * keeps that as its minimum, so beside a number input the min/max
+	 * labels were pushed under the clipped edge ("Max" showed as "Ma").
+	 * Let the track shrink instead of the labels.
+	 */
+	function letTrackShrink(range) {
+		var shadow = range.shadowRoot;
+		if (!shadow || shadow.querySelector("style[data-track-shrink]")) return;
+		var style = document.createElement("style");
+		style.setAttribute("data-track-shrink", "");
+		style.textContent =
+			".container > div { min-width: 0; } " +
+			".container > div[role=button] { flex: 0 0 auto; white-space: nowrap; } " +
+			"input[type=range] { width: 100%; min-width: 0; }";
+		shadow.appendChild(style);
+	}
+
 	function attachNumberInput(range, onValueChange) {
 		if (range.dataset.numberInputAttached === "true") return null;
 		var min = parseFloat(range.getAttribute("min"));
@@ -146,6 +164,7 @@
 				nativeInput.addEventListener("input", function () {
 					update(nativeInput.value);
 				});
+				letTrackShrink(range);
 				if (hasNumberInput && !numberBridge) {
 					numberBridge = attachNumberInput(range, update);
 					// Initial sync for newly-created number input.

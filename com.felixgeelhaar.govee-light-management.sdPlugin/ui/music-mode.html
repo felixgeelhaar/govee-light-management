@@ -14,7 +14,7 @@
         <sdpi-select
           id="deviceSelect"
           setting="selectedDeviceId"
-          placeholder=""
+          placeholder="Select a light or group"
           datasource="getDevices"
           show-refresh
           label-setting="selectedLightName"
@@ -68,7 +68,14 @@
           <li>Open the Govee app</li>
           <li>Go to settings</li>
           <li>Select "Apply for API Key"</li>
+          <li>Paste the key from Govee's email above</li>
         </ol>
+        <a
+          class="guide-link"
+          href="https://developer.govee.com/reference/apply-you-govee-api-key"
+          data-open-url
+          >How to get a Govee API key</a
+        >
       </sdpi-item>
     </div>
 
@@ -122,10 +129,6 @@
         }
 
         async function persistDeviceSelection(selectedDeviceId) {
-          if (!client?.setSettings) {
-            return;
-          }
-
           const nextSettings = {
             ...currentSettings,
             selectedDeviceId,
@@ -135,7 +138,10 @@
 
           currentSettings = nextSettings;
           clearModeSelection();
-          await client.setSettings(nextSettings);
+          await window.GoveePI.patchSettings({
+            selectedLightName: nextSettings.selectedLightName,
+            selectedMode: "",
+          });
         }
 
         async function syncForCurrentDevice() {

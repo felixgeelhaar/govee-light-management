@@ -71,7 +71,7 @@ describe("ScheduleService", () => {
       const updated = createAction("a1", 16, 0);
       service.update(updated);
       const stored = service.get("a1")!;
-      expect(stored.nextTriggerAt()!.getUTCHours()).toBe(16);
+      expect(stored.nextTriggerAt()!.getHours()).toBe(16);
     });
 
     it("should reject update for unknown id", () => {

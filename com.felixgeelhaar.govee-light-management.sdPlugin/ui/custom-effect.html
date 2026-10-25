@@ -7,11 +7,6 @@
     <script src="./js/sdpi-components.js"></script>
     <script src="./js/setup.js"></script>
     <style>
-      .effect-description {
-        font-size: 11px;
-        color: #888;
-        margin-top: 4px;
-      }
       .preset-preview {
         display: flex;
         gap: 2px;
@@ -31,6 +26,7 @@
       <sdpi-item label="Device">
         <sdpi-select
           setting="selectedDeviceId"
+          placeholder="Select a light"
           data-group-unsupported="Custom effects run on a single RGB IC light. Choose a light; groups can't play them."
           datasource="getDevices"
           show-refresh
@@ -44,20 +40,20 @@
           id="effectSelect"
           datasource="getEffects"
           show-refresh
-          placeholder="Choose an effect..."
-        >
-          <option value="">Choose an effect...</option>
-        </sdpi-select>
+          placeholder="Choose an effect"
+        ></sdpi-select>
       </sdpi-item>
 
-      <sdpi-item>
+      <sdpi-item label="Preview" class="hidden">
         <div id="preview" class="preset-preview"></div>
       </sdpi-item>
 
-      <div class="effect-description">
-        Press the Stream Deck button to play the effect. Press again to stop.
-        Requires an RGB IC light strip with segmented control.
-      </div>
+      <sdpi-item>
+        <p class="field-hint info">
+          Press the key to play the effect, and again to stop. Needs an RGB IC
+          light with segment control.
+        </p>
+      </sdpi-item>
     </div>
 
     <div id="setup" class="hidden">
@@ -71,6 +67,20 @@
       </sdpi-item>
       <sdpi-item>
         <sdpi-button id="connect">Connect</sdpi-button>
+      </sdpi-item>
+      <sdpi-item label="Guide" class="guide">
+        <ol>
+          <li>Open the Govee app</li>
+          <li>Go to settings</li>
+          <li>Select "Apply for API Key"</li>
+          <li>Paste the key from Govee's email above</li>
+        </ol>
+        <a
+          class="guide-link"
+          href="https://developer.govee.com/reference/apply-you-govee-api-key"
+          data-open-url
+          >How to get a Govee API key</a
+        >
       </sdpi-item>
     </div>
 
@@ -95,7 +105,11 @@
             "preset-fade": ["#FF0000", "#AA0055", "#5500AA", "#0000FF"],
             "preset-strobe": ["#FFFFFF", "#000000", "#FFFFFF", "#000000"],
           };
-          const colors = colorsByPreset[effectId] || ["#333333"];
+          const colors = colorsByPreset[effectId];
+          // No preview until a known effect is chosen; empty grey
+          // segments looked like a broken strip.
+          preview.closest("sdpi-item").classList.toggle("hidden", !colors);
+          if (!colors) return;
           for (let i = 0; i < 15; i++) {
             const segment = document.createElement("div");
             segment.className = "preset-segment";

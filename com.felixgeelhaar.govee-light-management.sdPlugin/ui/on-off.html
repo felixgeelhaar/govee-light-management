@@ -13,7 +13,7 @@
       <sdpi-item label="Device">
         <sdpi-select
           setting="selectedDeviceId"
-          placeholder=""
+          placeholder="Select a light or group"
           datasource="getDevices"
           show-refresh
           label-setting="selectedLightName"
@@ -37,7 +37,7 @@
       </sdpi-item>
       <div id="powerLifecycleBody" class="power-lifecycle-body hidden">
         <div id="powerRuleList" class="group-list-wrapper" aria-label="Saved automation rules"></div>
-        <p class="group-shared-hint">The rule applies to the light or group selected above. Enable it and choose at least one event, then create the rule. Saved rules run even when this key is hidden or removed.</p>
+        <p class="group-shared-hint">Applies to the light or group selected above, even after this key is removed.</p>
         <sdpi-item label="Target">
           <p id="powerRuleTarget" class="power-rule-target" aria-live="polite"></p>
         </sdpi-item>
@@ -56,7 +56,7 @@
             <sdpi-checkbox id="powerShutdown" label="Before shutdown / logout"></sdpi-checkbox>
           </div>
         </sdpi-item>
-        <p class="group-shared-hint">Sleep/shutdown is best effort; network loss or forced shutdown can prevent it. Manual commands take priority.</p>
+        <p class="group-shared-hint">Sleep and shutdown are best effort; manual commands take priority.</p>
         <div class="power-lifecycle-actions">
           <sdpi-button id="powerSave">Create rule</sdpi-button>
           <sdpi-button id="powerRefresh">Refresh status</sdpi-button>
@@ -85,7 +85,14 @@
           <li>Open the Govee app</li>
           <li>Go to settings</li>
           <li>Select "Apply for API Key"</li>
+          <li>Paste the key from Govee's email above</li>
         </ol>
+        <a
+          class="guide-link"
+          href="https://developer.govee.com/reference/apply-you-govee-api-key"
+          data-open-url
+          >How to get a Govee API key</a
+        >
       </sdpi-item>
     </div>
   </body>
