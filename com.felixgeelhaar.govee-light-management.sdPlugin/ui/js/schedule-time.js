@@ -54,5 +54,43 @@
     return local;
   }
 
-  window.GoveeScheduleTime = { timeText, localTimeFields, toLocalSchedule };
+  const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const COMMANDS = {
+    on: "Turn on",
+    off: "Turn off",
+    toggle: "Toggle",
+    brightness: "Brightness",
+  };
+
+  /**
+   * One line describing a saved schedule for the "Manage schedules" list:
+   * when it repeats (in local time), what it does, and to which light.
+   */
+  function describeSchedule(item, names = {}) {
+    const local = toLocalSchedule(item) || item;
+    const time = timeText(local.hour, local.minute);
+    const days = (local.days || [])
+      .slice()
+      .sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7))
+      .map((day) => DAY_NAMES[day])
+      .join(", ");
+    const when =
+      item.type === "delay"
+        ? `Once after ${item.delaySeconds}s`
+        : item.type === "weekly"
+          ? `${days} ${time}`
+          : `Every day ${time}`;
+    let command = COMMANDS[item.command] || item.command;
+    if (item.command === "brightness" && item.commandValue !== undefined)
+      command += ` ${item.commandValue}%`;
+    const target = names[item.targetId] || item.targetId;
+    return `${when} · ${command} · ${target}`;
+  }
+
+  window.GoveeScheduleTime = {
+    timeText,
+    localTimeFields,
+    toLocalSchedule,
+    describeSchedule,
+  };
 })();

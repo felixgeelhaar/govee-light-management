@@ -79,6 +79,11 @@ body {
 	box-sizing: border-box;
 }
 
+.schedule-own {
+	color: #9da3ae;
+	white-space: nowrap;
+}
+
 .power-rule-target {
 	margin: 0;
 	line-height: 24px;

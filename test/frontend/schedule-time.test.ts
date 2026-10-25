@@ -10,6 +10,10 @@ type ScheduleTime = {
     settings: Record<string, unknown>,
     now?: Date,
   ) => Record<string, unknown> | null;
+  describeSchedule: (
+    item: Record<string, unknown>,
+    names?: Record<string, string>,
+  ) => string;
 };
 
 const script = readFileSync(
@@ -64,5 +68,41 @@ describe("schedule time helpers", () => {
     expect(
       helpers.toLocalSchedule({ hour: 23, minute: 0, days: [5, 0] }, april),
     ).toEqual({ hour: 1, minute: 0, clock: "local", days: [1, 6] });
+  });
+
+  it("describes saved schedules for the manage list", () => {
+    const names = { "light:dev-1|H6056": "Desk" };
+    expect(
+      helpers.describeSchedule(
+        {
+          type: "weekly",
+          clock: "local",
+          hour: 18,
+          minute: 30,
+          days: [3, 1, 0],
+          command: "brightness",
+          commandValue: 40,
+          targetId: "light:dev-1|H6056",
+        },
+        names,
+      ),
+    ).toBe("Mon, Wed, Sun 18:30 · Brightness 40% · Desk");
+    expect(
+      helpers.describeSchedule({
+        type: "daily",
+        hour: 5,
+        minute: 0,
+        command: "on",
+        targetId: "group:office",
+      }),
+    ).toMatch(/^Every day \d\d:00 · Turn on · group:office$/);
+    expect(
+      helpers.describeSchedule({
+        type: "delay",
+        delaySeconds: 300,
+        command: "off",
+        targetId: "x",
+      }),
+    ).toBe("Once after 300s · Turn off · x");
   });
 });
