@@ -262,7 +262,7 @@ assert each ships its artwork. Unknown state restores the manifest image.
 
 Commands and state reads do not go through the orchestrator: they go
 `ActionServices` → `GoveeLightRepository` → `GoveeClient`. Local network
-control is planned at that repository boundary (`docs/design/lan-control.md`).
+control lives at that repository boundary (`docs/design/lan-control.md`).
 Phase 1 exists: `infrastructure/lan/` (`LanProtocol`, `LanSocket` — the only
 UDP code — and `LanDeviceRegistry`) and `services/LanDiscovery`, which scans
 at startup and every 10 minutes and reports `connectionFor(deviceId)` to the
@@ -271,8 +271,16 @@ everything on the cloud. Phase 2 exists: `ActionServices` builds a
 `LanAwareLightRepository` (a `GoveeLightRepository` subclass) whose
 `getLightState` asks the light directly (`devStatus`, matched by address,
 800 ms timeout) and falls back to the cloud. `light.state.samples` counts
-cloud queries (`count`) and LAN reads (`lan`) separately. No command uses
-LAN yet.
+cloud queries (`count`) and LAN reads (`lan`) separately. Phase 3 exists:
+the same repository overrides `setPower`, `setBrightness`, `setColor`,
+`setColorTemperature` and the `turnOnWith*` methods. A LAN command updates
+state and returns once sent; `LAN_CONFIRM_DELAY_MS` (1.5 s) later a status
+read confirms the newest command per light. No reply or a mismatch logs
+`lan.command.unconfirmed`, resends over the cloud and keeps that light on
+the cloud for 10 minutes. `light.command` logs `transport`. Scans send three
+packets per window because one packet missed a light on hardware. Scenes,
+segments, music modes, snapshots and toggles are cloud-only (no documented
+LAN command).
 
 ### `DeviceService` (`src/backend/application/services/DeviceService.ts`)
 

@@ -83,3 +83,20 @@ describe("LAN state reads", () => {
     expect(socket.sent).toEqual([]);
   });
 });
+
+describe("LAN commands", () => {
+  it("sends each command to the light's control port, in order", async () => {
+    const { socket, registry } = await known();
+    expect(await registry.sendCommands("0b:5b", ["a", "b"])).toBe(true);
+    expect(socket.sent).toEqual([
+      { message: "a", host: "192.168.1.23", port: 4003 },
+      { message: "b", host: "192.168.1.23", port: 4003 },
+    ]);
+  });
+
+  it("refuses a light it doesn't know, so the cloud is used", async () => {
+    const { socket, registry } = await known();
+    expect(await registry.sendCommands("FF:FF", ["a"])).toBe(false);
+    expect(socket.sent).toEqual([]);
+  });
+});

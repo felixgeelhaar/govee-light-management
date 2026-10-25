@@ -15,7 +15,13 @@ export type LightConnection =
 
 type Registry = Pick<
   LanDeviceRegistry,
-  "start" | "scan" | "stop" | "get" | "status" | "requestStatus"
+  | "start"
+  | "scan"
+  | "stop"
+  | "get"
+  | "status"
+  | "requestStatus"
+  | "sendCommands"
 >;
 
 /** Matches the device inventory's idle refresh: a list up to 10 min old. */
@@ -24,8 +30,8 @@ const SCAN_INTERVAL_MS = 10 * 60_000;
 const RESCAN_GAP_MS = 60_000;
 
 /**
- * Finds lights that answer Govee's LAN API and reads their state
- * (phases 1 and 2 of docs/design/lan-control.md; no commands yet).
+ * Finds lights that answer Govee's LAN API, reads their state and sends
+ * them commands (phases 1–3 of docs/design/lan-control.md).
  */
 export class LanDiscovery {
   private timer?: NodeJS.Timeout;
@@ -67,6 +73,11 @@ export class LanDiscovery {
   /** The light's state over the local network, or null to use the cloud. */
   readStatus(deviceId: string): Promise<LanStatusReply | null> {
     return this.registry.requestStatus(deviceId);
+  }
+
+  /** Sends commands over the local network; false to use the cloud. */
+  sendCommands(deviceId: string, messages: string[]): Promise<boolean> {
+    return this.registry.sendCommands(deviceId, messages);
   }
 
   private async scan(): Promise<void> {

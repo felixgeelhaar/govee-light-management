@@ -1667,8 +1667,17 @@ export class ActionServices {
       total: outcome.total,
       failed: outcome.failed.length,
       durationMs: Date.now() - started,
+      ...(target.light && { transport: this.transportOf(target.light) }),
     });
     return outcome;
+  }
+
+  /** LAN or cloud, for the command log; cloud when LAN isn't in use. */
+  private transportOf(light: Light): "lan" | "cloud" {
+    const repository = ActionServices._shared.lightRepository;
+    return repository instanceof LanAwareLightRepository
+      ? repository.transportOf(light)
+      : "cloud";
   }
 
   /**
