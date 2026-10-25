@@ -876,6 +876,9 @@ export class ActionServices {
       const items: PIDatasourceItem[] = [];
 
       let discoveryFailed = false;
+      // Lights that meet `options.requires`, to label groups by how many
+      // members qualify. Unknown (undefined) when discovery failed.
+      let qualifyingLights: Set<string> | undefined;
 
       // Add lights (with timeout to prevent hanging).
       // forceRefresh=false reuses DeviceService's 30s cache. SDPI's
@@ -891,6 +894,14 @@ export class ActionServices {
             PI_HANDLER_TIMEOUT_MS,
             "Device discovery",
           );
+          if (options?.requires) {
+            const required = options.requires;
+            qualifyingLights = new Set(
+              lights
+                .filter((light) => light.capabilities?.[required] === true)
+                .map((light) => `${light.deviceId}|${light.model}`),
+            );
+          }
           const lightItems: PIDatasourceItem[] = lights
             .filter(
               (light) =>
@@ -926,11 +937,26 @@ export class ActionServices {
       // Add groups
       if (this.groupService) {
         const groups = await this.groupService.getAllGroups();
-        const groupItems: PIDatasourceItem[] = groups.map((g) => ({
-          label: `${g.name} (${g.size} lights)`,
-          value: `group:${g.id}`,
-          ...(groupsDisabled ? { disabled: true } : {}),
-        }));
+        const groupItems: PIDatasourceItem[] = groups.map((g) => {
+          const item: PIDatasourceItem = {
+            label: `${g.name} (${g.size} lights)`,
+            value: `group:${g.id}`,
+            ...(groupsDisabled ? { disabled: true } : {}),
+          };
+          if (!qualifyingLights) return item;
+          const count = g.lights.filter((light) =>
+            qualifyingLights.has(`${light.deviceId}|${light.model}`),
+          ).length;
+          if (count === 0)
+            return {
+              ...item,
+              label: `${g.name} (no lights with segments)`,
+              disabled: true,
+            };
+          return count < g.size
+            ? { ...item, label: `${g.name} (${count} of ${g.size} lights)` }
+            : item;
+        });
 
         if (groupItems.length > 0) {
           items.push({

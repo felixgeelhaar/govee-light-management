@@ -1,9 +1,8 @@
 /**
- * Custom effects play per segment on one RGB IC light, so a group can never
- * be their target. Groups stay visible but greyed out, and a key saved with
- * a group (which the inspector would otherwise show as a valid selection)
- * explains itself. Found on hardware 2026-10-24: a Custom Effect key saved
- * with "Office (2 lights)" only showed an alert when pressed.
+ * Custom effects play on a group's members that have segments and skip the
+ * rest, so a group is a valid target. The plugin labels each group by how
+ * many members qualify and disables groups with none; the inspector shows
+ * no "unsupported" warning for a selectable group, whichever arrives first.
  */
 import { test, expect, type Page } from "@playwright/test";
 
@@ -65,14 +64,10 @@ async function mountWith(
                   ],
                 },
                 {
-                  label: "Groups (need a single light)",
+                  label: "Groups",
                   value: "",
                   children: [
-                    {
-                      label: "Office (2 lights)",
-                      value: "group:g1",
-                      disabled: true,
-                    },
+                    { label: "Office (1 of 2 lights)", value: "group:g1" },
                   ],
                 },
               ],
@@ -102,21 +97,20 @@ async function mountWith(
   for (const step of sequence) await send(step);
 }
 
-test("a saved group target explains that custom effects need a single light", async ({
+for (const order of ["settings-first", "devices-first"] as const) {
+  test(`a saved group is a valid target (${order})`, async ({ page }) => {
+    await mountWith(page, "group:g1", order);
+    await expect(page.locator("#deviceUnsupported")).toBeHidden();
+  });
+}
+
+test("the inspector explains that lights without segments are skipped", async ({
   page,
 }) => {
   await mountWith(page, "group:g1");
-  await expect(page.locator("#deviceUnsupported")).toBeVisible();
-  await expect(page.locator("#deviceUnsupported")).toContainText(
-    "single RGB IC light",
+  await expect(page.locator("#settings")).toContainText(
+    "in a group, other lights are skipped",
   );
-});
-
-test("the hint also appears when settings arrive after the device list", async ({
-  page,
-}) => {
-  await mountWith(page, "group:g1", "devices-first");
-  await expect(page.locator("#deviceUnsupported")).toBeVisible();
 });
 
 test("a light target shows no group warning", async ({ page }) => {

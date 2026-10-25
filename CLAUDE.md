@@ -51,7 +51,12 @@ Dependencies point inward. An action reaches infrastructure through
 it in a Property Inspector dropdown — never present a light whose command would
 be rejected. A target type an action can never use is listed disabled with a
 reason (`handleGetDevices(id, { groups: "disabled" })` plus a
-`data-group-unsupported` message on the select), not silently dropped.
+`data-group-unsupported` message on the select), not silently dropped. An
+action that needs a capability passes `requires` (Custom Effect:
+`"segmentedColor"`): only qualifying lights are listed, and groups are labelled
+by how many members qualify, disabled when none do. Custom Effect plays a group
+as one playback per qualifying member, keyed by light id, so a command to one
+member stops only that light.
 
 ## Commands
 
