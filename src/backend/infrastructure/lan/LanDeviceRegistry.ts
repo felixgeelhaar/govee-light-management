@@ -1,8 +1,11 @@
 import {
+  LAN_CONTROL_PORT,
   LAN_MULTICAST_ADDRESS,
   LAN_SCAN_PORT,
   SCAN_MESSAGE,
+  STATUS_MESSAGE,
   parseLanMessage,
+  type LanStatusReply,
 } from "./LanProtocol";
 import type { LanSocketPort } from "./LanSocket";
 
@@ -48,6 +51,11 @@ export class LanDeviceRegistry {
   private readonly now: () => number;
   private readonly logger: Logger;
   private current: LanStatus = { available: false, reason: "not-started" };
+  /** Status requests waiting for a reply, by the light's address. */
+  private readonly pending = new Map<
+    string,
+    ((reply: LanStatusReply) => void)[]
+  >();
 
   constructor(
     private readonly socket: LanSocketPort,
@@ -66,7 +74,7 @@ export class LanDeviceRegistry {
   /** Opens the socket; false (and logged once) when LAN can't be used. */
   async start(): Promise<boolean> {
     try {
-      await this.socket.open((message) => this.receive(message));
+      await this.socket.open((message, from) => this.receive(message, from));
       this.current = { available: true };
       return true;
     } catch (error) {
@@ -104,6 +112,35 @@ export class LanDeviceRegistry {
     return found;
   }
 
+  /**
+   * The light's current state, asked directly over the local network; null
+   * when the light isn't known here or doesn't answer in time. Status
+   * replies carry no device id, so they are matched by address.
+   */
+  async requestStatus(
+    deviceId: string,
+    timeoutMs = 800,
+  ): Promise<LanStatusReply | null> {
+    const device = this.get(deviceId);
+    if (!device || !this.current.available) return null;
+    return new Promise((resolve) => {
+      const waiting = this.pending.get(device.ip) ?? [];
+      const settle = (reply: LanStatusReply | null) => {
+        clearTimeout(timer);
+        const list = this.pending.get(device.ip) ?? [];
+        const rest = list.filter((entry) => entry !== settle);
+        if (rest.length) this.pending.set(device.ip, rest);
+        else this.pending.delete(device.ip);
+        resolve(reply);
+      };
+      const timer = setTimeout(() => settle(null), timeoutMs);
+      this.pending.set(device.ip, [...waiting, settle]);
+      this.socket
+        .send(STATUS_MESSAGE, device.ip, LAN_CONTROL_PORT)
+        .catch(() => settle(null));
+    });
+  }
+
   get(deviceId: string): LanDevice | undefined {
     return this.devices.get(deviceId.toUpperCase());
   }
@@ -113,8 +150,14 @@ export class LanDeviceRegistry {
     this.current = { available: false, reason: "not-started" };
   }
 
-  private receive(message: string): void {
+  private receive(message: string, from: string): void {
     const parsed = parseLanMessage(message);
+    if (parsed?.cmd === "devStatus") {
+      // Copy: each settle removes itself from the list.
+      for (const settle of [...(this.pending.get(from) ?? [])])
+        settle(parsed.data);
+      return;
+    }
     if (parsed?.cmd !== "scan") return;
     const { device, ip, sku } = parsed.data;
     this.devices.set(device.toUpperCase(), { ip, sku, lastSeen: this.now() });

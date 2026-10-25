@@ -92,10 +92,11 @@
     Govee cloud as before.
   </p>
   <p class="note">
-    The plugin currently <strong>finds</strong> LAN lights and shows their
-    connection. Sending commands over the local network, which makes keys
-    and dials faster and keeps them working when the internet is down, is
-    coming in a later version.
+    The plugin currently <strong>finds</strong> LAN lights and reads their
+    state over the local network, which is faster and takes load off the
+    cloud. Sending commands over the local network, so keys and dials react
+    faster and keep working when the internet is down, is coming in a later
+    version.
   </p>
 
   <h2>Turn on LAN Control for a light</h2>
@@ -156,7 +157,8 @@
   <p>
     Only Govee's documented LAN messages: a discovery request to the
     multicast address <code>239.255.255.250</code> (port <code>4001</code>),
-    and the lights' replies (port <code>4002</code>). Nothing leaves your
+    status requests to each light (port <code>4003</code>), and the lights'
+    replies (port <code>4002</code>). Nothing leaves your
     network for this, and no API key is involved. See the
     <a href="./privacy.html">privacy policy</a>.
   </p>

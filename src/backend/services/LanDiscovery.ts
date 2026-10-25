@@ -4,6 +4,7 @@ import {
   type LanStatus,
 } from "../infrastructure/lan/LanDeviceRegistry";
 import { DgramLanSocket } from "../infrastructure/lan/LanSocket";
+import type { LanStatusReply } from "../infrastructure/lan/LanProtocol";
 
 export type LightConnection =
   | { type: "lan"; ip: string }
@@ -14,7 +15,7 @@ export type LightConnection =
 
 type Registry = Pick<
   LanDeviceRegistry,
-  "start" | "scan" | "stop" | "get" | "status"
+  "start" | "scan" | "stop" | "get" | "status" | "requestStatus"
 >;
 
 /** Matches the device inventory's idle refresh: a list up to 10 min old. */
@@ -23,8 +24,8 @@ const SCAN_INTERVAL_MS = 10 * 60_000;
 const RESCAN_GAP_MS = 60_000;
 
 /**
- * Finds lights that answer Govee's LAN API (phase 1 of
- * docs/design/lan-control.md: discovery only, no commands yet).
+ * Finds lights that answer Govee's LAN API and reads their state
+ * (phases 1 and 2 of docs/design/lan-control.md; no commands yet).
  */
 export class LanDiscovery {
   private timer?: NodeJS.Timeout;
@@ -61,6 +62,11 @@ export class LanDiscovery {
     return device
       ? { type: "lan", ip: device.ip }
       : { type: "cloud", reason: "not-found" };
+  }
+
+  /** The light's state over the local network, or null to use the cloud. */
+  readStatus(deviceId: string): Promise<LanStatusReply | null> {
+    return this.registry.requestStatus(deviceId);
   }
 
   private async scan(): Promise<void> {

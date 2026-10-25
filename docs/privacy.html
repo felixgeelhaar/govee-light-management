@@ -103,7 +103,8 @@
     <li>
       <strong>Local network.</strong> To find lights with LAN Control turned on, the plugin sends
       Govee's documented discovery message to the multicast address <code>239.255.255.250</code> on
-      your local network and reads the lights' replies (their local address, device ID and model).
+      your local network, asks those lights for their current state, and reads the replies (local
+      address, device ID, model, power, brightness and colour).
       This traffic stays on your network and carries no API key.
       <a href="./lan.html">More about local network control</a>.
     </li>

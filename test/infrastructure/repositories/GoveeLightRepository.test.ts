@@ -304,9 +304,15 @@ describe("GoveeLightRepository named lighting toggles (issue #270)", () => {
         deviceId: lamp.deviceId,
         model: lamp.model,
         capabilities: [
-          { type: "devices.capabilities.toggle", instance: "rippleLightToggle" },
+          {
+            type: "devices.capabilities.toggle",
+            instance: "rippleLightToggle",
+          },
           { type: "devices.capabilities.toggle", instance: "sideLightToggle" },
-          { type: "devices.capabilities.toggle", instance: "bottomLightToggle" },
+          {
+            type: "devices.capabilities.toggle",
+            instance: "bottomLightToggle",
+          },
           { type: "devices.capabilities.on_off", instance: "powerSwitch" },
         ],
       },

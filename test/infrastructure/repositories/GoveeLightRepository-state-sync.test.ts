@@ -103,12 +103,13 @@ vi.mock("@felixgeelhaar/govee-api-client", () => {
 });
 
 describe("GoveeLightRepository cross-action state sync (regression #228)", () => {
-  const createLight = () => ({
-    deviceId: "AA:BB:CC:DD:EE:FF:00:11",
-    model: "H1234",
-    name: "Test Light",
-    updateState: vi.fn(),
-  } as any);
+  const createLight = () =>
+    ({
+      deviceId: "AA:BB:CC:DD:EE:FF:00:11",
+      model: "H1234",
+      name: "Test Light",
+      updateState: vi.fn(),
+    }) as any;
 
   let light: ReturnType<typeof createLight>;
 
