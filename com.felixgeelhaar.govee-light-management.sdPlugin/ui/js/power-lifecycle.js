@@ -231,22 +231,24 @@ document.addEventListener("DOMContentLoaded", () => {
           "offBeforeSleep",
           "offBeforeShutdown",
         ].every((event) => payload.rule[event] !== true);
+      // Only a save reply confirms a save; load and refresh describe the rule.
+      const saved =
+        pendingEvent === "savePowerLifecycleRule" ? "Rule saved. " : "";
       status.textContent = noEvents
-        ? "Rule saved but inactive: no events selected. Select a startup, wake, sleep or shutdown event and save again."
+        ? `${saved ? "Rule saved but inactive" : "Rule inactive"}: no events selected. Select a startup, wake, sleep or shutdown event and save again.`
         : payload.rule && !payload.rule.enabled
-          ? "Rule saved. Automation is disabled."
+          ? `${saved}Automation is disabled.`
           : helperNeeded
             ? {
-                ready: "Rule saved. Sleep/shutdown monitoring is ready.",
-                starting:
-                  "Rule saved. Sleep/shutdown monitoring is starting; refresh to confirm.",
+                ready: `${saved}Sleep/shutdown monitoring is ready.`,
+                starting: `${saved}Sleep/shutdown monitoring is starting; refresh to confirm.`,
                 unavailable:
                   "Sleep/shutdown monitoring is unavailable. Startup/wake can still work.",
                 disabled: "Sleep/shutdown monitoring is disabled.",
               }[payload.helperStatus] ||
               "Refresh to check sleep/shutdown support."
             : payload.rule
-              ? "Rule saved. Startup/wake automation is enabled."
+              ? `${saved}Startup/wake automation is enabled.`
               : "No saved rule for this target.";
       if (pendingEvent === "deletePowerLifecycleRule")
         status.textContent = "Rule deleted. No saved rule for this target.";

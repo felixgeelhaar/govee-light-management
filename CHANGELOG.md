@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented below. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- Automation: Refresh and loading a rule no longer report "Rule saved"; that wording appears only after Save.
+- The plugin log now records one `light.state.samples` summary every 10 minutes with the number of live-state queries per light, so the per-device sample rate can be checked from logs.
+
 ## [3.0.0] - 2026-10-25
 
 ### Upgrade notes
