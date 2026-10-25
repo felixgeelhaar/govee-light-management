@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Local network control — Govee Light Management</title>
+<meta name="description" content="How Govee Light Management uses your local network, how to turn on LAN Control for a Govee light, and how to grant Stream Deck local network access again.">
+<style>
+  :root {
+    --bg: #0B0E1A;
+    --bg-2: #13172B;
+    --text: #E5E7EB;
+    --muted: #9CA3AF;
+    --accent: #A855F7;
+    --accent-3: #22D3EE;
+    --border: #1F2937;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  .container { max-width: 760px; margin: 0 auto; padding: 60px 24px; }
+  h1 {
+    font-size: 2.5rem;
+    margin: 0 0 8px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-3));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 800;
+  }
+  .meta { color: var(--muted); margin: 0 0 40px; font-size: 0.9rem; }
+  h2 {
+    font-size: 1.4rem;
+    margin: 40px 0 12px;
+    color: var(--accent-3);
+    font-weight: 700;
+  }
+  p, li { color: var(--text); }
+  ul { padding-left: 24px; }
+  ul li { margin-bottom: 8px; }
+  strong { color: #fff; }
+  a { color: var(--accent-3); }
+  code {
+    background: var(--bg-2);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--accent-3);
+  }
+  .back {
+    display: inline-block;
+    margin-bottom: 24px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .back:hover { color: var(--accent-3); }
+  ol { padding-left: 24px; }
+  ol li { margin-bottom: 8px; }
+  .note {
+    background: var(--bg-2);
+    border-left: 3px solid var(--accent-3);
+    padding: 12px 16px;
+    border-radius: 4px;
+  }
+  footer {
+    margin-top: 60px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <a class="back" href="./index.html">&larr; Back to home</a>
+  <h1>Local network control</h1>
+  <p class="meta">Last updated: 2026-10-25</p>
+
+  <p>
+    Many Govee lights can be reached directly on your home network, without
+    going through Govee's cloud. The plugin finds those lights automatically.
+    There is nothing to set up in the plugin: lights that answer on the local
+    network are marked <strong>Connection: LAN</strong> in an action's
+    <strong>What this light supports</strong> panel; all others use the
+    Govee cloud as before.
+  </p>
+  <p class="note">
+    The plugin currently <strong>finds</strong> LAN lights and shows their
+    connection. Sending commands over the local network, which makes keys
+    and dials faster and keeps them working when the internet is down, is
+    coming in a later version.
+  </p>
+
+  <h2>Turn on LAN Control for a light</h2>
+  <ol>
+    <li>Open the <strong>Govee Home</strong> app and select the light.</li>
+    <li>Open the light's settings (the gear icon).</li>
+    <li>Turn on <strong>LAN Control</strong>. If you don't see it, wait a few
+      minutes and reopen the settings; if it never appears, the model doesn't
+      support local control.</li>
+    <li>Your computer and the light must be on the same network.</li>
+  </ol>
+  <p>
+    Within about a minute, open the light in any action and expand
+    <strong>What this light supports</strong>. It should say
+    <strong>Connection: LAN</strong>.
+  </p>
+
+  <h2>macOS: allow local network access</h2>
+  <p>
+    The first time the plugin looks for lights, macOS asks whether
+    <strong>Stream Deck</strong> may find devices on your local network.
+    Choose <strong>Allow</strong>. If you chose <strong>Don't Allow</strong>,
+    the panel shows <em>Local network access blocked</em>. To allow it again:
+  </p>
+  <ol>
+    <li>Open <strong>System Settings</strong> &rarr;
+      <strong>Privacy &amp; Security</strong> &rarr;
+      <strong>Local Network</strong>.</li>
+    <li>Turn on <strong>Stream Deck</strong>.</li>
+    <li>Quit and reopen Stream Deck.</li>
+  </ol>
+
+  <h2>Windows: allow Stream Deck through the firewall</h2>
+  <p>
+    Windows may ask whether to allow Stream Deck (or Node.js) on private
+    networks. Choose <strong>Allow</strong>. If you dismissed it:
+  </p>
+  <ol>
+    <li>Open <strong>Windows Security</strong> &rarr;
+      <strong>Firewall &amp; network protection</strong> &rarr;
+      <strong>Allow an app through firewall</strong>.</li>
+    <li>Select <strong>Change settings</strong>, then allow
+      <strong>Stream Deck</strong> and <strong>Node.js</strong> on
+      <strong>Private</strong> networks.</li>
+    <li>Restart Stream Deck.</li>
+  </ol>
+
+  <h2>Other apps using Govee's LAN port</h2>
+  <p>
+    Govee lights reply on UDP port <code>4002</code>. If another program on
+    the same computer already uses it (for example Home Assistant,
+    Homebridge or govee2mqtt), the panel shows <em>LAN port in use</em> and
+    every light uses the cloud. Run that program on another machine, or quit
+    it and restart Stream Deck.
+  </p>
+
+  <h2>What is sent on your network</h2>
+  <p>
+    Only Govee's documented LAN messages: a discovery request to the
+    multicast address <code>239.255.255.250</code> (port <code>4001</code>),
+    and the lights' replies (port <code>4002</code>). Nothing leaves your
+    network for this, and no API key is involved. See the
+    <a href="./privacy.html">privacy policy</a>.
+  </p>
+
+  <footer>
+    Govee Light Management is open source under the MIT license and is not affiliated with,
+    endorsed by, or sponsored by Govee or Elgato.
+  </footer>
+</div>
+</body>
+</html>

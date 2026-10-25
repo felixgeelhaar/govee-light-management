@@ -28,6 +28,7 @@ import {
   CloudTransport,
 } from "../../connectivity";
 import { globalSettingsService } from "../../services/GlobalSettingsService";
+import { lanDiscovery } from "../../services/LanDiscovery";
 import { StreamDeckLightGroupRepository } from "../../infrastructure/repositories/StreamDeckLightGroupRepository";
 import { LightGroupService } from "../../domain/services/LightGroupService";
 import { SegmentColor } from "../../domain/value-objects/SegmentColor";
@@ -1054,11 +1055,15 @@ export class ActionServices {
           `light:${entry.deviceId}|${entry.model}` === selectedDeviceId,
       );
 
+      const connection = light
+        ? await lanDiscovery.connectionFor(light.deviceId)
+        : undefined;
       await sendToPI(actionId, {
         event: "deviceDebug",
         selectedDeviceId,
         device: light
           ? {
+              connection,
               device: light.deviceId,
               model: light.model,
               name: light.name,

@@ -72,7 +72,7 @@
 <div class="container">
   <a class="back" href="./index.html">&larr; Back to home</a>
   <h1>Privacy Policy</h1>
-  <p class="meta">Last updated: 2026-04-09</p>
+  <p class="meta">Last updated: 2026-10-25</p>
 
   <p>
     <strong>Govee Light Management</strong> ("the plugin") is a Stream Deck plugin developed by Felix Geelhaar.
@@ -83,7 +83,7 @@
   <p>
     The plugin does not collect, transmit, or store any personal data on third-party servers.
     It communicates only with the official Govee API, using a credential that you provide and that
-    is stored locally on your device.
+    is stored locally on your device, and with your own Govee lights on your local network.
   </p>
 
   <h2>Information the plugin handles</h2>
@@ -101,6 +101,13 @@
       sent to any server other than Govee's API.
     </li>
     <li>
+      <strong>Local network.</strong> To find lights with LAN Control turned on, the plugin sends
+      Govee's documented discovery message to the multicast address <code>239.255.255.250</code> on
+      your local network and reads the lights' replies (their local address, device ID and model).
+      This traffic stays on your network and carries no API key.
+      <a href="./lan.html">More about local network control</a>.
+    </li>
+    <li>
       <strong>Light configuration.</strong> Action-specific settings (selected device, brightness presets,
       colors, etc.) are stored in Stream Deck's local settings storage and never leave your device.
     </li>
@@ -114,7 +121,7 @@
   <ul>
     <li>It does not collect personal information, names, emails, or location data.</li>
     <li>It does not use analytics, tracking, crash reporters, or telemetry services.</li>
-    <li>It does not contact any server other than the official Govee API.</li>
+    <li>It does not contact any server other than the official Govee API (it also talks to your own Govee lights on your local network).</li>
     <li>It does not share or sell any data to third parties.</li>
     <li>It does not use cookies or tracking technologies.</li>
   </ul>

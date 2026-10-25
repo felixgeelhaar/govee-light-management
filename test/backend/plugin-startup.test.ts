@@ -17,6 +17,13 @@ vi.mock("../../src/backend/services/PowerLifecycleController", () => ({
 vi.mock("../../src/backend/services/SchedulerService", () => ({
   schedulerService: scheduler,
 }));
+const lan = vi.hoisted(() => ({
+  start: vi.fn().mockResolvedValue(undefined),
+  shutdown: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("../../src/backend/services/LanDiscovery", () => ({
+  lanDiscovery: lan,
+}));
 
 const listeners = new Map(
   ["SIGTERM", "SIGINT"].map((event) => [event, process.listeners(event)]),
@@ -40,6 +47,7 @@ it("uses SDK 3 settings behavior before connecting and retains startup initializ
   expect(connect).toHaveBeenCalledOnce();
   expect(controller.attach).toHaveBeenCalledOnce();
   expect(scheduler.initialize).toHaveBeenCalledOnce();
+  expect(lan.start).toHaveBeenCalledOnce();
   expect(streamDeck.actions.registerAction).toHaveBeenCalledTimes(14);
   expect(streamDeck.settings.setGlobalSettings).not.toHaveBeenCalled();
   // Importing plugin.ts loads every action and service: ~4.5 s alone, past
