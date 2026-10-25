@@ -80,13 +80,14 @@ describe("LanDeviceRegistry", () => {
     const scan = registry.scan();
     socket.reply(desk);
     const found = await scan;
-    expect(socket.sent).toEqual([
-      {
-        message: '{"msg":{"cmd":"scan","data":{"account_topic":"reserve"}}}',
-        host: "239.255.255.250",
-        port: 4001,
-      },
-    ]);
+    // UDP drops packets: one scan missed a light on hardware, so each scan
+    // is sent three times within the reply window.
+    const scanPacket = {
+      message: '{"msg":{"cmd":"scan","data":{"account_topic":"reserve"}}}',
+      host: "239.255.255.250",
+      port: 4001,
+    };
+    expect(socket.sent).toEqual([scanPacket, scanPacket, scanPacket]);
     expect(found.map((d) => d.ip)).toEqual(["192.168.1.23"]);
     // The cloud API reports the same id in upper case.
     expect(registry.get("0B:5B:CF:32:34:38:3B:50")).toMatchObject({

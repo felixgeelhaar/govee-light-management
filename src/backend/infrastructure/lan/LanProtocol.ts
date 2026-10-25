@@ -25,6 +25,22 @@ export const STATUS_MESSAGE = JSON.stringify({
   msg: { cmd: "devStatus", data: {} },
 });
 
+const message = (cmd: string, data: object) =>
+  JSON.stringify({ msg: { cmd, data } });
+
+export const turnCommand = (on: boolean) =>
+  message("turn", { value: on ? 1 : 0 });
+/** 1–100; 0 is sent as `turnCommand(false)`, as the cloud path does. */
+export const brightnessCommand = (level: number) =>
+  message("brightness", { value: level });
+export const colorCommand = (color: { r: number; g: number; b: number }) =>
+  message("colorwc", {
+    color: { r: color.r, g: color.g, b: color.b },
+    colorTemInKelvin: 0,
+  });
+export const colorTemperatureCommand = (kelvin: number) =>
+  message("colorwc", { color: { r: 0, g: 0, b: 0 }, colorTemInKelvin: kelvin });
+
 /** A light's reply to `devStatus`; it names no device, only its address. */
 export interface LanStatusReply {
   /** 1 on, 0 off. */

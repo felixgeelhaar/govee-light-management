@@ -37,6 +37,9 @@ interface Options {
   logger: Logger;
 }
 
+/** Scan packets per scan, spread across the reply window. */
+const SCAN_REPEATS = 3;
+
 const BLOCKED = new Set(["EHOSTUNREACH", "ENETUNREACH", "EACCES", "EPERM"]);
 
 /**
@@ -87,17 +90,22 @@ export class LanDeviceRegistry {
   async scan(): Promise<(LanDevice & { device: string })[]> {
     if (!this.current.available) return [];
     const started = this.now();
-    try {
-      await this.socket.send(
-        SCAN_MESSAGE,
-        LAN_MULTICAST_ADDRESS,
-        LAN_SCAN_PORT,
-      );
-    } catch (error) {
-      this.disable(error);
-      return [];
+    // UDP has no delivery guarantee and a single scan missed a light on
+    // hardware (2026-10-25), so the scan is repeated within the window.
+    const gap = this.replyWindowMs / SCAN_REPEATS;
+    for (let attempt = 0; attempt < SCAN_REPEATS; attempt++) {
+      try {
+        await this.socket.send(
+          SCAN_MESSAGE,
+          LAN_MULTICAST_ADDRESS,
+          LAN_SCAN_PORT,
+        );
+      } catch (error) {
+        this.disable(error);
+        return [];
+      }
+      await new Promise((resolve) => setTimeout(resolve, gap));
     }
-    await new Promise((resolve) => setTimeout(resolve, this.replyWindowMs));
     for (const [id, device] of this.devices)
       if (this.now() - device.lastSeen > this.maxAgeMs) this.devices.delete(id);
     const found = [...this.devices]
@@ -139,6 +147,23 @@ export class LanDeviceRegistry {
         .send(STATUS_MESSAGE, device.ip, LAN_CONTROL_PORT)
         .catch(() => settle(null));
     });
+  }
+
+  /**
+   * Sends commands to the light in order; false when it isn't known here
+   * or a send fails, so the caller can use the cloud. Delivery isn't
+   * confirmed: UDP has no acknowledgement.
+   */
+  async sendCommands(deviceId: string, messages: string[]): Promise<boolean> {
+    const device = this.get(deviceId);
+    if (!device || !this.current.available) return false;
+    try {
+      for (const message of messages)
+        await this.socket.send(message, device.ip, LAN_CONTROL_PORT);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   get(deviceId: string): LanDevice | undefined {

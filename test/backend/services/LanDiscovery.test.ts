@@ -15,6 +15,8 @@ function fakeRegistry(started = true) {
     start: vi.fn(async () => started),
     scan: vi.fn(async () => []),
     stop: vi.fn(),
+    requestStatus: vi.fn(async () => null),
+    sendCommands: vi.fn(async () => false),
     get: (id: string) => known.get(id.toUpperCase()),
     get status() {
       return status;

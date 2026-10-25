@@ -1,6 +1,6 @@
 # LAN control: design plan
 
-Status: accepted, 2026-10-25. Phases 1 and 2 implemented; phase 1 shipped in #405.
+Status: accepted, 2026-10-25. Phases 1–3 implemented (#405, #406, phase 3 PR).
 
 ## Goal
 

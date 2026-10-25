@@ -34,6 +34,7 @@ describe("LanAwareLightRepository.getLightState", () => {
     const record = vi.spyOn(stateSamples, "record");
     const info = vi.spyOn(streamDeck.logger, "info");
     const lan = {
+      sendCommands: vi.fn(),
       readStatus: vi.fn().mockResolvedValue({
         onOff: 1,
         brightness: 64,
@@ -63,6 +64,7 @@ describe("LanAwareLightRepository.getLightState", () => {
       "getLightState",
     ).mockResolvedValue();
     const lan = {
+      sendCommands: vi.fn(),
       readStatus: vi.fn().mockResolvedValue({
         onOff: 0,
         brightness: 10,
@@ -82,7 +84,10 @@ describe("LanAwareLightRepository.getLightState", () => {
     const cloud = vi
       .spyOn(GoveeLightRepository.prototype, "getLightState")
       .mockResolvedValue();
-    const lan = { readStatus: vi.fn().mockResolvedValue(null) };
+    const lan = {
+      readStatus: vi.fn().mockResolvedValue(null),
+      sendCommands: vi.fn(),
+    };
     const light = desk();
     await new LanAwareLightRepository("key", lan).getLightState(light);
     expect(cloud).toHaveBeenCalledWith(light);
@@ -93,6 +98,7 @@ describe("LanAwareLightRepository.getLightState", () => {
       .spyOn(GoveeLightRepository.prototype, "getLightState")
       .mockResolvedValue();
     const lan = {
+      sendCommands: vi.fn(),
       readStatus: vi.fn().mockResolvedValue({
         onOff: 1,
         brightness: 250,
