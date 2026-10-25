@@ -2,7 +2,13 @@
 
 All notable changes to this project are documented below. This project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [3.0.0] - 2026-10-25
+
+### Upgrade notes
+
+- Requires Stream Deck 7.1 or later.
+- Bindings to the four removed standalone dials (Brightness Dial, Color Hue Dial, Color Temperature Dial, Segment Color Dial) stop working: replace them with Brightness, Color, Color Temperature and Segment Color, which work on both keys and dials.
+- On / Off keys always switch artwork with the light. A key with a custom image on its On state only shows the plugin Off artwork while the light is off; set an Off image with **Set from File** if you want your own.
 
 ### Changed
 
@@ -14,6 +20,10 @@ All notable changes to this project are documented below. This project adheres t
 
 - Remove the four superseded standalone dial actions. Replace old Brightness Dial, Color Hue Dial, Color Temperature Dial and Segment Color Dial bindings with their unified actions. This breaks bindings to the four removed UUIDs; Saturation retains its UUID.
 - Remove unused status-dot preferences and rendering code. Native power-state artwork remains available.
+
+### Security
+
+- Patched dependency advisories in zod, undici, fast-uri, serialize-javascript and vitest (#394).
 
 ### Fixed
 

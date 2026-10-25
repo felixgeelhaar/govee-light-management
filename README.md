@@ -3,7 +3,7 @@
 <div align="center">
 
 ![Stream Deck Plugin](https://img.shields.io/badge/Stream%20Deck-Plugin-blue?style=flat-square&logo=elgato)
-![Version](https://img.shields.io/badge/version-2.9.1-green?style=flat-square)
+![Version](https://img.shields.io/badge/version-3.0.0-green?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.0+-blue?style=flat-square&logo=typescript)
 ![Node.js](https://img.shields.io/badge/Node.js-20+-green?style=flat-square&logo=node.js)
@@ -597,7 +597,17 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## Roadmap
 
-### v2.9.1 (Current)
+### v3.0.0 (Current)
+
+- Requires Stream Deck 7.1 or later (Stream Deck SDK 3).
+- The four standalone dial actions are gone: Brightness, Color, Color Temperature and Segment Color each work on keys and dials. Replace old dial bindings with them.
+- On / Off keys always follow the light's power for their artwork; custom On and Off images set with Set from File just work.
+- Automation rules apply to the light or group selected in the inspector.
+- "Computer wakes → On" ignores display-only wakes.
+- Much less background traffic to the Govee cloud while idle.
+- Custom Effect shows groups greyed out and explains why.
+
+### v2.9.1
 
 - Group entries show light names, shortened with an ellipsis when space runs out. Hover to see the complete list.
 
