@@ -3,7 +3,7 @@
 <div align="center">
 
 ![Stream Deck Plugin](https://img.shields.io/badge/Stream%20Deck-Plugin-blue?style=flat-square&logo=elgato)
-![Version](https://img.shields.io/badge/version-3.0.0-green?style=flat-square)
+![Version](https://img.shields.io/badge/version-3.0.1-green?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.0+-blue?style=flat-square&logo=typescript)
 ![Node.js](https://img.shields.io/badge/Node.js-20+-green?style=flat-square&logo=node.js)
@@ -597,7 +597,14 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## Roadmap
 
-### v3.0.0 (Current)
+### v3.0.1 (Current)
+
+- Schedule uses your local time, with a time picker and weekday checkboxes. Existing schedules keep their timing.
+- Fixed: colour presets no longer erase a Color key's light and settings; Schedule and Sequence keep their steps, times and days.
+- Inspectors follow Elgato's guidelines: new plugin icon, clearer device prompts, uncut slider labels, consistent styling and a Govee API key link in the setup guide.
+- Automation status says "Rule saved" only after Save.
+
+### v3.0.0
 
 - Requires Stream Deck 7.1 or later (Stream Deck SDK 3).
 - The four standalone dial actions are gone: Brightness, Color, Color Temperature and Segment Color each work on keys and dials. Replace old dial bindings with them.
