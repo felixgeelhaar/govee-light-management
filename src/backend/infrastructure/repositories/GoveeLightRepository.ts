@@ -32,6 +32,7 @@ import {
 import { safeGetColorTemperature } from "../utils/deviceStateUtils";
 import { parseMusicModeOptions } from "../mappers/music-mode-options";
 import { UNSUPPORTED_CLOUD_GROUP_MODELS } from "@shared/cloud-groups";
+import { stateSamples } from "./StateSampleLog";
 import streamDeck from "@elgato/streamdeck";
 
 export class GoveeLightRepository implements ILightRepository {
@@ -368,6 +369,7 @@ export class GoveeLightRepository implements ILightRepository {
   }
 
   async getLightState(light: Light): Promise<void> {
+    stateSamples.record(light);
     try {
       const deviceState = await this.client.getDeviceState(
         light.deviceId,

@@ -33,8 +33,21 @@ describe("power rule status", () => {
         ready: (callback: (value: typeof client) => void) => callback(client),
       },
     });
+    // Each mount evaluates the script again; drop its DOMContentLoaded
+    // listener so earlier mounts don't attach to this test's DOM.
+    const listen = document.addEventListener;
+    let loaded: EventListenerOrEventListenerObject | undefined;
+    document.addEventListener = ((
+      type: string,
+      listener: EventListenerOrEventListenerObject,
+    ) => {
+      if (type === "DOMContentLoaded") loaded = listener;
+      listen.call(document, type, listener);
+    }) as typeof document.addEventListener;
     window.eval(script);
+    document.addEventListener = listen;
     document.dispatchEvent(new Event("DOMContentLoaded"));
+    if (loaded) document.removeEventListener("DOMContentLoaded", loaded);
     return {
       send,
       changeSettings: settings.subscribe.mock.calls[0][0],
@@ -98,6 +111,36 @@ describe("power rule status", () => {
       event: "getPowerLifecycleRule",
       selectedDeviceId: "light:dev-2|H6056",
     });
+  });
+
+  it("says a rule was saved only in reply to Save, not to load or Refresh", () => {
+    const { send, changeSettings, response } = mount();
+    changeSettings({
+      payload: { settings: { selectedDeviceId: "dev-1|H619A" } },
+    });
+    const statusText = () =>
+      document.getElementById("powerLifecycleStatus")?.textContent;
+    const reply = () =>
+      response({
+        payload: {
+          event: "powerLifecycleRule",
+          requestId: send.mock.calls.at(-1)?.[0].requestId,
+          status: "ok",
+          rules: [{ selectedDeviceId: "light:dev-1|H619A", enabled: true }],
+          rule: { enabled: true, onWake: true },
+        },
+      });
+    reply();
+    expect(statusText()).toBe("Startup/wake automation is enabled.");
+    document.getElementById("powerRefresh")?.click();
+    reply();
+    expect(statusText()).not.toContain("saved");
+    document.getElementById("powerSave")?.click();
+    expect(send.mock.calls.at(-1)?.[0].event).toBe("savePowerLifecycleRule");
+    reply();
+    expect(statusText()).toBe(
+      "Rule saved. Startup/wake automation is enabled.",
+    );
   });
 
   it("distinguishes enabled rules with no events from active and disabled rules", () => {
