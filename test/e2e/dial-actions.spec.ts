@@ -42,7 +42,7 @@ for (const { name, url, settings } of DIAL_PIS) {
 
     test('should have setup guide', async ({ page }) => {
       const guide = page.locator('.guide ol li');
-      await expect(guide).toHaveCount(3);
+      await expect(guide).toHaveCount(4);
     });
   });
 }

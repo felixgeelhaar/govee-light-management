@@ -194,7 +194,7 @@ its own action, so a key does one thing and its icon says which:
 | **Snapshot**          | Apply a snapshot you saved in the Govee app                       |
 | **Music Mode**        | Switch the light into one of its music-reactive modes             |
 | **Feature Toggle**    | Flip a device feature (gradient, nightlight, …) on or off         |
-| **Schedule**          | Run a command on a daily, weekly, or delay trigger                |
+| **Schedule**          | Run a command daily, on chosen weekdays (local time) or after a delay |
 | **Sequence**          | Run a chain of commands with configurable delays                  |
 | **Custom Effect**     | Play an RGB animation on an IC strip                              |
 

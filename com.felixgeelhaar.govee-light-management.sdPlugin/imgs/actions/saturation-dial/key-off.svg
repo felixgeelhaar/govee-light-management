@@ -1,1 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 288 288"><defs><filter id="gray-off"><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncR type="linear" slope="0.7"/><feFuncG type="linear" slope="0.7"/><feFuncB type="linear" slope="0.7"/></feComponentTransfer></filter></defs><g filter="url(#gray-off)" opacity="0.4"><defs><linearGradient id="sat" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#9CA3AF"/><stop offset="1" stop-color="#EF4444"/></linearGradient></defs><circle cx="144" cy="144" r="114" fill="none" stroke="#ffffff" stroke-width="14"/><circle cx="144" cy="144" r="74" fill="url(#sat)"/><circle cx="144" cy="30" r="12" fill="#ffffff"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 288 288"><defs><filter id="gray-off"><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncR type="linear" slope="0.7"/><feFuncG type="linear" slope="0.7"/><feFuncB type="linear" slope="0.7"/></feComponentTransfer></filter></defs><g filter="url(#gray-off)" opacity="0.4"><defs><linearGradient id="g" x1="0" y1="0" x2="288" y2="288" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#A855F7"/>
+<stop offset=".5" stop-color="#6366F1"/>
+<stop offset="1" stop-color="#22D3EE"/>
+</linearGradient>
+<filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+<feGaussianBlur stdDeviation="6" result="b"/>
+<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+</filter></defs><rect x="14" y="14" width="260" height="260" rx="40" fill="#0B0E1A"/>
+<rect x="14" y="14" width="260" height="260" rx="40" fill="none" stroke="url(#g)" stroke-width="5" filter="url(#glow)"/><path d="M144 34C144 34 224 128 224 178A80 80 0 0 1 144 258Z" fill="url(#g)"/><path d="M144 34C144 34 64 128 64 178A80 80 0 0 0 224 178C224 128 144 34 144 34Z" fill="none" stroke="url(#g)" stroke-width="10" stroke-linejoin="round"/></g></svg>

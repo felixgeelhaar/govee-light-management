@@ -14,6 +14,7 @@ import {
   Schedule,
   ScheduleType,
   DayOfWeek,
+  type ScheduleClock,
 } from "../domain/value-objects/Schedule";
 import { schedulerService } from "../services/SchedulerService";
 
@@ -25,6 +26,8 @@ type ScheduleSettings = BaseSettings & {
   minute?: number;
   delaySeconds?: number;
   days?: DayOfWeek[];
+  /** Absent on keys saved before 3.0.1, whose hour/minute/days are UTC. */
+  clock?: ScheduleClock;
   command?:
     "on" | "off" | "toggle" | "brightness" | "color" | "colorTemperature";
   commandValue?: number | string;
@@ -155,12 +158,17 @@ export class ScheduleAction extends SingletonAction<ScheduleSettings> {
   private buildSchedule(settings: ScheduleSettings): Schedule {
     switch (settings.scheduleType) {
       case ScheduleType.Daily:
-        return Schedule.daily(settings.hour!, settings.minute!);
+        return Schedule.daily(
+          settings.hour!,
+          settings.minute!,
+          settings.clock ?? "utc",
+        );
       case ScheduleType.Weekly:
         return Schedule.weekly(
           settings.days!,
           settings.hour!,
           settings.minute!,
+          settings.clock ?? "utc",
         );
       case ScheduleType.Delay:
         return Schedule.delay(settings.delaySeconds!);
@@ -186,8 +194,9 @@ export class ScheduleAction extends SingletonAction<ScheduleSettings> {
     const next = existing?.nextTriggerAt();
     if (!next) return "✓";
 
-    const hh = String(next.getUTCHours()).padStart(2, "0");
-    const mm = String(next.getUTCMinutes()).padStart(2, "0");
+    // Local time, whichever clock the schedule was entered in.
+    const hh = String(next.getHours()).padStart(2, "0");
+    const mm = String(next.getMinutes()).padStart(2, "0");
     return `⏰\n${hh}:${mm}`;
   }
 }

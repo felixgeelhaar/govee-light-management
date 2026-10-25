@@ -128,7 +128,7 @@ describe("ScheduledAction", () => {
       });
       const next = action.nextTriggerAt();
       expect(next).not.toBeNull();
-      expect(next!.getUTCHours()).toBe(14);
+      expect(next!.getHours()).toBe(14);
       expect(next!.getUTCMinutes()).toBe(30);
     });
 

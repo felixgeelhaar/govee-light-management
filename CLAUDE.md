@@ -360,6 +360,22 @@ API-key flow, conditional field visibility, group create/edit/delete, and
 datasource status hints. `ui/js/sdpi-components.js` is Elgato's vendored bundle —
 third-party, minified, excluded from lint and from security scanning.
 
+### Saving settings from inspector scripts
+
+Write settings with `GoveePI.patchSettings({ key: value })` (in `setup.js`).
+It goes through SDPI's shared settings store, which the `sdpi-*` components
+save from. `streamDeckClient.setSettings` replaces the key's whole settings
+object and leaves that store stale, so a later component change saves old
+values back; `test/backend/elgato-guidelines.test.ts` forbids it in
+inspectors. That test also checks the Elgato guidelines that can be checked
+statically: image paths, the 256/512 px plugin icon, white-only list icons,
+device placeholders and the setup-guide link. Run
+`node scripts/render-plugin-icon.mjs` after changing `docs/brand/plugin-icon.svg`.
+
+Schedule hour/minute/days are local time (`clock: "local"`). Keys saved
+before 3.0.1 have no clock and stay UTC until the inspector converts them
+(`ui/js/schedule-time.js`); persisted schedules without a clock restore as UTC.
+
 ### Datasource contract
 
 Plugin → PI dropdown payloads go through `sendPIDatasource` in `ActionServices`,

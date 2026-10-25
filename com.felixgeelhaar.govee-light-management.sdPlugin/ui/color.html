@@ -108,7 +108,7 @@
       <sdpi-item label="Device">
         <sdpi-select
           setting="selectedDeviceId"
-          placeholder=""
+          placeholder="Select a light or group"
           datasource="getDevices"
           show-refresh
           label-setting="selectedLightName"
@@ -193,7 +193,14 @@
           <li>Open the Govee app</li>
           <li>Go to settings</li>
           <li>Select "Apply for API Key"</li>
+          <li>Paste the key from Govee's email above</li>
         </ol>
+        <a
+          class="guide-link"
+          href="https://developer.govee.com/reference/apply-you-govee-api-key"
+          data-open-url
+          >How to get a Govee API key</a
+        >
       </sdpi-item>
     </div>
 
@@ -215,10 +222,13 @@
         }
 
         function applyColor(hex, name) {
-          if (window.SDPIComponents?.streamDeckClient) {
-            const client = window.SDPIComponents.streamDeckClient;
-            client.setSettings({ colorValue: hex, colorName: name });
-          }
+          // Patch only the colour: setSettings would replace the key's
+          // other settings (light, step size, saturation) with nothing.
+          const picker = document.querySelector(
+            'sdpi-color[setting="colorValue"]',
+          );
+          if (picker) picker.value = hex;
+          window.GoveePI.patchSettings({ colorValue: hex, colorName: name });
         }
 
         function renderPalettes(palettes) {
