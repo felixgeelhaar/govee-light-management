@@ -38,9 +38,9 @@ and the SDK `plugin/actions/key.d.ts` / manifest schema.
 
 2.9.0 shipped an opt-in **Icon switching** select (`separatePowerIcons`) that
 held old profiles on state 0. It made custom Off artwork look broken unless the
-user found the setting, so it is removed. Saved values are ignored. Upgrade
-effect: a key with a custom image only on state 0 shows plugin Off artwork
-while the light is off; set an Off image or accept the default.
+user found the setting, so it is removed. Saved values are ignored. Keys now
+use Stream Deck's normal two-state behaviour: each state shows its own image,
+custom or default, so set an Off image to replace the default one.
 
 ## Manual verification (macOS and Windows)
 
