@@ -4,6 +4,8 @@ All notable changes to this project are documented below. This project adheres t
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-10-25
+
 ### Changed
 
 - Automation switches lights with LAN Control on over the local network, and uses the cloud only when a light doesn't confirm within half a second. "Off before sleep" no longer depends on a cloud request finishing before the computer sleeps (#377). "Plugin starts" rules wait for the first local network scan.

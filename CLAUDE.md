@@ -12,8 +12,8 @@ A Stream Deck plugin for controlling Govee smart lights. It registers 14
 actions, including five hybrid keypad/encoder controls that talk to the Govee Cloud
 API through `@felixgeelhaar/govee-api-client` (`^3.4.0`). Published on the
 Elgato Marketplace; Stream Deck SDK dependency is `^3.0.3`; current version is
-3.1.0 (`package.json` `version` and the
-manifest's `Version` field — `3.1.0.0` — must be bumped together).
+3.1.1 (`package.json` `version` and the
+manifest's `Version` field — `3.1.1.0` — must be bumped together).
 
 Runtime target: Node 20 (the version Elgato's CLI validator pins in the
 manifest), TypeScript, ESM.
