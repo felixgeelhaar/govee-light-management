@@ -372,6 +372,13 @@ statically: image paths, the 256/512 px plugin icon, white-only list icons,
 device placeholders and the setup-guide link. Run
 `node scripts/render-plugin-icon.mjs` after changing `docs/brand/plugin-icon.svg`.
 
+Every inspector includes `<div id="groupManager">`, and every action answers
+`getGroups` / `saveGroup` / `deleteGroup` (dial actions via `BaseDialAction`);
+a test enforces both. The Schedule inspector's "Manage schedules" list
+(`getSchedules` / `deleteSchedule`) is the only way to remove the schedule of a
+deleted key — Stream Deck sends no delete event, and `onWillDisappear` also
+fires on page switches, when schedules must keep running.
+
 Schedule hour/minute/days are local time (`clock: "local"`). Keys saved
 before 3.0.1 have no clock and stay UTC until the inspector converts them
 (`ui/js/schedule-time.js`); persisted schedules without a clock restore as UTC.

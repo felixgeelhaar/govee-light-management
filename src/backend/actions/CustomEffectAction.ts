@@ -109,6 +109,17 @@ export class CustomEffectAction extends SingletonAction<CustomEffectSettings> {
           groups: "disabled",
         });
         break;
+      // Groups can't play effects, but they are shared by every action
+      // and can be managed from any inspector.
+      case "getGroups":
+        await this.services.handleGetGroups(ev.action.id);
+        break;
+      case "saveGroup":
+        await this.services.handleSaveGroup(ev.action.id, ev.payload);
+        break;
+      case "deleteGroup":
+        await this.services.handleDeleteGroup(ev.action.id, ev.payload);
+        break;
       case "getEffects":
         await this.handleGetEffects(ev.action.id);
         break;

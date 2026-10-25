@@ -95,6 +95,13 @@ describe("Elgato guidelines", () => {
     }
   });
 
+  it("offers the shared group manager in every inspector", () => {
+    for (const file of inspectors) {
+      const html = readFileSync(`${root}/ui/${file}`, "utf8");
+      expect(html, file).toContain('id="groupManager"');
+    }
+  });
+
   it("saves inspector settings through the SDPI store, never by replacing them", () => {
     for (const file of inspectors) {
       const html = readFileSync(`${root}/ui/${file}`, "utf8");

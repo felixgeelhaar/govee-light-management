@@ -8,7 +8,11 @@ import {
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
-import { ActionServices, type BaseSettings } from "./shared/ActionServices";
+import {
+  ActionServices,
+  sendToPI,
+  type BaseSettings,
+} from "./shared/ActionServices";
 import { ScheduledAction } from "../domain/entities/ScheduledAction";
 import {
   Schedule,
@@ -85,10 +89,55 @@ export class ScheduleAction extends SingletonAction<ScheduleSettings> {
       case "getGroups":
         await this.services.handleGetGroups(ev.action.id);
         break;
+      case "saveGroup":
+        await this.services.handleSaveGroup(ev.action.id, ev.payload);
+        break;
+      case "deleteGroup":
+        await this.services.handleDeleteGroup(ev.action.id, ev.payload);
+        break;
       case "refreshState":
         await this.services.handleRefreshState();
         break;
+      case "getSchedules":
+        await this.sendSchedules(ev.action);
+        break;
+      case "deleteSchedule": {
+        const id = ev.payload.scheduleId;
+        const { scheduleId: ownId } = await ev.action.getSettings();
+        // This key's own schedule follows its settings and would be added
+        // back on the next change; it is paused by pressing the key.
+        if (typeof id === "string" && id !== ownId)
+          await schedulerService.removeAction(id);
+        await this.sendSchedules(ev.action);
+        break;
+      }
     }
+  }
+
+  /**
+   * Every saved schedule, for the inspector's "Manage schedules" list.
+   * Stream Deck sends no event when a key is deleted, so this is where a
+   * deleted key's schedule can be found and removed.
+   */
+  private async sendSchedules(action: {
+    id: string;
+    getSettings(): Promise<ScheduleSettings>;
+  }): Promise<void> {
+    const { scheduleId: ownId } = await action.getSettings();
+    const schedules = schedulerService
+      .getService()
+      .getAll()
+      .map((item) => {
+        const { schedule, ...rest } = item.toJSON();
+        return {
+          ...rest,
+          ...schedule,
+          enabled: item.isEnabled(),
+          nextAt: item.nextTriggerAt()?.toISOString() ?? null,
+          own: item.id === ownId,
+        };
+      });
+    await sendToPI(action.id, { event: "schedulesReceived", schedules });
   }
 
   private isConfigured(settings: ScheduleSettings): boolean {

@@ -93,6 +93,25 @@
           the schedule.
         </p>
       </sdpi-item>
+
+      <div id="groupManager"></div>
+
+      <sdpi-item label="Schedules">
+        <details id="schedulePanel" class="group-manager-details">
+          <summary id="scheduleSummary">Manage schedules</summary>
+        </details>
+      </sdpi-item>
+      <div id="scheduleBody" class="power-lifecycle-body hidden">
+        <div
+          id="scheduleList"
+          class="group-list-wrapper"
+          aria-label="Saved schedules"
+        ></div>
+        <p class="group-shared-hint">
+          Deleting a key doesn't stop its schedule. Remove ones you no longer
+          need here.
+        </p>
+      </div>
     </div>
 
     <div id="setup" class="hidden">
@@ -207,7 +226,94 @@
           commandSelect.addEventListener("valuechange", () => {
             if (commandSelect.value) showFor(undefined, commandSelect.value);
           });
+          initScheduleManager(client);
         });
+
+        // Every saved schedule, so one whose key was deleted can be found
+        // and removed: Stream Deck sends no event when a key is deleted.
+        function initScheduleManager(client) {
+          const panel = document.getElementById("schedulePanel");
+          const body = document.getElementById("scheduleBody");
+          const list = document.getElementById("scheduleList");
+          const summary = document.getElementById("scheduleSummary");
+          const names = {};
+          let schedules = [];
+          const send = (payload) => client.send("sendToPlugin", payload);
+
+          function render() {
+            summary.textContent = schedules.length
+              ? `Manage schedules · ${schedules.length}`
+              : "Manage schedules";
+            list.replaceChildren();
+            if (!schedules.length) {
+              const empty = document.createElement("div");
+              empty.className = "group-empty";
+              empty.textContent = "No saved schedules.";
+              list.appendChild(empty);
+            }
+            for (const item of schedules) {
+              const row = document.createElement("div");
+              row.className = "group-row";
+              const label = document.createElement("span");
+              label.className = "group-label";
+              const name = document.createElement("div");
+              name.textContent = item.name || "Scheduled Action";
+              const detail = document.createElement("small");
+              detail.textContent =
+                (item.enabled ? "" : "Paused · ") +
+                window.GoveeScheduleTime.describeSchedule(item, names);
+              label.title = detail.textContent;
+              label.append(name, detail);
+              row.appendChild(label);
+              if (item.own) {
+                const own = document.createElement("small");
+                own.className = "schedule-own";
+                own.textContent = "This key";
+                row.appendChild(own);
+              } else {
+                const remove = document.createElement("button");
+                remove.type = "button";
+                remove.className = "group-delete-btn";
+                remove.textContent = "Delete";
+                remove.setAttribute(
+                  "aria-label",
+                  `Delete schedule ${name.textContent}`,
+                );
+                remove.addEventListener("click", () => {
+                  remove.disabled = true;
+                  send({ event: "deleteSchedule", scheduleId: item.id });
+                });
+                row.appendChild(remove);
+              }
+              list.appendChild(row);
+            }
+          }
+
+          client.sendToPropertyInspector.subscribe((message) => {
+            const payload = message.payload || {};
+            if (payload.event === "schedulesReceived") {
+              schedules = payload.schedules || [];
+              render();
+            } else if (
+              payload.event === "getDevices" &&
+              Array.isArray(payload.items)
+            ) {
+              const collect = (items) => {
+                for (const item of items) {
+                  if (Array.isArray(item.children)) collect(item.children);
+                  else if (item.value) names[item.value] = item.label;
+                }
+              };
+              collect(payload.items);
+              render();
+            }
+          });
+          panel.addEventListener("toggle", () => {
+            body.classList.toggle("hidden", !panel.open);
+            if (panel.open) send({ event: "getSchedules" });
+          });
+          send({ event: "getSchedules" });
+        }
       });
     </script>
   </body>

@@ -108,6 +108,12 @@ export class SequenceAction extends SingletonAction<SequenceSettings> {
       case "getGroups":
         await this.services.handleGetGroups(ev.action.id);
         break;
+      case "saveGroup":
+        await this.services.handleSaveGroup(ev.action.id, ev.payload);
+        break;
+      case "deleteGroup":
+        await this.services.handleDeleteGroup(ev.action.id, ev.payload);
+        break;
       case "refreshState":
         await this.services.handleRefreshState();
         break;

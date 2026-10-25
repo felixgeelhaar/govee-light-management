@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented below. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Manage schedules** in the Schedule inspector lists every saved schedule (when it runs, what it does, which light, paused or active) with Delete. Stream Deck doesn't tell plugins when a key is deleted, so a deleted Schedule key's schedule kept running with no way to stop it; it can now be removed here.
+- **Manage groups** is available in every inspector, not only On / Off, Brightness, Color, Color Temperature and Saturation.
+
 ## [3.0.1] - 2026-10-25
 
 ### Changed
