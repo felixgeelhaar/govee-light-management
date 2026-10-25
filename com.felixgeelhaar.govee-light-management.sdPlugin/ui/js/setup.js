@@ -237,6 +237,7 @@ document.addEventListener("DOMContentLoaded", () => {
             copyLabel: "Click to copy model",
           })}
         </div>
+        ${renderConnection(data.connection)}
         <div class="metadata-section">
           ${renderMetaRow("Controllable", formatBoolean(data.controllable))}
           ${renderMetaRow("Retrievable", formatBoolean(data.retrievable))}
@@ -257,6 +258,35 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     bindCopyButtons(debugValue);
+  }
+
+  const LAN_HELP_URL =
+    "https://felixgeelhaar.github.io/govee-light-management/lan.html";
+  const CONNECTION_TEXT = {
+    "not-found": [
+      "Cloud",
+      "Turn on LAN Control for this light in the Govee app to use your local network.",
+    ],
+    "network-blocked": [
+      "Cloud · local network access blocked",
+      "Allow Stream Deck local network access to find LAN lights.",
+    ],
+    "port-in-use": [
+      "Cloud · LAN port in use",
+      "Another app on this computer is using Govee's LAN port.",
+    ],
+  };
+
+  /** How the plugin reaches the light: local network or Govee cloud. */
+  function renderConnection(connection) {
+    if (!connection) return "";
+    if (connection.type === "lan")
+      return `<div class="metadata-section">${renderMetaRow("Connection", `LAN · ${connection.ip}`)}</div>`;
+    const [text, hint] = CONNECTION_TEXT[connection.reason] || ["Cloud"];
+    const help = hint
+      ? `<div class="metadata-empty">${escapeHtml(hint)} <a href="${LAN_HELP_URL}" data-open-url>How</a></div>`
+      : "";
+    return `<div class="metadata-section">${renderMetaRow("Connection", text)}${help}</div>`;
   }
 
   function renderMetaRow(label, value, options = {}) {

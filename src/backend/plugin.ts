@@ -16,6 +16,7 @@ import { SequenceAction } from "./actions/SequenceAction";
 import { CustomEffectAction } from "./actions/CustomEffectAction";
 import { RecallAction } from "./actions/RecallAction";
 import { schedulerService } from "./services/SchedulerService";
+import { lanDiscovery } from "./services/LanDiscovery";
 import { createShutdownRunner } from "./services/lifecycle";
 
 streamDeck.logger.setLevel("info");
@@ -51,6 +52,12 @@ void schedulerService.initialize().catch((error) => {
   streamDeck.logger.error("Failed to initialize scheduler:", error);
 });
 
+// Finds lights on the local network (docs/design/lan-control.md, phase 1).
+// Any failure leaves every light on the cloud.
+void lanDiscovery.start().catch((error) => {
+  streamDeck.logger.warn("LAN discovery failed to start:", error);
+});
+
 // Stream Deck stops a plugin by signalling its process. Without this the
 // scheduler's 30s engine poll ran until the process was killed, and the
 // schedule it holds was never persisted on the way out — `shutdown()` existed
@@ -60,6 +67,7 @@ shutdown.onShutdown("power-lifecycle", () =>
   powerLifecycleController.shutdown(),
 );
 shutdown.onShutdown("scheduler", () => schedulerService.shutdown());
+shutdown.onShutdown("lan-discovery", () => lanDiscovery.shutdown());
 for (const signal of ["SIGTERM", "SIGINT"] as const) {
   process.once(signal, () => {
     void shutdown.run(signal).finally(() => process.exit(0));

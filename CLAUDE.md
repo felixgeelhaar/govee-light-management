@@ -259,7 +259,15 @@ assert each ships its artwork. Unknown state restores the manifest image.
   `getHealthSnapshot()`. `NoHealthyTransportError` when nothing is usable.
 - `cloud/CloudTransport` — the only transport implemented. Wraps
   `@felixgeelhaar/govee-api-client` and normalizes device capabilities.
-  A LAN transport and a WebSocket transport are design intentions, not code.
+
+Commands and state reads do not go through the orchestrator: they go
+`ActionServices` → `GoveeLightRepository` → `GoveeClient`. Local network
+control is planned at that repository boundary (`docs/design/lan-control.md`).
+Phase 1 exists: `infrastructure/lan/` (`LanProtocol`, `LanSocket` — the only
+UDP code — and `LanDeviceRegistry`) and `services/LanDiscovery`, which scans
+at startup and every 10 minutes and reports `connectionFor(deviceId)` to the
+metadata panel. Any failure (port 4002 in use, local network blocked) leaves
+everything on the cloud. No command uses LAN yet.
 
 ### `DeviceService` (`src/backend/application/services/DeviceService.ts`)
 
