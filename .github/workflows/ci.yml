@@ -10,15 +10,10 @@ on:
       - ".github/PULL_REQUEST_TEMPLATE.md"
       - "LICENSE"
       - ".gitignore"
+  # No paths-ignore on pull requests: branch protection requires these checks,
+  # so a docs-only PR that skipped CI could never merge.
   pull_request:
     branches: [main, develop]
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - ".github/ISSUE_TEMPLATE/**"
-      - ".github/PULL_REQUEST_TEMPLATE.md"
-      - "LICENSE"
-      - ".gitignore"
 
 # Cancel outdated runs for same workflow
 concurrency:
