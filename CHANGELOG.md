@@ -8,11 +8,11 @@ All notable changes to this project are documented below. This project adheres t
 
 - Requires Stream Deck 7.1 or later.
 - Bindings to the four removed standalone dials (Brightness Dial, Color Hue Dial, Color Temperature Dial, Segment Color Dial) stop working: replace them with Brightness, Color, Color Temperature and Segment Color, which work on both keys and dials.
-- On / Off keys always switch artwork with the light. A key with a custom image on its On state only shows the plugin Off artwork while the light is off; set an Off image with **Set from File** if you want your own.
+- On / Off keys now switch between their On and Off images as the light turns on and off. Previously the Icon switching setting kept them on the On image unless you changed it. Set both images with **Set from File**.
 
 ### Changed
 
-- On / Off keys always follow live power state: set On and Off artwork with Stream Deck's **Set from File** and it switches with no extra setting. The Icon switching preference is removed and saved values are ignored. A key with only an On custom icon now shows plugin Off artwork while the light is off.
+- On / Off keys switch between their On and Off images with the light's power, using Stream Deck's native two-state keys: set each image with **Set from File**, no extra setting needed. The Icon switching setting, which kept keys on the On image by default, is removed and saved values are ignored.
 - Automation rules apply to the light or group selected in the inspector. The separate Target dropdown is removed; Edit on a saved rule still opens rules for other targets.
 - Migrate to Stream Deck SDK 3 with its default settings lifecycle. Requires Stream Deck 7.1 or later; saved settings for retained actions are preserved. Neo Infobar support is separate.
 
