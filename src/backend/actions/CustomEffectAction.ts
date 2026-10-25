@@ -51,23 +51,8 @@ export class CustomEffectAction extends SingletonAction<CustomEffectSettings> {
       return;
     }
 
-    // RGB IC custom effects render per-segment frames. EffectService only
-    // accepts a single light target — group selections aren't supported
-    // because each member can have a different segment count / layout
-    // and the playback loop would race per-member API rate limits.
-    // Newer PI installs filter groups out at the datasource layer, but
-    // pre-existing settings may still reference a group:* id.
-    if (settings.selectedDeviceId.startsWith("group:")) {
-      streamDeck.logger.warn(
-        "Custom effects do not support light groups; pick an individual RGB IC light",
-      );
-      await ev.action.setTitle("⚠\nPick light");
-      await ev.action.showAlert();
-      return;
-    }
-
-    // Keys saved before the list was filtered can still hold a bulb or
-    // another light without segments; every frame would fail silently.
+    // Keys saved before the list was filtered can still hold a bulb, or a
+    // group with no light that has segments; every frame would fail.
     if (!(await this.canPlayOn(settings.selectedDeviceId))) {
       await ev.action.setTitle("⚠\nPick light");
       await ev.action.showAlert();
@@ -106,12 +91,24 @@ export class CustomEffectAction extends SingletonAction<CustomEffectSettings> {
     }
   }
 
-  /** False only when the saved light is known to lack segment control. */
+  /**
+   * False only when the saved light is known to lack segment control, or
+   * the saved group has no member with it.
+   */
   private async canPlayOn(selectedDeviceId: string): Promise<boolean> {
     try {
       const apiKey = await this.services.getApiKey({});
       if (!apiKey) return true;
       await this.services.ensureServices(apiKey);
+      if (selectedDeviceId.startsWith("group:")) {
+        if ((await effectService.segmentedMembers(selectedDeviceId)).length)
+          return true;
+        streamDeck.logger.warn(
+          "Custom effect needs a group with at least one light with segment control",
+          { group: selectedDeviceId },
+        );
+        return false;
+      }
       const target = await this.services.resolveTarget({ selectedDeviceId });
       if (target?.type !== "light" || !target.light) return true;
       if (target.light.supportsSegmentedColor()) return true;
@@ -133,13 +130,12 @@ export class CustomEffectAction extends SingletonAction<CustomEffectSettings> {
 
     switch (ev.payload.event) {
       case "getDevices":
+        // Groups are listed by how many members have segments; a group
+        // effect plays on those and skips the rest.
         await this.services.handleGetDevices(ev.action.id, {
-          groups: "disabled",
           requires: "segmentedColor",
         });
         break;
-      // Groups can't play effects, but they are shared by every action
-      // and can be managed from any inspector.
       case "getGroups":
         await this.services.handleGetGroups(ev.action.id);
         break;

@@ -13,7 +13,7 @@ import { globalSettingsService } from "../../../src/backend/services/GlobalSetti
 describe("Custom Effect needs a light with segments", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("lists only lights that support segment colours", async () => {
+  it("lists lights with segments, and groups by how many members have them", async () => {
     const shared = (
       ActionServices as unknown as { _shared: Record<string, unknown> }
     )._shared;
@@ -30,6 +30,19 @@ describe("Custom Effect needs a light with segments", () => {
         .mockResolvedValue([device("strip", true), device("bulb", false)]),
       getCachedUnsupportedDevices: () => [],
     };
+    const member = (id: string) => ({ deviceId: id, model: "H6056" });
+    const originalGroups = shared.groupService;
+    shared.groupService = {
+      getAllGroups: async () => [
+        {
+          id: "both",
+          name: "Both",
+          size: 2,
+          lights: [member("strip"), member("bulb")],
+        },
+        { id: "bulbs", name: "Bulbs", size: 1, lights: [member("bulb")] },
+      ],
+    };
     Object.assign(streamDeck.ui, { action: { id: "ctx" } });
     vi.spyOn(globalSettingsService, "getApiKey").mockResolvedValue("test-key");
     vi.spyOn(ActionServices.prototype, "ensureServices").mockResolvedValue();
@@ -44,11 +57,80 @@ describe("Custom Effect needs a light with segments", () => {
         status: "ok",
         items: [
           { label: "Lights", children: [{ value: "light:strip|H6056" }] },
+          {
+            label: "Groups",
+            children: [
+              { value: "group:both", label: "Both (1 of 2 lights)" },
+              {
+                value: "group:bulbs",
+                label: "Bulbs (no lights with segments)",
+                disabled: true,
+              },
+            ],
+          },
         ],
       });
+      const groups = vi
+        .mocked(streamDeck.ui.sendToPropertyInspector)
+        .mock.calls.at(-1)?.[0] as { items: { children: object[] }[] };
+      expect(groups.items[1].children[0]).not.toHaveProperty("disabled");
     } finally {
       shared.deviceService = original;
+      shared.groupService = originalGroups;
     }
+  });
+
+  it("refuses a group none of whose lights have segments", async () => {
+    vi.spyOn(ActionServices.prototype, "getApiKey").mockResolvedValue(
+      "test-key",
+    );
+    vi.spyOn(ActionServices.prototype, "ensureServices").mockResolvedValue();
+    vi.spyOn(effectService, "segmentedMembers").mockResolvedValue([]);
+    const play = vi.spyOn(effectService, "playEffect").mockResolvedValue();
+    const action = {
+      id: "ctx",
+      setTitle: vi.fn().mockResolvedValue(undefined),
+      showAlert: vi.fn().mockResolvedValue(undefined),
+      showOk: vi.fn().mockResolvedValue(undefined),
+    };
+    await new CustomEffectAction().onKeyDown({
+      action,
+      payload: {
+        settings: {
+          selectedDeviceId: "group:bulbs",
+          effectId: "preset-rainbow-wave",
+        },
+      },
+    } as never);
+    expect(play).not.toHaveBeenCalled();
+    expect(action.setTitle).toHaveBeenCalledWith("⚠\nPick light");
+  });
+
+  it("plays on a group with at least one light that has segments", async () => {
+    vi.spyOn(ActionServices.prototype, "getApiKey").mockResolvedValue(
+      "test-key",
+    );
+    vi.spyOn(ActionServices.prototype, "ensureServices").mockResolvedValue();
+    vi.spyOn(effectService, "segmentedMembers").mockResolvedValue([
+      "light:desk|H6056",
+    ]);
+    const play = vi.spyOn(effectService, "playEffect").mockResolvedValue();
+    const action = {
+      id: "ctx",
+      setTitle: vi.fn().mockResolvedValue(undefined),
+      showAlert: vi.fn().mockResolvedValue(undefined),
+      showOk: vi.fn().mockResolvedValue(undefined),
+    };
+    await new CustomEffectAction().onKeyDown({
+      action,
+      payload: {
+        settings: {
+          selectedDeviceId: "group:office",
+          effectId: "preset-rainbow-wave",
+        },
+      },
+    } as never);
+    expect(play).toHaveBeenCalledWith("group:office", expect.anything());
   });
 
   it("refuses to play on a saved light without segments", async () => {

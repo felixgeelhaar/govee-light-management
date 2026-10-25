@@ -18,6 +18,12 @@ import { globalSettingsService } from "./GlobalSettingsService";
 class EffectServiceImpl {
   private actionServices = new ActionServices();
   private player: EffectPlayer;
+  /**
+   * Group effects play as one playback per member, keyed by the member's
+   * light id, so a command to one light stops the effect on that light
+   * only. This maps a group id to the member ids it started.
+   */
+  private groupMembers = new Map<string, string[]>();
 
   constructor() {
     this.player = new EffectPlayer((targetId, frame) =>
@@ -34,11 +40,54 @@ class EffectServiceImpl {
       throw new Error("No API key configured");
     }
     await this.actionServices.ensureServices(apiKey);
-    await this.player.play(targetId, effect);
+    if (!targetId.startsWith("group:")) {
+      await this.player.play(targetId, effect);
+      return;
+    }
+    await this.cancelAndWait(targetId);
+    const members = await this.segmentedMembers(targetId);
+    if (members.length === 0)
+      throw new Error("No light in this group has segments");
+    this.groupMembers.set(targetId, members);
+    try {
+      await Promise.all(members.map((id) => this.player.play(id, effect)));
+    } finally {
+      if (this.groupMembers.get(targetId) === members)
+        this.groupMembers.delete(targetId);
+    }
+  }
+
+  /** Light ids of the group's members that can play effects (have segments). */
+  async segmentedMembers(groupId: string): Promise<string[]> {
+    const target = await this.actionServices.resolveTarget({
+      selectedDeviceId: groupId,
+    });
+    if (target?.type !== "group" || !target.group) return [];
+    const ids = target.group.lights.map(
+      (light) => `light:${light.deviceId}|${light.model}`,
+    );
+    // Stored group members carry no capabilities; resolve each light.
+    const capable = await Promise.all(
+      ids.map(async (id) => {
+        const member = await this.actionServices.resolveTarget({
+          selectedDeviceId: id,
+        });
+        return (
+          member?.type === "light" && member.light?.supportsSegmentedColor()
+        );
+      }),
+    );
+    return ids.filter((_, index) => capable[index]);
+  }
+
+  private playbackIds(targetId: string): string[] {
+    return this.groupMembers.get(targetId) ?? [targetId];
   }
 
   cancel(targetId: string): boolean {
-    return this.player.cancel(targetId);
+    return this.playbackIds(targetId)
+      .map((id) => this.player.cancel(id))
+      .some(Boolean);
   }
 
   /**
@@ -48,11 +97,14 @@ class EffectServiceImpl {
    * the follow-up has landed.
    */
   async cancelAndWait(targetId: string): Promise<boolean> {
-    return this.player.cancelAndWait(targetId);
+    const stopped = await Promise.all(
+      this.playbackIds(targetId).map((id) => this.player.cancelAndWait(id)),
+    );
+    return stopped.some(Boolean);
   }
 
   isPlaying(targetId: string): boolean {
-    return this.player.isPlaying(targetId);
+    return this.playbackIds(targetId).some((id) => this.player.isPlaying(id));
   }
 
   getPresets(): RgbEffect[] {

@@ -26,8 +26,7 @@
       <sdpi-item label="Device">
         <sdpi-select
           setting="selectedDeviceId"
-          placeholder="Select a light"
-          data-group-unsupported="Custom effects run on a single RGB IC light. Choose a light; groups can't play them."
+          placeholder="Select a light or group"
           datasource="getDevices"
           show-refresh
           label-setting="selectedLightName"
@@ -50,8 +49,8 @@
 
       <sdpi-item>
         <p class="field-hint info">
-          Press the key to play the effect, and again to stop. Needs an RGB IC
-          light with segment control.
+          Press the key to play the effect, and again to stop. Needs lights
+          with segments (RGB IC); in a group, other lights are skipped.
         </p>
       </sdpi-item>
 
