@@ -393,7 +393,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     item.appendChild(button);
-    settingsWrapper.insertBefore(item, settingsWrapper.firstChild);
+    // Changing a saved key is rare setup: keep it with the shared sections
+    // at the bottom (Groups, Automation, API Key, Metadata), not above the
+    // light picker.
+    settingsWrapper.appendChild(item);
 
     const debugItem = document.createElement("sdpi-item");
     debugItem.setAttribute("label", "Metadata");

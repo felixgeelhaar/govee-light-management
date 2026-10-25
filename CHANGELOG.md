@@ -10,6 +10,10 @@ All notable changes to this project are documented below. This project adheres t
 - **Manage groups** is available in every inspector, not only On / Off, Brightness, Color, Color Temperature and Saturation.
 - **Custom effects on groups.** A group plays the effect on its members that have segments and skips the others. Groups are listed as "Office (1 of 2 lights)", or greyed out when no member has segments. Each member runs on its own, so a command to one light stops the effect there only; members may drift slightly out of step over the cloud API.
 
+### Changed
+
+- "Change API Key" moved from the top of every inspector to the shared sections at the bottom (Groups, Automation, API Key, Metadata), so each inspector starts with the light picker.
+
 ### Fixed
 
 - Custom Effect lists only lights with segment control (RGB IC strips, light bars and similar). Single-colour bulbs were offered, and a key saved with one showed "Playing" while every frame failed; it now shows "⚠ Pick light".
