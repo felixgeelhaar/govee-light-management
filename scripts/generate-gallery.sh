@@ -42,7 +42,7 @@ echo ""
 
 cd "$GALLERY"
 
-pages=("1-hero" "2-actions" "3-dials" "4-setup" "5-v21-features" "6-v22-features")
+pages=("1-hero" "2-actions" "3-dials" "4-setup" "5-v21-features" "6-v22-features" "7-v3-features" "8-lan")
 failed=()
 
 for page in "${pages[@]}"; do
@@ -87,7 +87,7 @@ if [ ${#failed[@]} -eq 0 ]; then
   echo "📋 Next steps:"
   echo "  1. Go to: https://maker.elgato.com/"
   echo "  2. Select 'Govee Light Management' plugin"
-  echo "  3. Upload images in order: 1-hero → 6-v22-features"
+  echo "  3. Upload images in order: 1-hero → 8-lan"
   echo "  4. Save and preview marketplace listing"
   exit 0
 else

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Gallery 8 — Local network control</title><link rel="stylesheet" href="./shared.css">
+<style>
+  .wrap {
+    width: 1920px; height: 1080px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 0 120px 60px;
+  }
+  .head { text-align: center; margin-bottom: 60px; }
+  .badge {
+    display: inline-block;
+    font-size: 15px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: #fff; background: var(--grad);
+    padding: 8px 22px; border-radius: 100px;
+    margin-bottom: 28px;
+  }
+  h1 {
+    font-size: 78px; font-weight: 800;
+    letter-spacing: -0.02em; line-height: 1.05;
+    margin-bottom: 24px;
+  }
+  .sub { font-size: 24px; color: var(--muted); max-width: 1000px; margin: 0 auto; }
+
+  /* Path comparison */
+  .paths {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    width: 100%; max-width: 1400px;
+    margin-bottom: 48px;
+  }
+  .path {
+    border-radius: 22px;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    padding: 34px 40px;
+  }
+  .path.lan {
+    border-color: rgba(34,211,238,0.45);
+    background: radial-gradient(circle at 20% 0%, rgba(34,211,238,0.16), transparent 60%), rgba(255,255,255,0.02);
+    box-shadow: 0 0 60px rgba(34,211,238,0.15);
+  }
+  .path .label {
+    font-size: 16px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 22px;
+  }
+  .path.lan .label { color: var(--a3); }
+  .route {
+    display: flex; align-items: center; gap: 16px;
+    font-size: 22px; font-weight: 700; margin-bottom: 26px;
+  }
+  .node {
+    padding: 10px 18px; border-radius: 12px;
+    background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .node.cloud { color: var(--muted); }
+  .arrow { color: var(--dim); font-size: 26px; }
+  .path.lan .arrow { color: var(--a3); }
+  .stat { display: flex; align-items: baseline; gap: 16px; }
+  .stat .n { font-size: 72px; font-weight: 800; letter-spacing: -0.02em; }
+  .path.lan .stat .n {
+    background: linear-gradient(135deg, var(--a3), var(--a2));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .path.cloud .stat .n { color: var(--muted); }
+  .stat .u { font-size: 20px; color: var(--muted); }
+
+  .points {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    width: 100%; max-width: 1400px;
+  }
+  .point .t { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+  .point .s { font-size: 18px; color: var(--muted); line-height: 1.45; }
+  .note {
+    margin-top: 40px;
+    font-size: 16px; color: var(--dim); text-align: center;
+  }
+</style></head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="badge">New in v3.1 · Local network</div>
+    <h1>Straight to your lights. <span class="grad-text">No cloud in between.</span></h1>
+    <p class="sub">Lights with LAN Control turned on get power, brightness, colour and colour temperature directly over your home network.</p>
+  </div>
+
+  <div class="paths">
+    <div class="path lan">
+      <div class="label">Local network</div>
+      <div class="route">
+        <span class="node">Stream Deck</span><span class="arrow">→</span><span class="node">Your light</span>
+      </div>
+      <div class="stat"><span class="n">1 ms</span><span class="u">to send the command</span></div>
+    </div>
+    <div class="path cloud">
+      <div class="label">Govee cloud</div>
+      <div class="route">
+        <span class="node">Stream Deck</span><span class="arrow">→</span><span class="node cloud">Internet</span><span class="arrow">→</span><span class="node cloud">Govee</span><span class="arrow">→</span><span class="node">Your light</span>
+      </div>
+      <div class="stat"><span class="n">686 ms</span><span class="u">for the same press</span></div>
+    </div>
+  </div>
+
+  <div class="points">
+    <div class="point">
+      <div class="t">Nothing to set up</div>
+      <div class="s">The plugin finds LAN lights on its own. Each light shows its connection in the inspector.</div>
+    </div>
+    <div class="point">
+      <div class="t">Works without internet</div>
+      <div class="s">Keys and groups keep controlling your LAN lights when the internet is down, even after a restart.</div>
+    </div>
+    <div class="point">
+      <div class="t">Checked every time</div>
+      <div class="s">Each command is confirmed. If a light didn't react, it's sent again through the cloud.</div>
+    </div>
+  </div>
+  <p class="note">Measured on a Govee H6056 on/off press. Scenes, segments and music modes use the cloud. Turn on LAN Control in the Govee app.</p>
+</div>
+<div class="brand-footer">
+  <img src="./assets/light.svg" alt="">
+  Govee Light Management
+</div>
+</body></html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Gallery 7 — What's new in v3</title><link rel="stylesheet" href="./shared.css">
+<style>
+  .wrap {
+    width: 1920px; height: 1080px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 0 120px 60px;
+  }
+  .head { text-align: center; margin-bottom: 64px; }
+  .badge {
+    display: inline-block;
+    font-size: 15px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: #fff; background: var(--grad);
+    padding: 8px 22px; border-radius: 100px;
+    margin-bottom: 28px;
+  }
+  h1 {
+    font-size: 78px; font-weight: 800;
+    letter-spacing: -0.02em; line-height: 1.05;
+    margin-bottom: 24px;
+  }
+  .sub { font-size: 24px; color: var(--muted); max-width: 980px; margin: 0 auto; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    width: 100%; max-width: 1560px;
+  }
+  .card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 34px 34px 32px;
+    display: flex; gap: 26px; align-items: flex-start;
+  }
+  .card img {
+    width: 76px; height: 76px; flex: 0 0 auto;
+    filter: drop-shadow(0 0 18px rgba(168,85,247,0.35));
+  }
+  .card .t { font-size: 26px; font-weight: 800; margin-bottom: 10px; }
+  .card .s { font-size: 18px; color: var(--muted); line-height: 1.45; }
+</style></head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="badge">New in v3 · Built for Stream Deck 7</div>
+    <h1>Set it up once. <span class="grad-text">Manage it anywhere.</span></h1>
+    <p class="sub">Keys that follow your lights, schedules in your own time, and groups you can build and edit from every action.</p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <img src="./assets/light.svg" alt="">
+      <div>
+        <div class="t">Keys follow the light</div>
+        <div class="s">On / Off switches between its On and Off images as the light changes, with Stream Deck's native two-state keys.</div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="./assets/schedule.svg" alt="">
+      <div>
+        <div class="t">Schedules, your time</div>
+        <div class="s">Pick a time and weekdays in your local time. Manage schedules lists them all, with Delete.</div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="./assets/scene.svg" alt="">
+      <div>
+        <div class="t">Groups everywhere</div>
+        <div class="s">Create, edit and delete groups from any action's inspector, not just a few.</div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="./assets/custom-effect.svg" alt="">
+      <div>
+        <div class="t">Effects on groups</div>
+        <div class="s">Custom effects play on every group member with segments and skip the rest.</div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="./assets/brightness.svg" alt="">
+      <div>
+        <div class="t">One action, key or dial</div>
+        <div class="s">Brightness, Color, Color Temperature, Segment Color and Saturation work on keys and Stream Deck+ dials.</div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="./assets/toggle.svg" alt="">
+      <div>
+        <div class="t">Only what fits</div>
+        <div class="s">Every list shows only the lights that support the action, and says why a group can't be used.</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="brand-footer">
+  <img src="./assets/light.svg" alt="">
+  Govee Light Management
+</div>
+</body></html>
