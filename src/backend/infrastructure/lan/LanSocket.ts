@@ -14,9 +14,12 @@ export class DgramLanSocket implements LanSocketPort {
 
   open(onMessage: (message: string, from: string) => void): Promise<void> {
     return new Promise((resolve, reject) => {
-      // reuseAddr lets the plugin share the port with another Govee
-      // integration on the same machine where the OS allows it.
-      const socket = createSocket({ type: "udp4", reuseAddr: true });
+      // No reuseAddr: with a shared port, lights' unicast replies reach only
+      // one of the listeners, so the plugin and another Govee integration
+      // on this machine would silently take each other's replies (seen on
+      // hardware 2026-10-25). Failing with EADDRINUSE leaves the other app
+      // working and puts this plugin on the cloud with a clear reason.
+      const socket = createSocket({ type: "udp4" });
       const fail = (error: Error) => {
         socket.close();
         reject(error);
