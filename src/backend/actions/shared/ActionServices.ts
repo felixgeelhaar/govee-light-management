@@ -841,7 +841,12 @@ export class ActionServices {
    */
   async handleGetDevices(
     actionId: string,
-    options?: { groups?: "selectable" | "disabled"; powerOnly?: boolean },
+    options?: {
+      groups?: "selectable" | "disabled";
+      powerOnly?: boolean;
+      /** List only lights that report this capability. */
+      requires?: "segmentedColor";
+    },
   ): Promise<void> {
     const groupsDisabled = options?.groups === "disabled";
     streamDeck.logger.info(`handleGetDevices called (context: ${actionId})`);
@@ -889,7 +894,9 @@ export class ActionServices {
           const lightItems: PIDatasourceItem[] = lights
             .filter(
               (light) =>
-                !options?.powerOnly || light.capabilities?.power !== false,
+                (!options?.powerOnly || light.capabilities?.power !== false) &&
+                (!options?.requires ||
+                  light.capabilities?.[options.requires] === true),
             )
             .map((light) => ({
               label: `${light.label ?? light.name} (${light.model})`,

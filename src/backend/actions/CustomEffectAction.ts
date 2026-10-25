@@ -66,6 +66,14 @@ export class CustomEffectAction extends SingletonAction<CustomEffectSettings> {
       return;
     }
 
+    // Keys saved before the list was filtered can still hold a bulb or
+    // another light without segments; every frame would fail silently.
+    if (!(await this.canPlayOn(settings.selectedDeviceId))) {
+      await ev.action.setTitle("⚠\nPick light");
+      await ev.action.showAlert();
+      return;
+    }
+
     // Toggle: if currently playing, cancel; otherwise start playback
     if (effectService.isPlaying(settings.selectedDeviceId)) {
       effectService.cancel(settings.selectedDeviceId);
@@ -98,6 +106,26 @@ export class CustomEffectAction extends SingletonAction<CustomEffectSettings> {
     }
   }
 
+  /** False only when the saved light is known to lack segment control. */
+  private async canPlayOn(selectedDeviceId: string): Promise<boolean> {
+    try {
+      const apiKey = await this.services.getApiKey({});
+      if (!apiKey) return true;
+      await this.services.ensureServices(apiKey);
+      const target = await this.services.resolveTarget({ selectedDeviceId });
+      if (target?.type !== "light" || !target.light) return true;
+      if (target.light.supportsSegmentedColor()) return true;
+      streamDeck.logger.warn(
+        "Custom effect needs a light with segment control",
+        { light: target.light.name },
+      );
+      return false;
+    } catch {
+      // Unknown: let playback try and report its own failure.
+      return true;
+    }
+  }
+
   override async onSendToPlugin(
     ev: SendToPluginEvent<JsonValue, CustomEffectSettings>,
   ): Promise<void> {
@@ -107,6 +135,7 @@ export class CustomEffectAction extends SingletonAction<CustomEffectSettings> {
       case "getDevices":
         await this.services.handleGetDevices(ev.action.id, {
           groups: "disabled",
+          requires: "segmentedColor",
         });
         break;
       // Groups can't play effects, but they are shared by every action
