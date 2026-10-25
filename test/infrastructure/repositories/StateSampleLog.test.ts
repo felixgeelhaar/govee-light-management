@@ -31,9 +31,10 @@ describe("StateSampleLog", () => {
     expect(emit).toHaveBeenCalledWith({
       windowMinutes: 10,
       total: 3,
+      lan: 0,
       lights: [
-        { light: "dev-1|H6056", name: "Desk", count: 2 },
-        { light: "dev-2|H61B5", name: "Backlight", count: 1 },
+        { light: "dev-1|H6056", name: "Desk", count: 2, lan: 0 },
+        { light: "dev-2|H61B5", name: "Backlight", count: 1, lan: 0 },
       ],
     });
     advance(600_000);
@@ -41,7 +42,8 @@ describe("StateSampleLog", () => {
     expect(emit).toHaveBeenLastCalledWith({
       windowMinutes: 10,
       total: 1,
-      lights: [{ light: "dev-1|H6056", name: "Desk", count: 1 }],
+      lan: 0,
+      lights: [{ light: "dev-1|H6056", name: "Desk", count: 1, lan: 0 }],
     });
   });
 
@@ -53,6 +55,21 @@ describe("StateSampleLog", () => {
     expect(emit.mock.calls[0][0]).toMatchObject({
       windowMinutes: 45,
       total: 1,
+    });
+  });
+
+  it("counts local network reads apart from cloud queries", () => {
+    const { log, emit, advance } = setup();
+    log.record(desk, "lan");
+    log.record(desk, "lan");
+    log.record(desk);
+    advance(600_000);
+    log.record(desk);
+    expect(emit).toHaveBeenCalledWith({
+      windowMinutes: 10,
+      total: 1,
+      lan: 2,
+      lights: [{ light: "dev-1|H6056", name: "Desk", count: 1, lan: 2 }],
     });
   });
 });

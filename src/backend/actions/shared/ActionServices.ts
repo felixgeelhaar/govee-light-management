@@ -29,6 +29,7 @@ import {
 } from "../../connectivity";
 import { globalSettingsService } from "../../services/GlobalSettingsService";
 import { lanDiscovery } from "../../services/LanDiscovery";
+import { LanAwareLightRepository } from "../../infrastructure/repositories/LanAwareLightRepository";
 import { StreamDeckLightGroupRepository } from "../../infrastructure/repositories/StreamDeckLightGroupRepository";
 import { LightGroupService } from "../../domain/services/LightGroupService";
 import { SegmentColor } from "../../domain/value-objects/SegmentColor";
@@ -518,7 +519,9 @@ export class ActionServices {
           streamDeck.logger?.warn("Failed to persist API key globally", error);
         }
 
-        s.lightRepository = new GoveeLightRepository(apiKey, true);
+        // State reads go over the local network for lights that answer
+        // there (docs/design/lan-control.md); everything else is cloud.
+        s.lightRepository = new LanAwareLightRepository(apiKey, lanDiscovery);
         s.lightControlService = new LightControlService(s.lightRepository);
         s.groupService = new LightGroupService(
           s.groupRepository,

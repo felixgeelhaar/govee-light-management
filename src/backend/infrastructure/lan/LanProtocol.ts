@@ -21,7 +21,27 @@ export interface LanScanReply {
   sku: string;
 }
 
-export type LanMessage = { cmd: "scan"; data: LanScanReply };
+export const STATUS_MESSAGE = JSON.stringify({
+  msg: { cmd: "devStatus", data: {} },
+});
+
+/** A light's reply to `devStatus`; it names no device, only its address. */
+export interface LanStatusReply {
+  /** 1 on, 0 off. */
+  onOff: number;
+  /** 0–100. */
+  brightness: number;
+  color: { r: number; g: number; b: number };
+  /** 0 while the light is in colour mode. */
+  colorTemInKelvin: number;
+}
+
+export type LanMessage =
+  | { cmd: "scan"; data: LanScanReply }
+  | { cmd: "devStatus"; data: LanStatusReply };
+
+const isNumber = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value);
 
 /** A recognised message from a light, or null for anything else. */
 export function parseLanMessage(raw: string): LanMessage | null {
@@ -39,6 +59,25 @@ export function parseLanMessage(raw: string): LanMessage | null {
       return {
         cmd: "scan",
         data: { ip: data.ip, device: data.device, sku: data.sku },
+      };
+    const color = data?.color as Record<string, unknown> | undefined;
+    if (
+      msg?.cmd === "devStatus" &&
+      isNumber(data?.onOff) &&
+      isNumber(data.brightness) &&
+      isNumber(data.colorTemInKelvin) &&
+      isNumber(color?.r) &&
+      isNumber(color.g) &&
+      isNumber(color.b)
+    )
+      return {
+        cmd: "devStatus",
+        data: {
+          onOff: data.onOff,
+          brightness: data.brightness,
+          color: { r: color.r, g: color.g, b: color.b },
+          colorTemInKelvin: data.colorTemInKelvin,
+        },
       };
   } catch {
     // Not JSON: another sender on the multicast group.

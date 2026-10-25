@@ -267,7 +267,12 @@ Phase 1 exists: `infrastructure/lan/` (`LanProtocol`, `LanSocket` — the only
 UDP code — and `LanDeviceRegistry`) and `services/LanDiscovery`, which scans
 at startup and every 10 minutes and reports `connectionFor(deviceId)` to the
 metadata panel. Any failure (port 4002 in use, local network blocked) leaves
-everything on the cloud. No command uses LAN yet.
+everything on the cloud. Phase 2 exists: `ActionServices` builds a
+`LanAwareLightRepository` (a `GoveeLightRepository` subclass) whose
+`getLightState` asks the light directly (`devStatus`, matched by address,
+800 ms timeout) and falls back to the cloud. `light.state.samples` counts
+cloud queries (`count`) and LAN reads (`lan`) separately. No command uses
+LAN yet.
 
 ### `DeviceService` (`src/backend/application/services/DeviceService.ts`)
 
