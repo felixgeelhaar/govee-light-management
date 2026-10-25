@@ -1,6 +1,6 @@
 # LAN control: design plan
 
-Status: proposal, 2026-10-25. Not implemented.
+Status: accepted, 2026-10-25. Phase 1 in progress.
 
 ## Goal
 
@@ -121,12 +121,14 @@ Each phase can ship on its own.
   Local Network permission denied; another process holding `4002`; Wi-Fi
   off while the cloud is reachable, and the reverse.
 
-## Open questions
+## Decisions
 
-1. On by default (recommended), or only after the user opts in? Opting in
-   would mean a new setting.
-2. Is the macOS Local Network prompt acceptable on first use? It appears
-   once per install.
+1. **LAN is on by default, with no setting.** The plugin uses LAN when a
+   light answers and the cloud otherwise.
+2. **The macOS Local Network prompt is accepted.** The website documents
+   how to grant access again after denying it (System Settings → Privacy &
+   Security → Local Network → Stream Deck), along with the Windows firewall
+   equivalent and turning on LAN Control in the Govee app.
 
 ## Sources
 
