@@ -6,6 +6,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const setupWrapper = document.getElementById("setup");
   const settingsWrapper = document.getElementById("settings");
   const connectElem = document.getElementById("connect");
+  // Keep a reference to the latest global settings so we can merge, not replace.
+  let cachedGlobalSettings = {};
+
   const apiKeyElem = document.getElementById("apiKey");
   const failedElem = document.getElementById("errorMessage");
   const API_KEY_PATTERN = /^[A-Za-z0-9-]{20,64}$/;
@@ -258,6 +261,7 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     bindCopyButtons(debugValue);
+    bindLanToggle(debugValue);
   }
 
   const LAN_HELP_URL =
@@ -273,20 +277,49 @@ document.addEventListener("DOMContentLoaded", () => {
     ],
     "port-in-use": [
       "Cloud · LAN port in use",
-      "Another app on this computer is using Govee's LAN port.",
+      "Another app on this computer is using Govee's LAN port. The plugin tries again every minute.",
     ],
+    disabled: ["Cloud · local network control is off"],
   };
 
   /** How the plugin reaches the light: local network or Govee cloud. */
   function renderConnection(connection) {
     if (!connection) return "";
     if (connection.type === "lan")
-      return `<div class="metadata-section">${renderMetaRow("Connection", `LAN · ${connection.ip}`)}</div>`;
+      return `<div class="metadata-section">${renderMetaRow("Connection", `LAN · ${connection.ip}`)}${renderLanToggle()}</div>`;
     const [text, hint] = CONNECTION_TEXT[connection.reason] || ["Cloud"];
     const help = hint
       ? `<div class="metadata-empty">${escapeHtml(hint)} <a href="${LAN_HELP_URL}" data-open-url>How</a></div>`
       : "";
-    return `<div class="metadata-section">${renderMetaRow("Connection", text)}${help}</div>`;
+    return `<div class="metadata-section">${renderMetaRow("Connection", text)}${help}${renderLanToggle()}</div>`;
+  }
+
+  /** The plugin-wide switch for talking to lights over the local network. */
+  function renderLanToggle() {
+    const checked = cachedGlobalSettings.localNetworkControl !== false;
+    return `<label class="metadata-toggle" title="Turn off to free Govee's LAN port for another Govee app on this computer. Lights then use the Govee cloud.">
+      <input type="checkbox" data-lan-toggle ${checked ? "checked" : ""} />
+      Use local network control
+    </label>`;
+  }
+
+  function bindLanToggle(container) {
+    const toggle = container.querySelector("[data-lan-toggle]");
+    if (!toggle) return;
+    toggle.addEventListener("change", () => {
+      const client = SDPIComponents.streamDeckClient;
+      cachedGlobalSettings = {
+        ...cachedGlobalSettings,
+        localNetworkControl: toggle.checked,
+      };
+      client.setGlobalSettings(cachedGlobalSettings);
+      // Turning it on waits for a scan (about 2 s) before the panel can
+      // say whether this light answered.
+      setTimeout(
+        () => requestSelectedDeviceDebug(client, true),
+        toggle.checked ? 2500 : 300,
+      );
+    });
   }
 
   function renderMetaRow(label, value, options = {}) {
@@ -471,9 +504,6 @@ document.addEventListener("DOMContentLoaded", () => {
       once: true,
     });
   }
-
-  // Keep a reference to the latest global settings so we can merge, not replace.
-  let cachedGlobalSettings = {};
 
   // ── API Key Validation ──
   connectElem.addEventListener("click", async () => {

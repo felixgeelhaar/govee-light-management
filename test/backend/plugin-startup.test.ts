@@ -18,7 +18,8 @@ vi.mock("../../src/backend/services/SchedulerService", () => ({
   schedulerService: scheduler,
 }));
 const lan = vi.hoisted(() => ({
-  start: vi.fn().mockResolvedValue(undefined),
+  useSetting: vi.fn(),
+  configure: vi.fn().mockResolvedValue(undefined),
   shutdown: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("../../src/backend/services/LanDiscovery", () => ({
@@ -42,12 +43,23 @@ it("uses SDK 3 settings behavior before connecting and retains startup initializ
     expect(streamDeck.settings.useLegacySettingsBehavior).toBe(false);
   });
   Object.assign(streamDeck, { connect });
+  Object.assign(streamDeck.settings, {
+    onDidReceiveGlobalSettings: vi.fn(),
+  });
   await import("../../src/backend/plugin");
   await vi.waitFor(() => expect(controller.initialize).toHaveBeenCalledOnce());
   expect(connect).toHaveBeenCalledOnce();
   expect(controller.attach).toHaveBeenCalledOnce();
   expect(scheduler.initialize).toHaveBeenCalledOnce();
-  expect(lan.start).toHaveBeenCalledOnce();
+  expect(lan.useSetting).toHaveBeenCalledOnce();
+  const [saved] = lan.useSetting.mock.calls[0];
+  await expect(saved).resolves.toBe(true);
+  const [onGlobal] = vi.mocked(streamDeck.settings.onDidReceiveGlobalSettings)
+    .mock.calls[0];
+  onGlobal({ settings: { localNetworkControl: false } } as never);
+  expect(lan.configure).toHaveBeenLastCalledWith(false);
+  onGlobal({ settings: { apiKey: "k" } } as never);
+  expect(lan.configure).toHaveBeenLastCalledWith(true);
   expect(streamDeck.actions.registerAction).toHaveBeenCalledTimes(14);
   expect(streamDeck.settings.setGlobalSettings).not.toHaveBeenCalled();
   // Importing plugin.ts loads every action and service: ~4.5 s alone, past
