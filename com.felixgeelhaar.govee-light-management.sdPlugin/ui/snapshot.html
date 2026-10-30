@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="./css/main.css" />
     <script src="./js/sdpi-components.js"></script>
     <script src="./js/setup.js"></script>
+    <script src="./js/device-switch.js"></script>
   </head>
   <body>
     <div id="settings" class="hidden">
@@ -133,15 +134,17 @@
         async function syncForCurrentDevice() {
           const selectedDeviceId = getSelectedDeviceId();
           if (!selectedDeviceId) {
+            if (GoveeDeviceSwitch.isSwitch(lastDeviceId, "")) clearSnapshotSelection();
             lastDeviceId = "";
-            clearSnapshotSelection();
             return;
           }
 
-          if (selectedDeviceId !== lastDeviceId) {
-            lastDeviceId = selectedDeviceId;
-            await persistDeviceSelection(selectedDeviceId);
-          }
+          const switched = GoveeDeviceSwitch.isSwitch(
+            lastDeviceId,
+            selectedDeviceId,
+          );
+          lastDeviceId = selectedDeviceId;
+          if (switched) await persistDeviceSelection(selectedDeviceId);
 
           queueRefresh();
         }
@@ -162,14 +165,15 @@
                 : "";
 
             if (!selectedDeviceId) {
+              if (GoveeDeviceSwitch.isSwitch(lastDeviceId, "")) clearSnapshotSelection();
               lastDeviceId = "";
-              clearSnapshotSelection();
               return;
             }
 
             if (selectedDeviceId !== lastDeviceId) {
+              if (GoveeDeviceSwitch.isSwitch(lastDeviceId, selectedDeviceId))
+                clearSnapshotSelection();
               lastDeviceId = selectedDeviceId;
-              clearSnapshotSelection();
               queueRefresh();
             }
           });

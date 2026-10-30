@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="./css/main.css" />
     <script src="./js/sdpi-components.js"></script>
     <script src="./js/setup.js"></script>
+    <script src="./js/device-switch.js"></script>
   </head>
   <body>
     <div id="settings" class="hidden">
@@ -116,12 +117,12 @@
         async function syncForCurrentDevice() {
           const selectedDeviceId = getSelectedDeviceId();
           if (!selectedDeviceId) {
+            if (GoveeDeviceSwitch.isSwitch(lastDeviceId, "")) clearRecallSelection();
             lastDeviceId = "";
-            clearRecallSelection();
             return;
           }
 
-          if (selectedDeviceId !== lastDeviceId) {
+          if (GoveeDeviceSwitch.isSwitch(lastDeviceId, selectedDeviceId)) {
             lastDeviceId = selectedDeviceId;
             currentSettings = {
               ...currentSettings,
@@ -157,14 +158,15 @@
                 : "";
 
             if (!selectedDeviceId) {
+              if (GoveeDeviceSwitch.isSwitch(lastDeviceId, "")) clearRecallSelection();
               lastDeviceId = "";
-              clearRecallSelection();
               return;
             }
 
             if (selectedDeviceId !== lastDeviceId) {
+              if (GoveeDeviceSwitch.isSwitch(lastDeviceId, selectedDeviceId))
+                clearRecallSelection();
               lastDeviceId = selectedDeviceId;
-              clearRecallSelection();
               queueRefresh();
             }
           });
