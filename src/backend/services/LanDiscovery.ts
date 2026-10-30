@@ -18,6 +18,7 @@ type Registry = Pick<
   | "start"
   | "scan"
   | "stop"
+  | "disable"
   | "get"
   | "status"
   | "requestStatus"
@@ -37,6 +38,9 @@ export class LanDiscovery {
   private timer?: NodeJS.Timeout;
   private lastScan = 0;
   private started = false;
+  /** The saved "local network control" value; unset until first applied. */
+  private setting?: boolean;
+  private settingLoaded?: Promise<void>;
   private resolveReady!: () => void;
   private readonly firstScan = new Promise<void>(
     (resolve) => (this.resolveReady = resolve),
@@ -44,8 +48,31 @@ export class LanDiscovery {
 
   constructor(private readonly registry: Registry) {}
 
+  /**
+   * Follows the global "local network control" setting. Startup power rules
+   * wait in `ready()` for it, so a saved "off" is honoured before the first
+   * scan and a saved "on" doesn't lose the startup scan.
+   */
+  useSetting(read: Promise<boolean>): void {
+    this.settingLoaded = read
+      .catch(() => true)
+      .then((enabled) => this.configure(enabled));
+  }
+
+  /** Turns local network control on or off; a repeated value does nothing. */
+  async configure(enabled: boolean): Promise<void> {
+    if (this.setting === enabled) return;
+    this.setting = enabled;
+    if (enabled) return this.start();
+    clearInterval(this.timer);
+    this.timer = undefined;
+    this.registry.disable();
+    this.resolveReady();
+  }
+
   async start(): Promise<void> {
     this.started = true;
+    this.setting = true;
     try {
       if (!(await this.registry.start())) return;
       await this.scan();
@@ -68,21 +95,25 @@ export class LanDiscovery {
    * shows up without waiting for the next periodic scan.
    */
   async connectionFor(deviceId: string): Promise<LightConnection> {
-    const status = this.registry.status;
-    if (!status.available) return { type: "cloud", reason: status.reason };
+    if (!this.registry.status.available && this.setting === false)
+      return { type: "cloud", reason: "disabled" };
     let device = this.registry.get(deviceId);
     if (!device && Date.now() - this.lastScan > RESCAN_GAP_MS) {
       await this.scan();
       device = this.registry.get(deviceId);
     }
-    return device
-      ? { type: "lan", ip: device.ip }
-      : { type: "cloud", reason: "not-found" };
+    if (device) return { type: "lan", ip: device.ip };
+    const status = this.registry.status;
+    return {
+      type: "cloud",
+      reason: status.available ? "not-found" : status.reason,
+    };
   }
 
   /** Settles once the first scan finished, or LAN couldn't start. */
-  ready(): Promise<void> {
-    return this.started ? this.firstScan : Promise.resolve();
+  async ready(): Promise<void> {
+    await this.settingLoaded;
+    if (this.started) await this.firstScan;
   }
 
   /** Whether this light answered the LAN scan with this model. */

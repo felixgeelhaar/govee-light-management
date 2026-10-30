@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   LAN_CONTROL_PORT,
   LAN_MULTICAST_ADDRESS,
@@ -14,8 +14,11 @@ class FakeSocket implements LanSocketPort {
   openError?: NodeJS.ErrnoException;
   sendError?: NodeJS.ErrnoException;
   closed = false;
+  opens = 0;
   async open(onMessage: (message: string, from: string) => void) {
     if (this.openError) throw this.openError;
+    this.opens++;
+    this.closed = false;
     this.handler = onMessage;
   }
   async send(message: string, host: string, port: number) {
@@ -45,6 +48,8 @@ function setup(socket = new FakeSocket()) {
   const registry = new LanDeviceRegistry(socket, {
     replyWindowMs: 50,
     maxAgeMs: 60_000,
+    idleMs: 30_000,
+    portRetryMs: 60_000,
     now: () => time,
     logger: log,
   });
@@ -169,5 +174,87 @@ describe("LanDeviceRegistry after a network outage", () => {
     await registry.start();
     await registry.scan();
     expect(socket.sent).toEqual([]);
+  });
+});
+
+describe("LanDeviceRegistry releases the LAN port when idle", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  async function scanned() {
+    const ctx = setup();
+    await ctx.registry.start();
+    const scan = ctx.registry.scan();
+    ctx.socket.reply(desk);
+    await vi.advanceTimersByTimeAsync(100);
+    await scan;
+    return ctx;
+  }
+
+  it("closes the socket after the idle period but remembers the lights", async () => {
+    const { socket, registry } = await scanned();
+    await vi.advanceTimersByTimeAsync(29_000);
+    expect(socket.closed).toBe(false);
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(socket.closed).toBe(true);
+    expect(registry.get(desk.device)).toMatchObject({ ip: desk.ip });
+  });
+
+  it("reopens the socket when a command or status read needs it", async () => {
+    const { socket, registry } = await scanned();
+    await vi.advanceTimersByTimeAsync(31_000);
+    expect(await registry.sendCommands(desk.device, ["{}"])).toBe(true);
+    expect(socket.opens).toBe(2);
+    expect(socket.closed).toBe(false);
+  });
+
+  it("stays open while traffic keeps arriving", async () => {
+    const { socket, registry } = await scanned();
+    for (let i = 0; i < 4; i++) {
+      await vi.advanceTimersByTimeAsync(20_000);
+      await registry.sendCommands(desk.device, ["{}"]);
+    }
+    expect(socket.closed).toBe(false);
+    expect(socket.opens).toBe(1);
+  });
+
+  it("does not close under a status request that is waiting for its reply", async () => {
+    const { socket, registry } = await scanned();
+    await vi.advanceTimersByTimeAsync(29_000);
+    const reading = registry.requestStatus(desk.device, 5_000);
+    await vi.advanceTimersByTimeAsync(4_000);
+    expect(socket.closed).toBe(false);
+    await vi.advanceTimersByTimeAsync(2_000);
+    await reading;
+  });
+
+  it("tries a taken port again after the retry gap, not before", async () => {
+    const socket = new FakeSocket();
+    socket.openError = errno("EADDRINUSE");
+    const { registry, advance } = setup(socket);
+    expect(await registry.start()).toBe(false);
+    socket.openError = undefined;
+    advance(30_000);
+    expect(await registry.sendCommands(desk.device, ["{}"])).toBe(false);
+    expect(socket.opens).toBe(0);
+    advance(31_000);
+    const scan = registry.scan();
+    socket.reply(desk);
+    await vi.advanceTimersByTimeAsync(100);
+    expect((await scan).map((d) => d.ip)).toEqual([desk.ip]);
+    expect(registry.status).toEqual({ available: true });
+  });
+
+  it("stays off after disable until started again, and forgets lights", async () => {
+    const { socket, registry } = await scanned();
+    registry.disable();
+    expect(socket.closed).toBe(true);
+    expect(registry.status).toEqual({ available: false, reason: "disabled" });
+    expect(registry.get(desk.device)).toBeUndefined();
+    expect(await registry.sendCommands(desk.device, ["{}"])).toBe(false);
+    expect(await registry.scan()).toEqual([]);
+    expect(socket.opens).toBe(1);
+    expect(await registry.start()).toBe(true);
+    expect(socket.opens).toBe(2);
   });
 });

@@ -91,8 +91,11 @@ ActionServices
 - **Windows:** the firewall may prompt for Node on first use. If it's
   blocked, the result is the same.
 - **Port conflicts:** another app (Home Assistant, Homebridge or govee2mqtt
-  on the same machine) may already hold UDP `4002`. Then LAN is disabled
-  for the session with one log line, and everything works over the cloud.
+  on the same machine) may already hold UDP `4002`. Then LAN stays off with
+  one log line, everything works over the cloud, and the plugin tries again
+  after a minute. The plugin itself holds the port only while in use (it
+  closes after 30 s idle), and the inspector's "Use local network control"
+  checkbox turns LAN off for good (`localNetworkControl`, issue #387).
 
 ## Phases
 

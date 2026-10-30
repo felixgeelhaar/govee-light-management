@@ -279,8 +279,14 @@ read confirms the newest command per light. No reply or a mismatch logs
 `lan.command.unconfirmed`, resends over the cloud and keeps that light on
 the cloud for 10 minutes. `light.command` logs `transport`. A scan that
 fails with a network error (Wi-Fi reconnecting after wake) is retried on the
-next scan and keeps known lights; only a taken port disables LAN for the
-session. Scans send three
+next scan and keeps known lights. The registry holds UDP 4002 only while it
+is in use: the socket closes after 30 s without traffic and reopens on demand,
+so another Govee app on the machine can use the port in between (all replies,
+including `devStatus`, go to 4002; verified on hardware 2026-10-29, so it
+cannot be shared or avoided). A taken port is retried after 60 s. The global
+setting `localNetworkControl` (checkbox in the PI's "What this light
+supports" panel, default on) turns LAN off entirely: `LanDiscovery.configure`
+closes the socket, forgets the lights and reports reason `disabled`. Scans send three
 packets per window because one packet missed a light on hardware. Scenes,
 segments, music modes, snapshots and toggles are cloud-only (no documented
 LAN command). When cloud discovery returns nothing (no internet),

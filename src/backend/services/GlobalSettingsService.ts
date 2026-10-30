@@ -10,6 +10,8 @@ export interface GlobalPluginSettings {
   recentColors?: Array<{ hex: string; name: string }>;
   scheduledActions?: unknown[];
   powerLifecycleRules?: PowerLifecycleRule[];
+  /** Local network (LAN) control; on unless explicitly set to false. */
+  localNetworkControl?: boolean;
   [key: string]: unknown;
 }
 
@@ -116,6 +118,13 @@ export class GlobalSettingsService {
     this.cache = null;
     this.lastFetched = 0;
   }
+}
+
+/** Whether saved settings allow talking to lights over the local network. */
+export function isLocalNetworkControlEnabled(
+  settings: GlobalPluginSettings | undefined,
+): boolean {
+  return settings?.localNetworkControl !== false;
 }
 
 export const globalSettingsService = GlobalSettingsService.getInstance();

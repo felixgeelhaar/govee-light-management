@@ -17,6 +17,11 @@ import { CustomEffectAction } from "./actions/CustomEffectAction";
 import { RecallAction } from "./actions/RecallAction";
 import { schedulerService } from "./services/SchedulerService";
 import { lanDiscovery } from "./services/LanDiscovery";
+import {
+  globalSettingsService,
+  isLocalNetworkControlEnabled,
+  type GlobalPluginSettings,
+} from "./services/GlobalSettingsService";
 import { createShutdownRunner } from "./services/lifecycle";
 
 streamDeck.logger.setLevel("info");
@@ -52,10 +57,20 @@ void schedulerService.initialize().catch((error) => {
   streamDeck.logger.error("Failed to initialize scheduler:", error);
 });
 
-// Finds lights on the local network (docs/design/lan-control.md, phase 1).
-// Any failure leaves every light on the cloud.
-void lanDiscovery.start().catch((error) => {
-  streamDeck.logger.warn("LAN discovery failed to start:", error);
+// Finds lights on the local network (docs/design/lan-control.md, phase 1)
+// unless the user turned local network control off. Any failure leaves every
+// light on the cloud.
+lanDiscovery.useSetting(
+  globalSettingsService.getSettings().then(isLocalNetworkControlEnabled),
+);
+streamDeck.settings.onDidReceiveGlobalSettings((event) => {
+  void lanDiscovery
+    .configure(
+      isLocalNetworkControlEnabled(event.settings as GlobalPluginSettings),
+    )
+    .catch((error) => {
+      streamDeck.logger.warn("LAN discovery failed to reconfigure:", error);
+    });
 });
 
 // Stream Deck stops a plugin by signalling its process. Without this the

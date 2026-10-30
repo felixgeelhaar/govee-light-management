@@ -15,6 +15,7 @@ function fakeRegistry(started = true) {
     start: vi.fn(async () => started),
     scan: vi.fn(async () => []),
     stop: vi.fn(),
+    disable: vi.fn(),
     requestStatus: vi.fn(async () => null),
     sendCommands: vi.fn(async () => false),
     get: (id: string) => known.get(id.toUpperCase()),
@@ -105,5 +106,88 @@ describe("LanDiscovery.ready", () => {
     expect(scanned).toBe(true);
     await starting;
     await discovery.shutdown();
+  });
+});
+
+describe("LanDiscovery.configure (local network control setting)", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("starts scanning when turned on", async () => {
+    const registry = fakeRegistry();
+    const discovery = new LanDiscovery(registry);
+    await discovery.configure(true);
+    expect(registry.start).toHaveBeenCalledTimes(1);
+    expect(registry.scan).toHaveBeenCalledTimes(1);
+    await discovery.shutdown();
+  });
+
+  it("turning it off releases the port, stops scanning and reports the reason", async () => {
+    const registry = fakeRegistry();
+    const discovery = new LanDiscovery(registry);
+    await discovery.configure(true);
+    await discovery.configure(false);
+    expect(registry.disable).toHaveBeenCalledTimes(1);
+    registry.setStatus({ available: false, reason: "disabled" });
+    await vi.advanceTimersByTimeAsync(10 * 60_000);
+    expect(registry.scan).toHaveBeenCalledTimes(1);
+    expect(await discovery.connectionFor("AA")).toEqual({
+      type: "cloud",
+      reason: "disabled",
+    });
+    expect(registry.scan).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a repeated value, so unrelated settings changes don't rescan", async () => {
+    const registry = fakeRegistry();
+    const discovery = new LanDiscovery(registry);
+    await discovery.configure(true);
+    await discovery.configure(true);
+    expect(registry.start).toHaveBeenCalledTimes(1);
+    await discovery.shutdown();
+  });
+
+  it("can be turned back on after being off", async () => {
+    const registry = fakeRegistry();
+    const discovery = new LanDiscovery(registry);
+    await discovery.configure(false);
+    expect(registry.start).not.toHaveBeenCalled();
+    await discovery.configure(true);
+    expect(registry.start).toHaveBeenCalledTimes(1);
+    expect(registry.scan).toHaveBeenCalledTimes(1);
+    await discovery.shutdown();
+  });
+
+  it("makes ready() wait for the saved setting, then for the first scan", async () => {
+    const registry = fakeRegistry();
+    const discovery = new LanDiscovery(registry);
+    let load!: (enabled: boolean) => void;
+    discovery.useSetting(new Promise<boolean>((resolve) => (load = resolve)));
+    let settled = false;
+    void discovery.ready().then(() => (settled = true));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(settled).toBe(false);
+    load(true);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(settled).toBe(true);
+    expect(registry.scan).toHaveBeenCalledTimes(1);
+    await discovery.shutdown();
+  });
+
+  it("falls back to LAN on when the setting can't be read", async () => {
+    const registry = fakeRegistry();
+    const discovery = new LanDiscovery(registry);
+    discovery.useSetting(Promise.reject(new Error("no settings")));
+    await discovery.ready();
+    expect(registry.start).toHaveBeenCalledTimes(1);
+    await discovery.shutdown();
+  });
+
+  it("retries a taken port on the next lookup instead of staying off for good", async () => {
+    const registry = fakeRegistry(false);
+    const discovery = new LanDiscovery(registry);
+    await discovery.start();
+    await discovery.connectionFor("AA");
+    expect(registry.scan).toHaveBeenCalledTimes(1);
   });
 });

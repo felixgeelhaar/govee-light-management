@@ -263,6 +263,14 @@ body {
 	word-break: break-word;
 }
 
+.metadata-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  cursor: pointer;
+}
+
 .metadata-empty {
 	color: #999;
 }
