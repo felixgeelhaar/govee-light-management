@@ -58,6 +58,34 @@ jobs:
       - name: Run build
         run: npm run build
 
+  # Forward-compatibility signal, not a gate. Node 20 is end-of-life
+  # (2026-04-30) but the manifest cannot select 24 until Elgato's schema and
+  # validator accept it; Stream Deck already bundles 24. This job shows
+  # whether tests and the bundle survive the move, without blocking merges.
+  test-node-24:
+    name: Test (Node 24, forward-compat)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run build
+        run: npm run build
+
   # Cross-platform testing (only for PRs to main or on main branch)
   test-cross-platform:
     name: Cross-Platform Test (${{ matrix.os }})
