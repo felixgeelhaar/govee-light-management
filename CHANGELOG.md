@@ -4,6 +4,20 @@ All notable changes to this project are documented below. This project adheres t
 
 ## [Unreleased]
 
+## [3.1.2] - 2026-10-30
+
+### Added
+
+- **Use local network control** checkbox in the "What this light supports" panel. Turn it off to keep the plugin off Govee's LAN port so the Govee desktop app on the same computer can use it (#387).
+
+### Changed
+
+- The plugin holds Govee's LAN port only while it is in use. The socket closes after 30 seconds without traffic and reopens on demand, and a taken port is retried after a minute instead of staying off for the session (#387).
+
+### Fixed
+
+- Music Mode, Scene, Snapshot, Recall and Toggle keys no longer lose their saved mode, scene, snapshot, look or feature when you select another key and come back (#388).
+
 ## [3.1.1] - 2026-10-25
 
 ### Changed
