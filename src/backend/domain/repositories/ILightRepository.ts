@@ -1,7 +1,6 @@
 import { Light } from "../entities/Light";
 import { Scene } from "../value-objects/Scene";
 import { SegmentColor } from "../value-objects/SegmentColor";
-import { MusicModeConfig } from "../value-objects/MusicModeConfig";
 import { Brightness } from "../value-objects/Brightness";
 import { ColorRgb } from "../value-objects/ColorRgb";
 import { ColorTemperature } from "../value-objects/ColorTemperature";
@@ -86,11 +85,6 @@ export interface ILightRepository {
    * Set colors for individual segments on RGB IC lights
    */
   setSegmentColors(light: Light, segments: SegmentColor[]): Promise<void>;
-
-  /**
-   * Configure music mode for a light
-   */
-  setMusicMode(light: Light, config: MusicModeConfig): Promise<void>;
 
   /**
    * Toggle nightlight mode
