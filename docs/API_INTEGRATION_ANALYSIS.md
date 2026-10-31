@@ -17,7 +17,7 @@ This document identifies mismatches between our domain layer value objects and t
 |---------|--------------|-------------------|--------|
 | Scene Control | `applyScene(light, scene)` | `setLightScene(deviceId, model, scene)` | ✅ Available |
 | Segment Colors | `setSegmentColors(light, segments)` | `setSegmentColors(deviceId, model, segments)` | ✅ Available |
-| Music Mode | `setMusicMode(light, config)` | `setMusicMode(deviceId, model, musicMode)` | ✅ Available |
+| Music Mode | `setMusicModeRaw(light, musicMode)` | `setMusicMode(deviceId, model, musicMode)` | ✅ Available |
 | Nightlight | `toggleNightlight(light, enabled)` | `setNightlightToggle(deviceId, model, enabled)` | ✅ Available |
 | Gradient | `toggleGradient(light, enabled)` | `setGradientToggle(deviceId, model, enabled)` | ✅ Available |
 
@@ -102,56 +102,13 @@ static toApiLightScene(scene: Scene): LightScene {
 
 ---
 
-### 2. Music Mode: `MusicModeConfig` → `MusicMode`
+### 2. Music Mode: `MusicModeOption` → `MusicMode`
 
-**Domain Type (`MusicModeConfig`):**
-```typescript
-class MusicModeConfig {
-  readonly sensitivity: number;  // 0-100
-  readonly mode: 'rhythm' | 'energic' | 'spectrum' | 'rolling';
-  readonly autoColor: boolean;
-
-  static create(sensitivity: number, mode: MusicModeType, autoColor: boolean): MusicModeConfig;
-}
-```
-
-**API Client Type (`MusicMode`):**
-```typescript
-class MusicMode {
-  readonly modeId: number;
-  readonly sensitivity?: number; // 0-100 (optional)
-
-  constructor(modeId: number, sensitivity?: number);
-}
-```
-
-**Mismatches:**
-- Domain uses string enum `'rhythm' | 'energic' | 'spectrum' | 'rolling'`
-- API uses numeric `modeId`
-- Domain has `autoColor` boolean, API has equivalent (0/1)
-- API sensitivity is optional, domain always has it
-
-**✅ Implemented Mapping (`MusicModeMapper.ts`):**
-```typescript
-private static readonly MODE_ID_MAP: Record<MusicModeType, number> = {
-  rhythm: 3,      // ✅ Official Govee API mode ID
-  energic: 5,     // ✅ Official Govee API mode ID (fixed typo from 'energetic')
-  spectrum: 4,    // ✅ Official Govee API mode ID
-  rolling: 6,     // ✅ Official Govee API mode ID
-};
-
-static toApiMusicMode(config: MusicModeConfig): MusicMode {
-  const modeId = this.MODE_ID_MAP[config.mode];
-  if (modeId === undefined) {
-    throw new Error(`Unknown music mode: ${config.mode}`);
-  }
-  return new MusicMode(modeId, config.sensitivity);
-}
-
-static toApiAutoColor(autoColor: boolean): number {
-  return autoColor ? 1 : 0;  // ✅ Convert boolean to API format
-}
-```
+Music mode ids are not fixed across models: Spectrum and Rolling are 4 and 6 on
+most lights but swapped on others (H605C versus H6601 and H7055). The plugin
+therefore never maps a mode name to an id. `getMusicModes` reads the options a
+device reports (`parseMusicModeOptions`), and `setMusicModeRaw` sends the chosen
+option's `modeId` and sensitivity as `new MusicMode(modeId, sensitivity)`.
 
 **Documentation Gap:**
 - ✅ **RESOLVED**: Official mode IDs from Govee Developer API documentation
@@ -242,7 +199,6 @@ setGradientToggle(deviceId: string, model: string, enabled: boolean): Promise<vo
 
 ### Phase 1: Create Mapping Utilities ✅ COMPLETED
 - [x] Create `src/backend/infrastructure/mappers/SceneMapper.ts` (21 tests)
-- [x] Create `src/backend/infrastructure/mappers/MusicModeMapper.ts` (23 tests)
 - [x] Create `src/backend/infrastructure/mappers/SegmentColorMapper.ts` (12 tests)
 - [x] Add tests for all mappers (56 total tests, all passing)
 - [x] Implement placeholder classes for LightScene, MusicMode, ApiSegmentColor
@@ -253,7 +209,7 @@ setGradientToggle(deviceId: string, model: string, enabled: boolean): Promise<vo
 - [x] Replaced placeholder classes with real imports from `@felixgeelhaar/govee-api-client`
 - [x] Implemented `applyScene()` with scene validation and mapper integration
 - [x] Implemented `setSegmentColors()` with empty array validation and mapper
-- [x] Implemented `setMusicMode()` with mode ID mapping via `MusicModeMapper`
+- [x] Implemented `setMusicModeRaw()`, sending the mode id the device reports (mode ids differ between models)
 - [x] Implemented `toggleNightlight()` using `client.setNightlightToggle()`
 - [x] Implemented `toggleGradient()` using `client.setGradientToggle()`
 - [x] All methods rely on govee-api-client's circuit breaker and retry for resilience
@@ -263,7 +219,6 @@ setGradientToggle(deviceId: string, model: string, enabled: boolean): Promise<vo
 - [x] Document that `movie` and `reading` scenes are not API-supported
 - [x] SceneMapper throws helpful errors for unsupported scenes with alternatives
 - [x] Document that `autoColor` IS supported via separate parameter (0/1 format)
-- [x] MusicModeMapper provides `toApiAutoColor()` helper for boolean → 0/1 conversion
 - [x] SceneMapper provides `isSupported()` and `getSupportedSceneCodes()` validation
 
 ### Phase 4: Testing ✅ COMPLETED
@@ -334,7 +289,7 @@ rolling  → modeId: 6  ✅
    - Source: developer.govee.com/reference/control-you-devices
 
 2. ✅ **COMPLETED**: Implement mapping layer with best-effort mappings
-   - SceneMapper, MusicModeMapper, SegmentColorMapper fully implemented (56 tests)
+   - SceneMapper and SegmentColorMapper implemented
    - All mappers using placeholder classes matching expected v3.1.0+ API structure
 
 3. ✅ **COMPLETED**: Filter unsupported features from user-facing APIs
