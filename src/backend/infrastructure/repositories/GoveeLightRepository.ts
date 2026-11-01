@@ -21,8 +21,6 @@ import { ColorRgb } from "../../domain/value-objects/ColorRgb";
 import { ColorTemperature } from "../../domain/value-objects/ColorTemperature";
 import { SceneMapper } from "../mappers/SceneMapper";
 import { LightValueMapper } from "../mappers/LightValueMapper";
-import { MusicModeMapper } from "../mappers/MusicModeMapper";
-import { MusicModeConfig } from "../../domain/value-objects/MusicModeConfig";
 import {
   isIgnorableLiveStateError,
   isValidationError,
@@ -659,30 +657,6 @@ export class GoveeLightRepository implements ILightRepository {
         return;
       }
       throw error;
-    }
-  }
-
-  async setMusicMode(light: Light, config: MusicModeConfig): Promise<void> {
-    try {
-      const apiMode = MusicModeMapper.toApiMusicMode(config);
-      await this.client.setMusicMode(light.deviceId, light.model, apiMode);
-      light.updateState({ isOn: true });
-    } catch (error) {
-      if (isValidationError(error)) {
-        streamDeck.logger.warn(
-          `Music mode command sent but response validation failed for ${light.name}`,
-        );
-        light.updateState({ isOn: true });
-        return;
-      }
-      streamDeck.logger.error(
-        `Failed to set music mode for ${light.name}:`,
-        error,
-      );
-      throw new Error(
-        `Failed to set music mode: ${error instanceof Error ? error.message : "Unknown error"}`,
-        { cause: error },
-      );
     }
   }
 

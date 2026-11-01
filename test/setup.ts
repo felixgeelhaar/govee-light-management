@@ -121,7 +121,7 @@ vi.mock('@felixgeelhaar/govee-api-client', () => {
     static blinking() { return new MockLightScene(3870, 4297, 'Blinking'); }
   }
 
-  // Mock MusicMode class (matches placeholder in MusicModeMapper.ts)
+  // Mock MusicMode class
   class MockMusicMode {
     constructor(
       public readonly modeId: number,
