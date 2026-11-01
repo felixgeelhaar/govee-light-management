@@ -59,3 +59,5 @@ logs/
 
 # Dev
 com.felixgeelhaar.govee-light-management.dev.sdPlugin/
+# nox scan artifact
+ai.inventory.json
