@@ -42,6 +42,26 @@ describe("native power event adapter", () => {
       expect(process.stdin.writableEnded).toBe(true);
     },
   );
+  it("reports helper readiness, accepted events and exit to the diagnostic log", async () => {
+    const process = child();
+    const log = vi.fn();
+    const source = new NativePowerEvents({
+      platform: "win32",
+      spawn: vi.fn().mockReturnValue(process) as never,
+      log,
+    });
+    const ready = source.start(vi.fn(), vi.fn());
+    process.stdout.write("ready\nsleep\nnot-an-event\nwake\n");
+    await ready;
+    process.emit("exit", 1, null);
+    expect(log.mock.calls.map((call) => call[0])).toEqual([
+      { category: "helper_ready" },
+      { category: "helper_event", event: "sleep" },
+      { category: "helper_ignored" },
+      { category: "helper_event", event: "wake" },
+      { category: "helper_exit", code: 1 },
+    ]);
+  });
   it("does not accept arbitrary helper messages and bounds oversized output", async () => {
     const process = child();
     const spawn = vi.fn().mockReturnValue(process);
