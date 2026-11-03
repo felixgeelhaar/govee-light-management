@@ -29,7 +29,9 @@ function createService(): PowerLifecycleService {
     },
     setPower: (target, power, signal, key) =>
       services.controlLifecyclePower(target, power, signal, key),
-    events: new NativePowerEvents(),
+    events: new NativePowerEvents({
+      log: (record) => streamDeck.logger.info("power.helper", record),
+    }),
     suspension: new SuspensionDetector(),
     log: (record) => streamDeck.logger.info("power.lifecycle", record),
   });

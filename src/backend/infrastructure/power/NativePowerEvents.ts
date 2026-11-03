@@ -28,6 +28,8 @@ export class NativePowerEvents implements PowerEventSource {
       platform?: NodeJS.Platform;
       spawn?: typeof spawn;
       directory?: string;
+      /** Diagnostics only: never receives helper output text. */
+      log?: (record: Record<string, unknown>) => void;
     } = {},
   ) {}
 
@@ -105,19 +107,27 @@ export class NativePowerEvents implements PowerEventSource {
           buffer = buffer.slice(end + 1);
           if (event === "ready" && !ready) {
             ready = true;
+            this.options.log?.({ category: "helper_ready" });
             clearTimeout(startup);
             this.finishStart = undefined;
             resolve();
-          } else if (ready && ["wake", "sleep", "shutdown"].includes(event))
+          } else if (ready && ["wake", "sleep", "shutdown"].includes(event)) {
+            this.options.log?.({ category: "helper_event", event });
             onEvent(event as PowerEvent);
+          } else if (ready) {
+            this.options.log?.({ category: "helper_ignored" });
+          }
         }
       });
       // Drain diagnostics without forwarding potentially sensitive OS/user paths.
       child.stderr?.on("data", () => {});
       child.stdin?.on("error", () => {});
       child.once("error", fail);
-      child.once("exit", () => {
-        if (this.child === child) fail();
+      child.once("exit", (code: number | null) => {
+        if (this.child === child) {
+          this.options.log?.({ category: "helper_exit", code });
+          fail();
+        }
       });
     });
   }
