@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
+import { readFileSync } from "node:fs";
 import { PassThrough } from "node:stream";
 import { NativePowerEvents } from "../../src/backend/infrastructure/power/NativePowerEvents";
 const child = () =>
@@ -42,6 +43,20 @@ describe("native power event adapter", () => {
       expect(process.stdin.writableEnded).toBe(true);
     },
   );
+  it("registers macOS observers with a nil object filter, not NSNull", () => {
+    // JXA bridges `null` to an NSNull instance, so an observer registered with
+    // object `null` only matches notifications posted by NSNull: never sleep.
+    const script = readFileSync(
+      "com.felixgeelhaar.govee-light-management.sdPlugin/power-hooks/macos.js",
+      "utf8",
+    );
+    const registrations = script.match(
+      /addObserverSelectorNameObject\([^;]*?\);/g,
+    );
+    expect(registrations).toHaveLength(4);
+    for (const call of registrations ?? [])
+      expect(call).not.toMatch(/\bnull\b/);
+  });
   it("runs the Windows hook on a pumped STA thread so SystemEvents can fire", async () => {
     // .NET Framework SystemEvents shares an STA caller's thread for its hidden
     // window; if that thread blocks on stdin, Suspend/SessionEnding never arrive.
