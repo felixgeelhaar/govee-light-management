@@ -194,56 +194,6 @@ jobs:
         run: npm audit --audit-level high
         continue-on-error: true # ✅ Don't fail CI on audit warnings
 
-      - name: Install nox (pinned + sha256-verified binary)
-        env:
-          NOX_VERSION: "1.39.2"
-          NOX_SHA256: "3e7db37d160c47503cac661bd3236cb16e0e91891f43e3993da481788b6afcb2"
-        run: |
-          curl -sL -o nox.tar.gz \
-            "https://github.com/nox-hq/nox/releases/download/v${NOX_VERSION}/nox_${NOX_VERSION}_linux_amd64.tar.gz"
-          echo "${NOX_SHA256}  nox.tar.gz" | sha256sum -c -
-          tar xzf nox.tar.gz && sudo mv nox /usr/local/bin/ && nox version
-
-      - name: Run nox security scan
-        run: nox scan . -format json,sarif -output nox-results || true
-
-      - name: Upload nox SARIF to code scanning
-        if: always() && hashFiles('nox-results/results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
-        with:
-          sarif_file: nox-results/results.sarif
-          category: nox
-
-      - name: Gate on critical/high nox findings
-        # Enforcing: fails on any critical/high finding not accepted in
-        # .nox-baseline.json (generated/vendored code and markdown prose are
-        # excluded in .nox.yaml), so this gates real net-new critical/high in
-        # first-party source going forward. To accept a future reviewed
-        # finding: `nox baseline add -fingerprint <fp> -reason "<why>"
-        # -baseline .nox-baseline.json` and commit that file. NOT .nox/, which
-        # is gitignored: a local scan fills it with megabytes of node_modules
-        # findings, and the reviewed suppressions must not share its path.
-        if: always() && hashFiles('nox-results/findings.json') != ''
-        run: |
-          f=nox-results/findings.json
-          new=$(jq '[.findings[]? | select((.Severity=="critical" or .Severity=="high") and (.Status!="baselined"))] | length' "$f" 2>/dev/null || echo 0)
-          echo "unbaselined critical/high: $new"
-          if [ "$new" -gt 0 ]; then
-            echo "::error::Critical/high nox findings not in baseline. Remediate, or 'nox baseline add <fingerprint>' + commit .nox/ if a reviewed false positive."
-            jq '.findings[] | select((.Severity=="critical" or .Severity=="high") and (.Status!="baselined")) | {severity:.Severity, rule:.RuleID, file:.Location.FilePath, line:.Location.StartLine}' "$f"
-            exit 1
-          fi
-
-      - name: Upload nox artifacts
-        # Enables building a CI-derived baseline (nox fingerprints differ
-        # between a fresh CI env and local scans — always baseline from these).
-        if: always() && hashFiles('nox-results/**') != ''
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: nox-results
-          path: nox-results/
-          retention-days: 7
-
       - name: Run CodeQL Analysis
         uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
@@ -282,4 +232,15 @@ jobs:
         run: npx coverctl check --fail-under 80 || true
         continue-on-error: true
 
-  # (Optional) Add nox security scan step here if needed
+  # nox runs from the fleet's shared workflow, so every repository scans with
+  # the same pinned version. It enforces: this repo's reviewed baseline lives at
+  # .nox-baseline.json (policy.baseline_path in .nox.yaml), not .nox/, so the
+  # gate is told to fail on unbaselined critical/high rather than wait for one.
+  nox:
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+    uses: klarlabs-studio/.github/.github/workflows/nox.yml@main
+    with:
+      nox-strict: true
