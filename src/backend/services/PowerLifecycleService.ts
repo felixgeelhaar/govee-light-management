@@ -113,6 +113,12 @@ function delay(ms: number, signal: AbortSignal): Promise<void> {
   });
 }
 
+/** Off must finish before the OS suspends; On may wait for the network to return. */
+const OFF_DEADLINE_MS = 1500;
+const ON_DEADLINE_MS = 60000;
+/** Backoff between On attempts; the last value repeats until the deadline. */
+const ON_RETRY_DELAYS_MS = [2000, 4000, 8000, 15000];
+
 /** Event-driven automation independent of key visibility; disabled by default. */
 export class PowerLifecycleService {
   private rules: PowerLifecycleRule[] = [];
@@ -194,13 +200,11 @@ export class PowerLifecycleService {
       this.tasks.get(id)?.controller.abort("superseded");
       this.recent.set(id, { isOn, at: Date.now() });
       const controller = new AbortController();
+      const deadline = isOn ? ON_DEADLINE_MS : OFF_DEADLINE_MS;
       const task: Task = {
         controller,
-        deadlineAt: Date.now() + (isOn ? 15000 : 1500),
-        timer: setTimeout(
-          () => controller.abort("timeout"),
-          isOn ? 15000 : 1500,
-        ),
+        deadlineAt: Date.now() + deadline,
+        timer: setTimeout(() => controller.abort("timeout"), deadline),
       };
       this.tasks.set(id, task);
       work.push(this.run(rule, event, isOn, task));
@@ -373,7 +377,8 @@ export class PowerLifecycleService {
       });
       return;
     }
-    for (let attempt = 0; attempt < (isOn ? 2 : 1); attempt++) {
+    // Only On retries; the task deadline (or a manual command) ends the loop.
+    for (let attempt = 0; ; attempt++) {
       try {
         const target =
           (!isOn ? this.prepared.get(rule.selectedDeviceId) : undefined) ??
@@ -408,9 +413,11 @@ export class PowerLifecycleService {
         if (signal.aborted) return;
         const kind = category(error);
         this.deps.log({ event, target: rule.selectedDeviceId, category: kind });
-        if (!isOn || attempt === 1 || !["network", "timeout"].includes(kind))
-          return;
-        await delay(3000, signal);
+        if (!isOn || !["network", "timeout"].includes(kind)) return;
+        const backoff =
+          ON_RETRY_DELAYS_MS[Math.min(attempt, ON_RETRY_DELAYS_MS.length - 1)];
+        await delay(Math.min(backoff, task.deadlineAt - Date.now()), signal);
+        this.assertActive(task);
       }
     }
   }

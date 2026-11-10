@@ -58,7 +58,9 @@ describe("native power event adapter", () => {
     expect(args).toContain("-STA");
     const script = args[args.length - 1];
     expect(script).toContain("System.Windows.Forms.Application.Run()");
-    expect(script).not.toMatch(/^\s*while \(Console\.ReadLine\(\) != null\) \{\}\s*$/m);
+    expect(script).not.toMatch(
+      /^\s*while \(Console\.ReadLine\(\) != null\) \{\}\s*$/m,
+    );
     source.stop();
   });
   it("reports helper readiness, accepted events and exit to the diagnostic log", async () => {
