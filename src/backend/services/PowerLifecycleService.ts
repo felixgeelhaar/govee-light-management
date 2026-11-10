@@ -127,6 +127,8 @@ export class PowerLifecycleService {
   private warming = new Map<string, Task & { promise: Promise<void> }>();
   private recent = new Map<string, { isOn: boolean; at: number }>();
   private stopped = false;
+  /** A sleep reported by the OS helper; proves the next wake is a real one. */
+  private sleepReported = false;
   private helperGeneration = 0;
   private hookEnabled = false;
   helperStatus: "disabled" | "starting" | "ready" | "unavailable" = "disabled";
@@ -178,13 +180,18 @@ export class PowerLifecycleService {
   async handle(event: PowerEvent): Promise<void> {
     if (this.stopped) return;
     this.deps.log({ event, category: "event_received" });
-    // The host also reports a display wake as a system wake.
-    if (
-      event === "wake" &&
-      this.deps.suspension?.recentlySuspended() === false
-    ) {
-      this.deps.log({ event, category: "wake_ignored_not_suspended" });
-      return;
+    if (event === "sleep") this.sleepReported = true;
+    if (event === "wake") {
+      // The host also reports a display wake as a system wake. A short sleep
+      // may not leave a clock gap, so a reported sleep also confirms it.
+      const confirmed =
+        this.sleepReported ||
+        this.deps.suspension?.recentlySuspended() !== false;
+      this.sleepReported = false;
+      if (!confirmed) {
+        this.deps.log({ event, category: "wake_ignored_not_suspended" });
+        return;
+      }
     }
     const isOn = event === "startup" || event === "wake";
     // An opposite transition must cancel old requests before issuing new ones.

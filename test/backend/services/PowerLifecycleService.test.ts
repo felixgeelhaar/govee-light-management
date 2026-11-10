@@ -63,6 +63,28 @@ describe("PowerLifecycleService", () => {
     guarded.shutdown();
     expect(suspension.stop).toHaveBeenCalledOnce();
   });
+  it("trusts a wake that follows a reported sleep, even a short one", async () => {
+    // A 10 s sleep is below the clock-gap threshold; the helper's sleep is proof.
+    const { deps } = setup();
+    const suspension = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      recentlySuspended: vi.fn().mockReturnValue(false),
+    };
+    const guarded = new PowerLifecycleService({ ...deps, suspension });
+    guarded.configure([rule()]);
+    await guarded.handle("sleep");
+    await guarded.handle("wake");
+    expect(deps.setPower.mock.calls.map((call) => call[1])).toEqual([
+      false,
+      true,
+    ]);
+    // The sleep is consumed: a later display-only wake is ignored again.
+    await vi.advanceTimersByTimeAsync(5001);
+    await guarded.handle("wake");
+    expect(deps.setPower).toHaveBeenCalledTimes(2);
+    guarded.shutdown();
+  });
   it("defaults to no automation or helper", async () => {
     const { service, deps } = setup();
     service.configure(undefined);
