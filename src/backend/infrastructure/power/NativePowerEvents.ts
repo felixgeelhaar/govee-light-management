@@ -80,6 +80,8 @@ export class NativePowerEvents implements PowerEventSource {
                 "-NoLogo",
                 "-NoProfile",
                 "-NonInteractive",
+                // The hook pumps messages on this thread; pin the apartment.
+                "-STA",
                 "-Command",
                 readFileSync(join(directory, "windows.ps1"), "utf8"),
               ];

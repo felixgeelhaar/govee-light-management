@@ -42,6 +42,25 @@ describe("native power event adapter", () => {
       expect(process.stdin.writableEnded).toBe(true);
     },
   );
+  it("runs the Windows hook on a pumped STA thread so SystemEvents can fire", async () => {
+    // .NET Framework SystemEvents shares an STA caller's thread for its hidden
+    // window; if that thread blocks on stdin, Suspend/SessionEnding never arrive.
+    const process = child();
+    const spawn = vi.fn().mockReturnValue(process);
+    const source = new NativePowerEvents({
+      platform: "win32",
+      spawn: spawn as never,
+    });
+    const ready = source.start(vi.fn(), vi.fn());
+    process.stdout.write("ready\n");
+    await ready;
+    const args: string[] = spawn.mock.calls[0][1];
+    expect(args).toContain("-STA");
+    const script = args[args.length - 1];
+    expect(script).toContain("System.Windows.Forms.Application.Run()");
+    expect(script).not.toMatch(/^\s*while \(Console\.ReadLine\(\) != null\) \{\}\s*$/m);
+    source.stop();
+  });
   it("reports helper readiness, accepted events and exit to the diagnostic log", async () => {
     const process = child();
     const log = vi.fn();

@@ -1,9 +1,10 @@
 # Native Windows session events. Uses the installed Windows PowerShell/.NET runtime.
 # No API key, light identifiers, execution-policy change or elevated service.
 $ErrorActionPreference = 'Stop'
-Add-Type -ReferencedAssemblies System.Management -TypeDefinition @'
+Add-Type -ReferencedAssemblies System.Management, System.Windows.Forms -TypeDefinition @'
 using System;
 using System.Management;
+using System.Threading;
 using Microsoft.Win32;
 public static class GoveePowerObserver {
     private static readonly object Gate = new object();
@@ -45,17 +46,20 @@ public static class GoveePowerObserver {
         } catch (Exception) {
             wmi = null;
         }
+        // On an STA thread SystemEvents puts its hidden window on this thread,
+        // so this thread must pump messages; blocking it drops every event.
         SystemEvents.PowerModeChanged += power;
         SystemEvents.SessionEnding += session;
-        try {
-            Emit("ready");
-            // Parent pipe closure also terminates the helper after a plugin crash.
-            while (Console.ReadLine() != null) {}
-        } finally {
+        // Parent pipe closure also terminates the helper after a plugin crash.
+        Thread parent = new Thread(delegate() {
+            try { while (Console.In.ReadLine() != null) {} } catch (Exception) {}
             if (wmi != null) { try { wmi.Stop(); wmi.Dispose(); } catch (Exception) {} }
-            SystemEvents.PowerModeChanged -= power;
-            SystemEvents.SessionEnding -= session;
-        }
+            Environment.Exit(0);
+        });
+        parent.IsBackground = true;
+        Emit("ready");
+        parent.Start();
+        System.Windows.Forms.Application.Run();
     }
 }
 '@
