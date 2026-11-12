@@ -63,6 +63,28 @@ describe("PowerLifecycleService", () => {
     guarded.shutdown();
     expect(suspension.stop).toHaveBeenCalledOnce();
   });
+  it("trusts a wake that follows a reported sleep, even a short one", async () => {
+    // A 10 s sleep is below the clock-gap threshold; the helper's sleep is proof.
+    const { deps } = setup();
+    const suspension = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      recentlySuspended: vi.fn().mockReturnValue(false),
+    };
+    const guarded = new PowerLifecycleService({ ...deps, suspension });
+    guarded.configure([rule()]);
+    await guarded.handle("sleep");
+    await guarded.handle("wake");
+    expect(deps.setPower.mock.calls.map((call) => call[1])).toEqual([
+      false,
+      true,
+    ]);
+    // The sleep is consumed: a later display-only wake is ignored again.
+    await vi.advanceTimersByTimeAsync(5001);
+    await guarded.handle("wake");
+    expect(deps.setPower).toHaveBeenCalledTimes(2);
+    guarded.shutdown();
+  });
   it("defaults to no automation or helper", async () => {
     const { service, deps } = setup();
     service.configure(undefined);
@@ -170,7 +192,7 @@ describe("PowerLifecycleService", () => {
       expect.arrayContaining(["missing_key", "missing_target"]),
     );
   });
-  it("retries transient wake failure once and then succeeds", async () => {
+  it("retries a transient wake failure and then succeeds", async () => {
     const { service, deps } = setup();
     service.configure([rule()]);
     deps.setPower.mockRejectedValueOnce({ category: "network" });
@@ -178,6 +200,39 @@ describe("PowerLifecycleService", () => {
     await vi.advanceTimersByTimeAsync(3001);
     await task;
     expect(deps.setPower).toHaveBeenCalledTimes(2);
+  });
+  it("keeps retrying wake while the network comes back after resume", async () => {
+    // Windows desktops can take 20+ s to reconnect after sleep (#377).
+    const { service, deps } = setup();
+    service.configure([rule()]);
+    deps.resolveTarget.mockRejectedValueOnce({ category: "network" });
+    deps.setPower
+      .mockRejectedValueOnce({ category: "network" })
+      .mockRejectedValueOnce({ category: "timeout" })
+      .mockRejectedValueOnce({ category: "network" });
+    const task = service.handle("wake");
+    await vi.advanceTimersByTimeAsync(2000 + 4000 + 8000 + 15000 + 1);
+    await task;
+    expect(deps.resolveTarget).toHaveBeenCalledTimes(5);
+    expect(deps.setPower).toHaveBeenCalledTimes(4);
+    expect(deps.log.mock.calls.at(-1)?.[0].category).toBe("ok");
+  });
+  it("gives up retrying wake at the deadline and sends nothing afterwards", async () => {
+    const { service, deps } = setup();
+    service.configure([rule()]);
+    deps.setPower.mockRejectedValue({ category: "network" });
+    const task = service.handle("wake");
+    await vi.advanceTimersByTimeAsync(60001);
+    await task;
+    const calls = deps.setPower.mock.calls.length;
+    expect(calls).toBeGreaterThan(2);
+    expect(deps.log).toHaveBeenCalledWith({
+      event: "wake",
+      target: "light:dev-1|H619A",
+      category: "timeout",
+    });
+    await vi.advanceTimersByTimeAsync(120000);
+    expect(deps.setPower).toHaveBeenCalledTimes(calls);
   });
   it("prepares sleep targets without commands and reuses them when discovery is unavailable", async () => {
     const { service, deps } = setup();

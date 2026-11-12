@@ -44,23 +44,26 @@ ObjC.registerSubclass({
 const observer = $.GoveePowerObserver.alloc.init;
 const workspace = $.NSWorkspace.sharedWorkspace.notificationCenter;
 const center = $.NSNotificationCenter.defaultCenter;
+// JXA bridges `null` to NSNull, which would filter on sender NSNull and never
+// match. `$()` is nil: accept the notification from any sender.
+const anySender = $();
 workspace.addObserverSelectorNameObject(
   observer,
   "sleep:",
   $.NSWorkspaceWillSleepNotification,
-  null,
+  anySender,
 );
 workspace.addObserverSelectorNameObject(
   observer,
   "wake:",
   $.NSWorkspaceDidWakeNotification,
-  null,
+  anySender,
 );
 workspace.addObserverSelectorNameObject(
   observer,
   "shutdown:",
   $.NSWorkspaceWillPowerOffNotification,
-  null,
+  anySender,
 );
 center.addObserverSelectorNameObject(
   observer,
