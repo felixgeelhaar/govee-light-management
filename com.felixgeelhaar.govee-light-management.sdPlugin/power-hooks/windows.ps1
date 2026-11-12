@@ -53,7 +53,6 @@ public static class GoveePowerObserver {
         // Parent pipe closure also terminates the helper after a plugin crash.
         Thread parent = new Thread(delegate() {
             try { while (Console.In.ReadLine() != null) {} } catch (Exception) {}
-            if (wmi != null) { try { wmi.Stop(); wmi.Dispose(); } catch (Exception) {} }
             Environment.Exit(0);
         });
         parent.IsBackground = true;
@@ -64,3 +63,5 @@ public static class GoveePowerObserver {
 }
 '@
 [GoveePowerObserver]::Run()
+# Stopping the WMI watcher blocks; leaving it to process exit keeps cleanup inside the 1 s budget.
+[Environment]::Exit(0)
