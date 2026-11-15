@@ -7,6 +7,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.0+-blue?style=flat-square&logo=typescript)
 ![Node.js](https://img.shields.io/badge/Node.js-20+-green?style=flat-square&logo=node.js)
+[![nox security grade](.github/nox-badge.svg)](.github/workflows/ci.yml)
 
 **Control your room's Govee lighting without ever leaving what you're working on.**
 
