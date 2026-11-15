@@ -112,6 +112,22 @@
       "severity": "medium",
       "reason": "GHSA-gcqx-w48m-w2h4 (deepmerge 4.3.1, low per npm, CVSS 5.3): no patched version exists upstream (4.3.1 is latest). Transitive via @rollup/plugin-node-resolve, build-time only, never shipped in the plugin bundle path with attacker input. Revisit when deepmerge publishes a fix. Reviewed 2026-11-15.",
       "created_at": "2026-11-15T10:16:04.180083Z"
+    },
+    {
+      "fingerprint": "02ea8a05d584a7769cc09c1dbfc701e07fe871a1ce53665cfd9c71474e4beaf4",
+      "rule_id": "",
+      "file_path": "",
+      "severity": "",
+      "reason": "False positive for the intent: retries are disabled deliberately. Power-lifecycle commands run on a cancellable 5 s deadline and must not retry past it (see docs/verification/377-power-lifecycle.md). Seen by nox 1.39.2 only. Reviewed 2026-11-15.",
+      "created_at": "2026-11-15T10:27:03.4735Z"
+    },
+    {
+      "fingerprint": "26893d5db37c3538df64e098a1232b06808548b102166e7eea14b87f18d9acdb",
+      "rule_id": "",
+      "file_path": "",
+      "severity": "",
+      "reason": "False positive: safer-buffer is the legitimate, long-standing npm package (transitive dependency of iconv-lite), not a typosquat of safe-buffer. Seen by nox 1.39.2 only. Reviewed 2026-11-15.",
+      "created_at": "2026-11-15T10:27:03.509649Z"
     }
   ]
 }

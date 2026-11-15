@@ -191,9 +191,8 @@ jobs:
         run: npm ci
 
       - name: Run security audit
-        # Informational only: nox is the dependency gate. `|| true` keeps the
-        # step green on audit warnings without a step-level continue-on-error.
-        run: npm audit --audit-level high || true
+        run: npm audit --audit-level high
+        continue-on-error: true # nox:ignore IAC-018 -- npm audit is informational by design; nox is the blocking dependency gate (see CLAUDE.md Quality gates).
 
       - name: Install nox (pinned + sha256-verified binary)
         env:
