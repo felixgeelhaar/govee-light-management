@@ -6,7 +6,7 @@
       "rule_id": "TAINT-002",
       "file_path": "scripts/watch-backend.js",
       "severity": "high",
-      "reason": "False positive: the command is the fixed 'npm run build' with a literal argument array. process.env is spread into spawn's `env` option \u2014 the child's environment, never the command line \u2014 so no environment value can reach the command_injection sink the rule reports. Local dev watch script, not shipped code. Reviewed 2026-09-20.",
+      "reason": "False positive: the command is the fixed 'npm run build' with a literal argument array. process.env is spread into spawn's `env` option — the child's environment, never the command line — so no environment value can reach the command_injection sink the rule reports. Local dev watch script, not shipped code. Reviewed 2026-09-20.",
       "created_at": "2026-09-20T07:20:00Z"
     },
     {
@@ -88,6 +88,30 @@
       "severity": "low",
       "reason": "continue-on-error is intentional on four non-gating CI steps: the Node 24 forward-compat job (Node 20 is EOL but the manifest cannot select 24 yet), npm audit, the CodeQL results upload, and coverctl. The required gates (Node 20 tests, nox, CodeQL analysis) do not use it. Reviewed 2026-10-30.",
       "created_at": "2026-10-30T09:00:00Z"
+    },
+    {
+      "fingerprint": "a735c9605e684a58e262566970ebee977da2f84af9e8de82b14b30b15144ac91",
+      "rule_id": "SLOP-001",
+      "file_path": "com.felixgeelhaar.govee-light-management.sdPlugin/power-hooks/macos.js",
+      "severity": "medium",
+      "reason": "False positive: AppKit and Foundation are macOS system frameworks loaded with JXA ObjC.import, not npm packages. No slopsquatting risk. Reviewed 2026-11-15.",
+      "created_at": "2026-11-15T10:15:52.124673Z"
+    },
+    {
+      "fingerprint": "01f54afc3b9c8427949f3c65bc10001df792a16334a4e270d65f59e7d03cfe6f",
+      "rule_id": "SLOP-001",
+      "file_path": "com.felixgeelhaar.govee-light-management.sdPlugin/power-hooks/macos.js",
+      "severity": "medium",
+      "reason": "False positive: AppKit and Foundation are macOS system frameworks loaded with JXA ObjC.import, not npm packages. No slopsquatting risk. Reviewed 2026-11-15.",
+      "created_at": "2026-11-15T10:15:52.124673Z"
+    },
+    {
+      "fingerprint": "7723c71573da0308d511c61f480554e63e0c02f8cdeee566a57613e25c256004",
+      "rule_id": "VULN-001",
+      "file_path": "package-lock.json",
+      "severity": "medium",
+      "reason": "GHSA-gcqx-w48m-w2h4 (deepmerge 4.3.1, low per npm, CVSS 5.3): no patched version exists upstream (4.3.1 is latest). Transitive via @rollup/plugin-node-resolve, build-time only, never shipped in the plugin bundle path with attacker input. Revisit when deepmerge publishes a fix. Reviewed 2026-11-15.",
+      "created_at": "2026-11-15T10:16:04.180083Z"
     }
   ]
 }
