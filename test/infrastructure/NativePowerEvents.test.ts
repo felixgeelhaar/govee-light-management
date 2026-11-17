@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
+import { readFileSync } from "node:fs";
 import { PassThrough } from "node:stream";
 import { NativePowerEvents } from "../../src/backend/infrastructure/power/NativePowerEvents";
 const child = () =>
@@ -42,6 +43,61 @@ describe("native power event adapter", () => {
       expect(process.stdin.writableEnded).toBe(true);
     },
   );
+  it("registers macOS observers with a nil object filter, not NSNull", () => {
+    // JXA bridges `null` to an NSNull instance, so an observer registered with
+    // object `null` only matches notifications posted by NSNull: never sleep.
+    const script = readFileSync(
+      "com.felixgeelhaar.govee-light-management.sdPlugin/power-hooks/macos.js",
+      "utf8",
+    );
+    const registrations = script.match(
+      /addObserverSelectorNameObject\([^;]*?\);/g,
+    );
+    expect(registrations).toHaveLength(4);
+    for (const call of registrations ?? [])
+      expect(call).not.toMatch(/\bnull\b/);
+  });
+  it("runs the Windows hook on a pumped STA thread so SystemEvents can fire", async () => {
+    // .NET Framework SystemEvents shares an STA caller's thread for its hidden
+    // window; if that thread blocks on stdin, Suspend/SessionEnding never arrive.
+    const process = child();
+    const spawn = vi.fn().mockReturnValue(process);
+    const source = new NativePowerEvents({
+      platform: "win32",
+      spawn: spawn as never,
+    });
+    const ready = source.start(vi.fn(), vi.fn());
+    process.stdout.write("ready\n");
+    await ready;
+    const args: string[] = spawn.mock.calls[0][1];
+    expect(args).toContain("-STA");
+    const script = args[args.length - 1];
+    expect(script).toContain("System.Windows.Forms.Application.Run()");
+    expect(script).not.toMatch(
+      /^\s*while \(Console\.ReadLine\(\) != null\) \{\}\s*$/m,
+    );
+    source.stop();
+  });
+  it("reports helper readiness, accepted events and exit to the diagnostic log", async () => {
+    const process = child();
+    const log = vi.fn();
+    const source = new NativePowerEvents({
+      platform: "win32",
+      spawn: vi.fn().mockReturnValue(process) as never,
+      log,
+    });
+    const ready = source.start(vi.fn(), vi.fn());
+    process.stdout.write("ready\nsleep\nnot-an-event\nwake\n");
+    await ready;
+    process.emit("exit", 1, null);
+    expect(log.mock.calls.map((call) => call[0])).toEqual([
+      { category: "helper_ready" },
+      { category: "helper_event", event: "sleep" },
+      { category: "helper_ignored" },
+      { category: "helper_event", event: "wake" },
+      { category: "helper_exit", code: 1 },
+    ]);
+  });
   it("does not accept arbitrary helper messages and bounds oversized output", async () => {
     const process = child();
     const spawn = vi.fn().mockReturnValue(process);
