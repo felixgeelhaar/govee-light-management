@@ -2,7 +2,7 @@ import type { FeedbackPayload } from "@elgato/streamdeck";
 import type { BaseSettings, DeviceTarget } from "./ActionServices";
 
 /** Presentation state only; target resolution remains in the action's live sync. */
-export class BrightnessFeedback {
+export class DialTargetFeedback {
   private targets = new Map<string, { id: string; name?: string }>();
   private sent = new Map<string, string>();
 

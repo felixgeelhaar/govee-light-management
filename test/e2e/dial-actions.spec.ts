@@ -47,16 +47,24 @@ for (const { name, url, settings } of DIAL_PIS) {
   });
 }
 
-test('brightness dials expose a host-editable title alongside value and bar (#378)', async ({ request }) => {
+test('hybrid dials expose host-editable titles alongside value and bar (#378, #429)', async ({ request }) => {
   const manifest = await (await request.get('/manifest.json')).json();
   const retired = ['brightness-dial', 'colorhue-dial', 'colortemp-dial', 'segment-color-dial'];
   expect(manifest.Actions).toHaveLength(14);
   expect(manifest.Actions.some((action: { UUID: string }) =>
     retired.some(suffix => action.UUID.endsWith(`.${suffix}`)))).toBe(false);
-  const actions = manifest.Actions.filter((action: { UUID: string }) =>
-    ['brightness'].some(suffix => action.UUID.endsWith(`.${suffix}`)));
-  expect(actions).toHaveLength(1);
-  for (const action of actions) {
+  const titleLayouts = new Map([
+    ['brightness', 'layouts/brightness.json'],
+    ['color', 'layouts/color-hue.json'],
+    ['colortemp', 'layouts/color-temp.json'],
+    ['saturation-dial', 'layouts/saturation.json'],
+    ['segment-color', 'layouts/segment.json'],
+  ]);
+  for (const [suffix, expectedLayout] of titleLayouts) {
+    const action = manifest.Actions.find((candidate: { UUID: string }) =>
+      candidate.UUID.endsWith(`.${suffix}`));
+    expect(action, suffix).toBeDefined();
+    expect(action.Encoder.layout, suffix).toBe(expectedLayout);
     const layout = await (await request.get(`/${action.Encoder.layout}`)).json();
     expect(layout.items.map((item: { key: string }) => item.key)).toEqual(['title', 'value', 'bar']);
     expect(layout.items[0].type).toBe('text');

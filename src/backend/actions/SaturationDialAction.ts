@@ -17,6 +17,7 @@ import { valuePrefix } from "./shared/power-state";
 import { applyStatusImage, powerStatus } from "./shared/status-badge";
 import { ColorRgb } from "../domain/value-objects/ColorRgb";
 import { telemetryService } from "../services/TelemetryService";
+import { DialTargetFeedback } from "./shared/dial-target-feedback";
 
 type SaturationDialSettings = BaseDialSettings & {
   /**
@@ -50,6 +51,7 @@ const DEFAULT_BAR_BG = "0:#6B7280,1:#EF4444"; // grey → vivid red
 
 @action({ UUID: "com.felixgeelhaar.govee-light-management.saturation-dial" })
 export class SaturationDialAction extends BaseDialAction<SaturationDialSettings> {
+  private feedback = new DialTargetFeedback();
   private saturationMap = new Map<string, number>();
   private hueMap = new Map<string, number>();
   private displayModeMap = new Map<string, "single" | "group" | "mixed">();
@@ -64,6 +66,7 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
     this.saturationMap.delete(ctx);
     this.hueMap.delete(ctx);
     this.displayModeMap.delete(ctx);
+    this.feedback.reset(ctx);
   }
 
   // ── Keypad ─────────────────────────────────────────────────────
@@ -175,12 +178,14 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
     ctx: string,
     settings: SaturationDialSettings,
   ): Promise<void> {
+    this.feedback.beginSync(ctx, settings);
     const apiKey = await this.services.getApiKey(settings);
     if (!apiKey || !settings.selectedDeviceId) return;
 
     try {
       await this.services.ensureServices(apiKey);
       const target = await this.services.resolveTarget(settings);
+      this.feedback.setTarget(ctx, settings, target);
       if (target?.type === "light" && target.light) {
         this.displayModeMap.set(ctx, "single");
         this.groupSummaryMap.delete(ctx);
@@ -267,7 +272,7 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
   protected async updateDisplay(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     action: DialAction<SaturationDialSettings & JsonObject> | any,
-    _settings: SaturationDialSettings,
+    settings: SaturationDialSettings,
   ): Promise<void> {
     const ctx = action.id || "default";
     const saturation = this.saturationMap.get(ctx) ?? 100;
@@ -277,11 +282,12 @@ export class SaturationDialAction extends BaseDialAction<SaturationDialSettings>
 
     if (typeof action.setFeedback === "function") {
       try {
-        await action.setFeedback({
-          label: "Saturation",
+        await this.feedback.render(
+          action,
+          settings,
           value,
-          bar: { value: isOn ? saturation : 0 },
-        });
+          isOn ? saturation : 0,
+        );
       } catch {
         // No-op if action disappeared mid-render.
       }

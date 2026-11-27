@@ -2,7 +2,7 @@
   "id": "layouts/color-hue.json",
   "items": [
     {
-      "key": "label",
+      "key": "title",
       "type": "text",
       "rect": [16, 10, 168, 18],
       "alignment": "center",

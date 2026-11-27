@@ -19,7 +19,7 @@ import {
   streamDeck,
 } from "@elgato/streamdeck";
 import type { JsonObject, JsonValue } from "@elgato/utils";
-import { BrightnessFeedback } from "./shared/brightness-feedback";
+import { DialTargetFeedback } from "./shared/dial-target-feedback";
 import { Brightness } from "../domain/value-objects/Brightness";
 import type { FanOutOutcome } from "../domain/services/group-fan-out";
 import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
@@ -37,7 +37,7 @@ const DEFAULT_BAR_BG = "#1F2937";
 
 @action({ UUID: "com.felixgeelhaar.govee-light-management.brightness" })
 export class BrightnessAction extends BaseDialAction<BrightnessSettings> {
-  private feedback = new BrightnessFeedback();
+  private feedback = new DialTargetFeedback();
   private brightnessMap = new Map<string, number>();
   private displayModeMap = new Map<string, "single" | "group" | "mixed">();
 
