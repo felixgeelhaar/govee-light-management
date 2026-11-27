@@ -28,6 +28,7 @@ import { telemetryService } from "../services/TelemetryService";
 import { ColorPaletteService } from "../domain/services/ColorPaletteService";
 import { ColorPreset } from "../domain/value-objects/ColorPalette";
 import { globalSettingsService } from "../services/GlobalSettingsService";
+import { DialTargetFeedback } from "./shared/dial-target-feedback";
 
 type ColorSettings = BaseDialSettings & {
   colorValue?: string;
@@ -41,6 +42,7 @@ const DEFAULT_BAR_BG =
 
 @action({ UUID: "com.felixgeelhaar.govee-light-management.color" })
 export class ColorAction extends BaseDialAction<ColorSettings> {
+  private feedback = new DialTargetFeedback();
   private hueMap = new Map<string, number>();
   private displayModeMap = new Map<string, "single" | "group" | "mixed">();
   private paletteService = new ColorPaletteService();
@@ -54,6 +56,7 @@ export class ColorAction extends BaseDialAction<ColorSettings> {
   protected cleanupValueMaps(ctx: string): void {
     this.hueMap.delete(ctx);
     this.displayModeMap.delete(ctx);
+    this.feedback.reset(ctx);
   }
 
   private async ensurePaletteLoaded(): Promise<void> {
@@ -192,12 +195,14 @@ export class ColorAction extends BaseDialAction<ColorSettings> {
     ctx: string,
     settings: ColorSettings,
   ): Promise<void> {
+    this.feedback.beginSync(ctx, settings);
     const apiKey = await this.services.getApiKey(settings);
     if (!apiKey || !settings.selectedDeviceId) return;
 
     try {
       await this.services.ensureServices(apiKey);
       const target = await this.services.resolveTarget(settings);
+      this.feedback.setTarget(ctx, settings, target);
       if (target?.type === "light" && target.light) {
         this.displayModeMap.set(ctx, "single");
         this.groupSummaryMap.delete(ctx);
@@ -284,11 +289,12 @@ export class ColorAction extends BaseDialAction<ColorSettings> {
 
     if (typeof action.setFeedback === "function") {
       try {
-        await action.setFeedback({
-          label: "Color",
+        await this.feedback.render(
+          action,
+          _settings,
           value,
-          bar: { value: isOn ? Math.round((hue / 360) * 100) : 0 },
-        });
+          isOn ? Math.round((hue / 360) * 100) : 0,
+        );
       } catch {
         // No-op if action disappeared mid-render.
       }

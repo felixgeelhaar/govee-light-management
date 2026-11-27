@@ -4,6 +4,12 @@ All notable changes to this project are documented below. This project adheres t
 
 ## [Unreleased]
 
+## [3.1.3] - 2026-11-27
+
+### Fixed
+
+- Hybrid dial actions now show the selected light or group name in their LCD title and support Stream Deck's native custom titles across Brightness, Color, Color Temperature, Saturation and Segment Color (#429).
+
 ## [3.1.2] - 2026-10-30
 
 ### Added

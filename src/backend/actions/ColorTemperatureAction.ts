@@ -31,6 +31,7 @@ import { clamp } from "./shared/validation";
 import { valuePrefix } from "./shared/power-state";
 import { applyStatusImage, powerStatus } from "./shared/status-badge";
 import { telemetryService } from "../services/TelemetryService";
+import { DialTargetFeedback } from "./shared/dial-target-feedback";
 
 type ColorTemperatureSettings = BaseDialSettings & {
   colorTempValue?: number;
@@ -44,6 +45,7 @@ const DEFAULT_BAR_BG = "0:#FFB347,1:#A8D8EA";
 
 @action({ UUID: "com.felixgeelhaar.govee-light-management.colortemp" })
 export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSettings> {
+  private feedback = new DialTargetFeedback();
   private tempMap = new Map<string, number>();
   private tempRangeMap = new Map<string, KelvinRange>();
   private displayModeMap = new Map<string, "single" | "group" | "mixed">();
@@ -57,6 +59,7 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
     this.tempMap.delete(ctx);
     this.tempRangeMap.delete(ctx);
     this.displayModeMap.delete(ctx);
+    this.feedback.reset(ctx);
   }
 
   override async onDidReceiveSettings(
@@ -198,6 +201,7 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
     ctx: string,
     settings: ColorTemperatureSettings,
   ): Promise<void> {
+    this.feedback.beginSync(ctx, settings);
     const apiKey = await this.services.getApiKey(settings);
     if (!apiKey || !settings.selectedDeviceId) return;
 
@@ -205,6 +209,7 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
       await this.services.ensureServices(apiKey);
       const range = await this.getTemperatureRange(settings, ctx);
       const target = await this.services.resolveTarget(settings);
+      this.feedback.setTarget(ctx, settings, target);
       if (target?.type === "light" && target.light) {
         this.displayModeMap.set(ctx, "single");
         this.groupSummaryMap.delete(ctx);
@@ -312,11 +317,12 @@ export class ColorTemperatureAction extends BaseDialAction<ColorTemperatureSetti
 
     if (typeof action.setFeedback === "function") {
       try {
-        await action.setFeedback({
-          label: "Temperature",
+        await this.feedback.render(
+          action,
+          settings,
           value,
-          bar: { value: isOn ? barValue : 0 },
-        });
+          isOn ? barValue : 0,
+        );
       } catch {
         // No-op if action disappeared mid-render.
       }

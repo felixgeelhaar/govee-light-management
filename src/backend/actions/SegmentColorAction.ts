@@ -23,6 +23,7 @@ import { BaseDialAction, type BaseDialSettings } from "./shared/BaseDialAction";
 import { hsvToRgb } from "../domain/value-objects/color-conversion";
 import { clamp } from "./shared/validation";
 import { applyStatusImage, powerStatus } from "./shared/status-badge";
+import { DialTargetFeedback } from "./shared/dial-target-feedback";
 
 type SegmentColorSettings = BaseDialSettings & {
   // Keypad-mode settings
@@ -43,6 +44,7 @@ const DEFAULT_BAR_BG =
 
 @action({ UUID: "com.felixgeelhaar.govee-light-management.segment-color" })
 export class SegmentColorAction extends BaseDialAction<SegmentColorSettings> {
+  private feedback = new DialTargetFeedback();
   /** Per-context hue for the encoder-mode single-segment dial. */
   private hueMap = new Map<string, number>();
 
@@ -52,6 +54,7 @@ export class SegmentColorAction extends BaseDialAction<SegmentColorSettings> {
 
   protected cleanupValueMaps(ctx: string): void {
     this.hueMap.delete(ctx);
+    this.feedback.reset(ctx);
   }
 
   // ── Keypad ─────────────────────────────────────────────────────
@@ -140,12 +143,14 @@ export class SegmentColorAction extends BaseDialAction<SegmentColorSettings> {
     ctx: string,
     settings: SegmentColorSettings,
   ): Promise<void> {
+    this.feedback.beginSync(ctx, settings);
     const apiKey = await this.services.getApiKey(settings);
     if (!apiKey || !settings.selectedDeviceId) return;
 
     try {
       await this.services.ensureServices(apiKey);
       const target = await this.services.resolveTarget(settings);
+      this.feedback.setTarget(ctx, settings, target);
       let probeLight: Light | undefined;
       if (target?.type === "light" && target.light) {
         probeLight = target.light;
@@ -196,13 +201,13 @@ export class SegmentColorAction extends BaseDialAction<SegmentColorSettings> {
     if (typeof action.setFeedback === "function") {
       // Encoder mode: show the dial-rotated single-segment hue.
       const hue = this.hueMap.get(ctx) ?? 0;
-      const segmentDisplay = settings.segmentIndex ?? 1;
       try {
-        await action.setFeedback({
-          label: `Segment ${segmentDisplay}`,
-          value: isOn ? `${hue} °` : "Off",
-          bar: { value: isOn ? Math.round((hue / 360) * 100) : 0 },
-        });
+        await this.feedback.render(
+          action,
+          settings,
+          isOn ? `${hue} °` : "Off",
+          isOn ? Math.round((hue / 360) * 100) : 0,
+        );
       } catch {
         // No-op if action disappeared mid-render.
       }
